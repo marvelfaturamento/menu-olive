@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<!-- saved from url=(0089)https://faturamento-sigma.vercel.app/?perfil=admin&usuario=Tiago&usuarioRef=tiago.carniel -->
+<html lang="pt-br"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel BI</title>
+<link rel="icon" href="data:,">
+
+
+
+
+<meta id="dcngeagmmhegagicpcmpinaoklddcgon">  <link rel="stylesheet" href="css/faturamento.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>📊 Painel BI</h1><p>Faturamento bruto, lucro real, nacional, internacional e erros.</p></div>
+    <button type="button" class="navbtn active" data-page="dashboard">📈 Dashboard Real</button>
+    <button type="button" class="navbtn" data-page="dashboardOperacional">📊 Dashboard Operacional</button>
+    <button type="button" class="navbtn" data-page="diario">🗓️ Diário</button>
+    <button type="button" class="navbtn" data-page="graficos">📉 Gráficos</button>
+    <button type="button" class="navbtn" data-page="anual">📆 Gráfico anual</button>
+    <button type="button" class="navbtn" data-page="config">⚙️ Config</button>
+  </aside>
+
+  <main class="content">
+    <section id="dashboard" class="page active">
+      <div class="hero">
+        <div class="panel">
+          <div class="toolbar">
+            <div><h2>Visão Geral</h2><div id="dashSubtitle" class="sub">Período com 29 dia(s) carregado(s). Último lançamento: 30/01/2026.</div></div>
+            <select id="dashboardMonth"><option value="2026-01">janeiro de 2026</option><option value="2026-02">fevereiro de 2026</option><option value="2026-03">março de 2026</option><option value="2026-04">abril de 2026</option><option value="2026-05">maio de 2026</option><option value="2026-06">junho de 2026</option><option value="2026-07">julho de 2026</option><option value="2026-08">agosto de 2026</option><option value="2026-09">setembro de 2026</option><option value="2026-10">outubro de 2026</option><option value="2026-11">novembro de 2026</option><option value="2026-12">dezembro de 2026</option></select>
+          </div>
+          <div class="cards">
+            <div class="mini-card"><div class="label">Faturamento bruto</div><div id="cardBruto" class="value">65.056.607,98</div><div class="help">Soma do bruto do mês</div></div>
+            <div class="mini-card"><div class="label">Refaturado</div><div id="cardRef" class="value sm">853.312,28</div><div class="help">Valor do setor</div></div>
+            <div class="mini-card"><div class="label">Valor líquido</div><div id="cardLiquido" class="value">64.203.295,70</div><div class="help">Bruto - setor</div></div>
+            <div class="mini-card"><div class="label">Meta do mês</div><div id="cardMeta" class="value warn">70.467.820,06</div><div class="help">Configuração mensal</div></div>
+
+            <div class="mini-card"><div class="label">Falta / sobra</div><div id="cardFalta" class="value bad sm">6.264.524,36</div><div class="help">Verde = acima da meta</div></div>
+            <div class="mini-card"><div class="label">% atingido</div><div id="cardAtingido" class="value warn">91,1%</div><div class="help">Valor bruto ÷ meta</div></div>
+            <div class="mini-card"><div class="label">Internacional</div><div id="cardInter" class="value sm">23.997.707,30</div><div id="cardInterPct" class="help">36,9% da receita</div></div>
+            <div class="mini-card"><div class="label">Nacional</div><div id="cardNac" class="value sm">41.058.900,69</div><div id="cardNacPct" class="help">63,1% da receita</div></div>
+          </div>
+          <div class="metrics-row">
+            <div class="mini-card"><div class="label">Média bruta por dia</div><div id="cardMediaDia" class="value sm">2.071.074,05</div><div class="help">Valor bruto ÷ dias do mês</div></div>
+            <div class="mini-card"><div class="label">Precisa por dia</div><div id="cardPrecisaDia" class="value good">202.081,43</div><div class="help">Para bater a meta</div></div>
+            <div class="mini-card"><div class="label">Substituto</div><div id="cardSubst" class="value sm">320.871,47</div><div class="help">Conferência</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Resumo Executivo</h2><div class="sub">Leitura do mês filtrado</div>
+          <div class="cards" style="grid-template-columns:1fr 1fr">
+            <div class="mini-card"><div class="label">Melhor dia</div><div id="cardBestDay" class="value sm">15/01/2026</div><div id="cardBestVal" class="help">3.731.333,79</div></div>
+            <div class="mini-card"><div class="label">Pior dia</div><div id="cardWorstDay" class="value sm">11/01/2026</div><div id="cardWorstVal" class="help">103.902,29</div></div>
+            <div class="mini-card"><div class="label">Meta por dia</div><div id="cardMetaDia" class="value sm">2.273.155,49</div><div id="cardDaysInMonth" class="help">31 dias no mês</div></div>
+            <div class="mini-card"><div class="label">% refaturado</div><div id="cardErroPct" class="value warn">1,8%</div><div class="help">(Refaturado + substituto) ÷ bruto real</div></div>
+          </div>
+          <div style="margin-top:16px" class="cards">
+            <div class="mini-card"><div class="label">Participação internacional</div><div id="cardPartInter" class="value sm">36,9%</div></div>
+            <div class="mini-card"><div class="label">Participação nacional</div><div id="cardPartNac" class="value sm">63,1%</div></div>
+            <div class="mini-card"><div class="label">Mês consultado</div><div id="cardMes" class="value sm">janeiro de 2026</div></div>
+            <div class="mini-card"><div class="label">Status do mês</div><div style="margin-top:10px"><span id="cardStatus" class="pill bad">Abaixo da meta</span></div><div class="help">Considera o bruto do mês filtrado</div></div>
+          </div></div>
+      </div>
+    </section>
+
+
+    <section id="dashboardOperacional" class="page">
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Dashboard Operacional</h2>
+            <div class="sub">Somente valores do relatório e Supabase, sem valores reais informados manualmente.</div>
+          </div>
+          <select id="operacionalMonth"></select>
+        </div>
+        <div class="cards">
+          <div class="mini-card"><div class="label">Faturamento bruto operacional</div><div id="opBruto" class="value">0,00</div><div class="help">Somente relatório</div></div>
+          <div class="mini-card"><div class="label">Refaturado / Setor</div><div id="opSetor" class="value sm">0,00</div><div class="help">Supabase B</div></div>
+          <div class="mini-card"><div class="label">Líquido operacional</div><div id="opLiquido" class="value">0,00</div><div class="help">Bruto operacional - setor</div></div>
+          <div class="mini-card"><div class="label">Substituto</div><div id="opSubst" class="value sm">0,00</div><div class="help">Conferência</div></div>
+          <div class="mini-card"><div class="label">% Refaturado + Substituto</div><div id="opPctErro" class="value warn">0,0%</div><div class="help">Sobre líquido operacional</div></div>
+          <div class="mini-card"><div class="label">Internacional</div><div id="opInter" class="value sm">0,00</div></div>
+          <div class="mini-card"><div class="label">Nacional</div><div id="opNac" class="value sm">0,00</div></div>
+          <div class="mini-card"><div class="label">Mês consultado</div><div id="opMes" class="value sm">-</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="diario" class="page">
+      <div class="panel">
+        <div class="toolbar"><div><h2>Faturamento diário</h2><div class="sub">Meta dia = meta do mês ÷ total de dias do mês selecionado. A diferença considera o bruto do dia.</div></div><select id="diarioMonth"><option value="2026-01">janeiro de 2026</option><option value="2026-02">fevereiro de 2026</option><option value="2026-03">março de 2026</option><option value="2026-04">abril de 2026</option><option value="2026-05">maio de 2026</option><option value="2026-06">junho de 2026</option><option value="2026-07">julho de 2026</option><option value="2026-08">agosto de 2026</option><option value="2026-09">setembro de 2026</option><option value="2026-10">outubro de 2026</option><option value="2026-11">novembro de 2026</option><option value="2026-12">dezembro de 2026</option></select></div>
+        <div class="fit"><table><thead><tr><th style="width:10%">Dia</th><th style="width:15%">Bruto</th><th style="width:12%">Refaturado</th><th style="width:11%">Setor</th><th style="width:12%">Substituição</th><th style="width:14%">Lucro real</th><th style="width:13%">Meta dia</th><th style="width:13%">Diferença</th></tr></thead><tbody id="diarioBody"><tr style="background:rgba(239,77,97,0.56)">
+      <td>01/01/2026</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>2.273.155,49</td>
+      <td>-2.273.155,49</td>
+    </tr><tr style="background:rgba(239,77,97,0.34434819998827454)">
+      <td>02/01/2026</td>
+      <td>1.196.591,40</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.167.166,84</td>
+      <td>2.273.155,49</td>
+      <td>-1.105.988,65</td>
+    </tr><tr style="background:rgba(239,77,97,0.28031178791311995)">
+      <td>03/01/2026</td>
+      <td>1.543.174,07</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.513.749,51</td>
+      <td>2.273.155,49</td>
+      <td>-759.405,98</td>
+    </tr><tr style="background:rgba(239,77,97,0.5405681752539603)">
+      <td>04/01/2026</td>
+      <td>134.594,94</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>105.170,38</td>
+      <td>2.273.155,49</td>
+      <td>-2.167.985,11</td>
+    </tr><tr style="background:rgba(239,77,97,0.25927078931067227)">
+      <td>05/01/2026</td>
+      <td>1.657.053,74</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.627.629,18</td>
+      <td>2.273.155,49</td>
+      <td>-645.526,31</td>
+    </tr><tr style="background:rgba(239,77,97,0.17579905832493012)">
+      <td>06/01/2026</td>
+      <td>2.108.825,70</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.079.401,14</td>
+      <td>2.273.155,49</td>
+      <td>-193.754,35</td>
+    </tr><tr style="background:rgba(239,77,97,0.23198091935353993)">
+      <td>07/01/2026</td>
+      <td>1.804.754,02</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.775.329,46</td>
+      <td>2.273.155,49</td>
+      <td>-497.826,03</td>
+    </tr><tr style="background:rgba(239,77,97,0.16419122975149716)">
+      <td>08/01/2026</td>
+      <td>2.171.650,46</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.142.225,90</td>
+      <td>2.273.155,49</td>
+      <td>-130.929,59</td>
+    </tr><tr style="background:rgba(31,193,107,0.1432211284391672)">
+      <td>09/01/2026</td>
+      <td>2.320.013,68</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.290.589,12</td>
+      <td>2.273.155,49</td>
+      <td>17.433,63</td>
+    </tr><tr style="background:rgba(239,77,97,0.324890923582781)">
+      <td>10/01/2026</td>
+      <td>1.301.899,53</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.272.474,97</td>
+      <td>2.273.155,49</td>
+      <td>-1.000.680,52</td>
+    </tr><tr style="background:rgba(239,77,97,0.5408024741408273)">
+      <td>11/01/2026</td>
+      <td>133.326,85</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>103.902,29</td>
+      <td>2.273.155,49</td>
+      <td>-2.169.253,20</td>
+    </tr><tr style="background:rgba(239,77,97,0.2183727378661105)">
+      <td>12/01/2026</td>
+      <td>1.878.405,24</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.848.980,68</td>
+      <td>2.273.155,49</td>
+      <td>-424.174,81</td>
+    </tr><tr style="background:rgba(31,193,107,0.27704711372678414)">
+      <td>13/01/2026</td>
+      <td>3.044.316,71</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.014.892,15</td>
+      <td>2.273.155,49</td>
+      <td>741.736,66</td>
+    </tr><tr style="background:rgba(31,193,107,0.3214481449937644)">
+      <td>14/01/2026</td>
+      <td>3.284.627,30</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.255.202,74</td>
+      <td>2.273.155,49</td>
+      <td>982.047,25</td>
+    </tr><tr style="background:rgba(31,193,107,0.40942058781549007)">
+      <td>15/01/2026</td>
+      <td>3.760.758,35</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.731.333,79</td>
+      <td>2.273.155,49</td>
+      <td>1.458.178,30</td>
+    </tr><tr style="background:rgba(31,193,107,0.31370771970835654)">
+      <td>16/01/2026</td>
+      <td>3.242.733,99</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.213.309,43</td>
+      <td>2.273.155,49</td>
+      <td>940.153,94</td>
+    </tr><tr style="background:rgba(239,77,97,0.23617895624964536)">
+      <td>17/01/2026</td>
+      <td>1.782.033,09</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.752.608,53</td>
+      <td>2.273.155,49</td>
+      <td>-520.546,96</td>
+    </tr><tr style="background:rgba(239,77,97,0.5308163536392873)">
+      <td>18/01/2026</td>
+      <td>187.374,48</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>157.949,92</td>
+      <td>2.273.155,49</td>
+      <td>-2.115.205,57</td>
+    </tr><tr style="background:rgba(31,193,107,0.1456465373627649)">
+      <td>19/01/2026</td>
+      <td>2.333.140,66</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.303.716,10</td>
+      <td>2.273.155,49</td>
+      <td>30.560,61</td>
+    </tr><tr style="background:rgba(31,193,107,0.22438232271380668)">
+      <td>20/01/2026</td>
+      <td>2.759.280,38</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.729.855,82</td>
+      <td>2.273.155,49</td>
+      <td>456.700,33</td>
+    </tr><tr style="background:rgba(31,193,107,0.3049433331433381)">
+      <td>21/01/2026</td>
+      <td>3.195.298,72</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.165.874,16</td>
+      <td>2.273.155,49</td>
+      <td>892.718,67</td>
+    </tr><tr style="background:rgba(31,193,107,0.21416579632790447)">
+      <td>22/01/2026</td>
+      <td>2.703.985,73</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.674.561,17</td>
+      <td>2.273.155,49</td>
+      <td>401.405,68</td>
+    </tr><tr style="background:rgba(31,193,107,0.22483810332647008)">
+      <td>23/01/2026</td>
+      <td>2.761.747,19</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.732.322,63</td>
+      <td>2.273.155,49</td>
+      <td>459.167,14</td>
+    </tr><tr style="background:rgba(31,193,107,0.22985037268997907)">
+      <td>24/01/2026</td>
+      <td>2.788.874,97</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.759.450,41</td>
+      <td>2.273.155,49</td>
+      <td>486.294,92</td>
+    </tr><tr style="background:rgba(239,77,97,0.4272451578851724)">
+      <td>25/01/2026</td>
+      <td>747.930,27</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>718.505,71</td>
+      <td>2.273.155,49</td>
+      <td>-1.554.649,78</td>
+    </tr><tr style="background:rgba(31,193,107,0.2269051102819283)">
+      <td>26/01/2026</td>
+      <td>2.772.934,40</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.743.509,84</td>
+      <td>2.273.155,49</td>
+      <td>470.354,35</td>
+    </tr><tr style="background:rgba(31,193,107,0.36364509386018573)">
+      <td>27/01/2026</td>
+      <td>3.513.008,79</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.483.584,23</td>
+      <td>2.273.155,49</td>
+      <td>1.210.428,74</td>
+    </tr><tr style="background:rgba(31,193,107,0.3006949477335851)">
+      <td>28/01/2026</td>
+      <td>3.172.305,29</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.142.880,73</td>
+      <td>2.273.155,49</td>
+      <td>869.725,24</td>
+    </tr><tr style="background:rgba(31,193,107,0.28440035062780944)">
+      <td>29/01/2026</td>
+      <td>3.084.114,45</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.054.689,89</td>
+      <td>2.273.155,49</td>
+      <td>781.534,40</td>
+    </tr><tr style="background:rgba(31,193,107,0.39299408129926167)">
+      <td>30/01/2026</td>
+      <td>3.671.853,58</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.642.429,02</td>
+      <td>2.273.155,49</td>
+      <td>1.369.273,53</td>
+    </tr><tr style="background:rgba(239,77,97,0.56)">
+      <td>31/01/2026</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>2.273.155,49</td>
+      <td>-2.273.155,49</td>
+    </tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="graficos" class="page">
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title">Comparativo diário</div><canvas id="comparativoChart" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Participação do mês</div><canvas id="pizzaChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+      </div>
+      <div class="mini-charts">
+        <div class="chart-card"><div class="chart-title">Lucro real</div><canvas id="totalChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Internacional</div><canvas id="interChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Nacional</div><canvas id="nacChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+      </div>
+    </section>
+
+    <section id="anual" class="page">
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="toolbar">
+          <div><div class="chart-title">Anual - bruto x lucro real</div><div class="sub">Linhas mensais do ano selecionado</div></div>
+          <select id="annualYear" style="max-width:90px;padding:8px 10px;font-size:13px;border-radius:10px"><option value="2026">2026</option></select>
+        </div>
+        <canvas id="annualMainChart" style="height: 0px; box-sizing: border-box; display: block; width: 0px;" width="0" height="0"></canvas>
+      </div>
+      <div class="annual-two">
+        <div class="chart-card"><div class="chart-title">Internacional x Nacional</div><canvas id="annualInterNacChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">% refaturado + substituto por mês</div><canvas id="annualPctChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+      </div>
+      <div class="annual-two" style="margin-top:14px">
+        <div class="chart-card"><div class="chart-title">Bruto mensal</div><canvas id="annualBrutoChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Lucro real mensal</div><canvas id="annualLiquidoChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+      </div>
+    </section>
+
+    <section id="config" class="page">
+      <div class="config-grid">
+        <div class="panel">
+          <h2>Importação e sincronização</h2>
+          <div class="sub">Importe o Excel do relatório. Ao clicar em Salvar, o bruto será enviado para a Supabase A com atualização por data. Setor e substituto serão lidos da Supabase B.</div>
+          <label>Importar Excel do relatório</label>
+          <input type="file" id="excelInput" accept=".xls,.xlsx,.csv">
+          <div class="top-actions" style="margin-top:12px">
+            <button id="importToSupabaseBtn">Salvar</button>
+            <button id="refreshBtn">Sincronizar</button>
+            <button id="loadExampleBtn">Carregar exemplo</button>
+            <button id="clearImportedBtn">Limpar base local</button>
+          </div>
+          <div style="margin-top:12px" class="hint">A importação usa upsert por data. Se você reimportar qualquer mês, as datas iguais são atualizadas e os demais meses permanecem.</div>
+
+          <div style="margin-top:18px" class="meta-card">
+            <div class="toolbar" style="margin-bottom:8px"><div><h3>Meta mensal</h3><div class="hint">Cadastre, consulte e altere por mês.</div></div><span class="badge">Supabase A</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div><label>Mês</label><input type="month" id="metaMonthInput"></div>
+              <div><label>Valor da meta</label><input type="text" id="metaValueInput" placeholder="75000000"></div>
+            </div>
+            <div class="top-actions" style="margin-top:12px">
+              <button id="saveMetaBtn">Salvar meta</button>
+              <button id="deleteMetaBtn">Excluir meta do mês</button>
+              <button id="refreshMetasBtn">Atualizar metas</button>
+            </div>
+            <div id="metaList" class="meta-list"><div class="meta-pill"><span>janeiro de 2026</span><span>70.467.820,06</span></div><div class="meta-pill"><span>fevereiro de 2026</span><span>71.135.135,14</span></div><div class="meta-pill"><span>março de 2026</span><span>77.740.540,54</span></div><div class="meta-pill"><span>abril de 2026</span><span>77.232.432,43</span></div><div class="meta-pill"><span>maio de 2026</span><span>78.248.648,65</span></div><div class="meta-pill"><span>junho de 2026</span><span>78.248.648,65</span></div><div class="meta-pill"><span>julho de 2026</span><span>79.264.864,86</span></div><div class="meta-pill"><span>agosto de 2026</span><span>80.281.081,08</span></div><div class="meta-pill"><span>setembro de 2026</span><span>80.789.189,19</span></div><div class="meta-pill"><span>outubro de 2026</span><span>80.789.189,19</span></div><div class="meta-pill"><span>novembro de 2026</span><span>80.789.189,19</span></div><div class="meta-pill"><span>dezembro de 2026</span><span>80.789.189,19</span></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Configuração interna</h2>
+          <div class="sub">As credenciais da Supabase não aparecem na tela. Edite apenas no início do script do HTML. Cole URL e anonKey entre aspas simples e em uma linha só.</div>
+          <div class="meta-card"><div class="label">Meta consultada</div><div id="configMetaPreview" class="value sm">70.467.820,06</div><div class="help">Ao trocar o mês, tudo recalcula junto.</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Fonte do bruto</div><div class="value sm">Relatório → Supabase A</div><div class="help">O painel passa a ler a base sincronizada.</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Fonte dos descontos</div><div class="value sm">Supabase B</div><div class="help">Lê setor (debito) e substituto (frete_substituto) de refaturamento_importado.</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Tabelas esperadas</div><div class="help">A: faturamento_bruto / metas_faturamento<br>B: refaturamento_importado</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Campos obrigatórios</div><div class="help">A: data, total_bruto, internacional, nacional<br>A metas: mes, valor_meta<br>B: mes, ano, debito, frete_substituto</div></div>
+        </div>
+      </div>
+    
+        <div class="panel" style="margin-top:16px">
+          <h2>Validação rápida</h2>
+          <div class="sub">Confere se a leitura e os cálculos do mês filtrado estão coerentes.</div>
+          <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+            <div class="mini-card"><div class="label">Bruto validado</div><div id="valBruto" class="value sm">65.056.607,98</div><div class="help">Soma do mês lido</div></div>
+            <div class="mini-card"><div class="label">Setor validado</div><div id="valSetor" class="value sm">853.312,28</div><div class="help">Soma do setor na B</div></div>
+            <div class="mini-card"><div class="label">Líquido validado</div><div id="valLiquido" class="value sm">64.203.295,70</div><div class="help">Bruto - setor</div></div>
+            <div class="mini-card"><div class="label">Status da validação</div><div id="valStatus" class="value good">OK</div><div id="valHelp" class="help">Leitura e cálculo do mês conferidos.</div></div>
+          </div>
+        </div>
+</section>
+  </main>
+</div>
+
+
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script defer src="js/app.js"></script>
+
+</body></html>

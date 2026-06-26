@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Integrado de Cotações PRO - Unificado</title>
+<style>
+:root {
+  --marvel-dark: #002855;
+  --marvel-blue: #004b9c;
+  --marvel-accent: #facc15;
+}
+* { box-sizing: border-box; }
+body { margin:0; font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:#f4f6f9; }
+.layout { display:flex; height:100vh; width:100vw; overflow:hidden; }
+.sidebar {
+  width:260px; min-width:260px; background:var(--marvel-dark); color:white;
+  padding:30px 20px; display:flex; flex-direction:column;
+  box-shadow:4px 0 15px rgba(0,0,0,0.1); z-index:10;
+}
+.brand-container { margin-bottom:40px; text-align:center; padding-bottom:25px; border-bottom:1px solid rgba(255,255,255,0.1); }
+.brand-logo { font-size:32px; font-weight:900; font-style:italic; letter-spacing:1px; color:white; margin:0; }
+.brand-sub { font-size:12px; text-transform:uppercase; letter-spacing:4px; color:var(--marvel-accent); margin-top:2px; font-weight:bold; }
+.sidebar button {
+  width:100%; margin-bottom:12px; padding:14px; border:none; border-radius:8px; cursor:pointer;
+  background:rgba(255,255,255,0.05); color:white; font-size:14px; font-weight:600;
+  text-align:left; padding-left:20px; transition:all .2s ease; border-left:4px solid transparent;
+}
+.sidebar button:hover { background:rgba(255,255,255,0.1); }
+.sidebar button.ativo { background:var(--marvel-blue); border-left:4px solid var(--marvel-accent); }
+iframe { flex:1; height:100%; border:none; background:#f4f6f9; width:100%; }
+.footer-note { margin-top:auto; font-size:11px; opacity:.55; line-height:1.4; }
+
+
+/* ===== v6: submenu lateral somente ícones; expande só o item no hover ===== */
+@media (min-width:861px){
+  .sidebar{width:64px!important;min-width:64px!important;padding:12px 8px!important;overflow:visible!important;z-index:80!important;}
+  .brand-container{height:42px!important;margin:0 0 8px!important;padding:0!important;border:0!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:visible!important;}
+  .brand-container::before{content:'☰';font-size:18px;color:#cfe0ff;}
+  .brand-logo,.brand-sub{display:none!important;}
+  .sidebar button{position:relative!important;width:48px!important;min-width:48px!important;height:44px!important;padding:0!important;margin-bottom:8px!important;border-radius:13px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;white-space:nowrap!important;overflow:visible!important;transition:width .18s ease, background .18s ease, box-shadow .18s ease!important;z-index:1!important;border-left:0!important;}
+  .sidebar button::before{width:48px!important;min-width:48px!important;text-align:center!important;font-size:18px!important;line-height:1!important;}
+  #btnDados::before{content:'📊';}#btnRateio::before{content:'🧾';}
+  .sidebar button:hover{width:210px!important;justify-content:flex-start!important;padding:0 14px!important;gap:10px!important;font-size:13px!important;background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(37,99,235,.42))!important;box-shadow:12px 12px 32px rgba(0,0,0,.28)!important;z-index:20!important;}
+  .sidebar button.ativo{background:linear-gradient(180deg,#0b5bd3,#0d3472)!important;}
+  .footer-note{display:none!important;}
+}
+
+
+
+/* ===== v18: submenu expansível igual Refaturamento/902 ===== */
+@media (min-width:861px){
+  .layout{position:relative!important;padding-left:74px!important;overflow:hidden!important;}
+  .layout>.sidebar{position:absolute!important;left:0;top:0;bottom:0;width:74px!important;min-width:74px!important;padding:12px 9px!important;overflow:visible!important;z-index:90!important;transition:width .22s ease, box-shadow .22s ease!important;background:#063260!important;}
+  .layout>.sidebar:hover{width:255px!important;box-shadow:18px 0 36px rgba(0,0,0,.32)!important;}
+  .brand-container{height:42px!important;margin:0 0 10px!important;padding:0!important;border:0!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;}
+  .brand-container::before{content:'☰'!important;font-size:20px!important;color:#dbeafe!important;}
+  .layout>.sidebar:hover .brand-container{justify-content:flex-start!important;padding:0 14px!important;background:rgba(255,255,255,.06)!important;}
+  .layout>.sidebar:hover .brand-container::before{content:'MENU'!important;font-size:13px!important;font-weight:900!important;letter-spacing:.08em!important;}
+  .brand-logo,.brand-sub,.footer-note{display:none!important;}
+  .layout>.sidebar button{position:relative!important;width:100%!important;min-width:0!important;height:46px!important;padding:0!important;margin-bottom:8px!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;white-space:nowrap!important;overflow:hidden!important;transition:all .18s ease!important;border-left:0!important;background:rgba(255,255,255,.06)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;}
+  .layout>.sidebar button::before{width:46px!important;min-width:46px!important;text-align:center!important;font-size:18px!important;line-height:1!important;}
+  .layout>.sidebar:hover button{justify-content:flex-start!important;padding:0 14px!important;gap:10px!important;font-size:13px!important;}
+  .layout>.sidebar button:hover,.layout>.sidebar button.ativo{background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(37,99,235,.42))!important;box-shadow:0 12px 24px rgba(37,99,235,.16)!important;}
+  iframe{width:100%!important;}
+}
+
+
+/* ===== v19: submenu expansível translúcido + correção Leitor Scanner ===== */
+@media (min-width:861px){
+  /* Base visual translúcida para submenus expansíveis */
+  body .app > aside.sidebar,
+  body .app > aside.side,
+  body .app > aside,
+  .layout > .sidebar,
+  .wrap > .topbar{
+    background:rgba(8,20,40,.22)!important;
+    backdrop-filter:blur(12px)!important;
+    -webkit-backdrop-filter:blur(12px)!important;
+    border-right:1px solid rgba(148,163,184,.10)!important;
+    box-shadow:none!important;
+  }
+
+  body .app > aside.sidebar:hover,
+  body .app > aside.side:hover,
+  body .app > aside:hover,
+  .layout > .sidebar:hover,
+  .wrap > .topbar:hover{
+    background:rgba(8,20,40,.18)!important;
+    box-shadow:18px 0 36px rgba(0,0,0,.18)!important;
+  }
+
+  /* Linha MENU mais marcada */
+  body .app > aside.sidebar .brand,
+  body .app > aside.side .brand,
+  body .app > aside .brand,
+  .layout > .sidebar .brand-container,
+  .wrap > .topbar::before{
+    background:linear-gradient(180deg,rgba(30,41,59,.96),rgba(15,23,42,.96))!important;
+    border:1px solid rgba(148,163,184,.18)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 18px rgba(0,0,0,.12)!important;
+  }
+
+  /* Botões com visual mais leve e moderno */
+  body .app > aside.sidebar .menu > button,
+  body .app > aside.sidebar .navbtn,
+  body .app > aside.side .navbtn,
+  body .app > aside .tab,
+  .layout > .sidebar button,
+  .wrap > .topbar .tabbtn{
+    background:rgba(15,23,42,.56)!important;
+    border:1px solid rgba(148,163,184,.16)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important;
+    color:#eaf2ff!important;
+  }
+
+  body .app > aside.sidebar .menu > button:hover,
+  body .app > aside.sidebar .menu > button.active,
+  body .app > aside.sidebar .navbtn:hover,
+  body .app > aside.sidebar .navbtn.active,
+  body .app > aside.side .navbtn:hover,
+  body .app > aside.side .navbtn.active,
+  body .app > aside .tab:hover,
+  body .app > aside .tab.active,
+  .layout > .sidebar button:hover,
+  .layout > .sidebar button.ativo,
+  .wrap > .topbar .tabbtn:hover,
+  .wrap > .topbar .tabbtn.active{
+    background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(59,130,246,.48))!important;
+    border-color:rgba(96,165,250,.70)!important;
+    box-shadow:0 12px 24px rgba(37,99,235,.16)!important;
+    color:#fff!important;
+  }
+
+  /* Leitor Scanner: remove sobra do modo antigo e deixa igual aos demais */
+  body .app > aside{
+    width:74px!important;
+    min-width:74px!important;
+    max-width:74px!important;
+    padding:12px 9px!important;
+    overflow:visible!important;
+    z-index:9999!important;
+    transition:width .22s ease, max-width .22s ease, box-shadow .22s ease!important;
+  }
+  body .app > aside:hover{
+    width:255px!important;
+    min-width:255px!important;
+    max-width:255px!important;
+  }
+  body .app > aside .brand{
+    width:100%!important;
+    height:42px!important;
+    margin:0 0 10px!important;
+    padding:0!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    font-size:0!important;
+  }
+  body .app > aside .brand::before{
+    content:'☰'!important;
+    font-size:20px!important;
+    color:#dbeafe!important;
+    font-weight:900!important;
+  }
+  body .app > aside:hover .brand{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+  }
+  body .app > aside:hover .brand::before{
+    content:'MENU'!important;
+    font-size:13px!important;
+    letter-spacing:.8px!important;
+  }
+  body .app > aside .brand *,
+  body .app > aside .sub{display:none!important;}
+
+  body .app > aside .tab{
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    height:46px!important;
+    padding:0!important;
+    margin-bottom:8px!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    font-size:0!important;
+    line-height:1!important;
+    text-align:left!important;
+    transition:all .18s ease!important;
+  }
+  body .app > aside .tab::before{
+    width:46px!important;
+    min-width:46px!important;
+    text-align:center!important;
+    font-size:18px!important;
+    line-height:1!important;
+  }
+  body .app > aside .tab:nth-of-type(1)::before{content:'📄'!important;}
+  body .app > aside .tab:nth-of-type(2)::before{content:'🖼️'!important;}
+  body .app > aside .tab:nth-of-type(3)::before{content:'📋'!important;}
+  body .app > aside .tab:nth-of-type(4)::before{content:'🧾'!important;}
+  body .app > aside:hover .tab{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+    gap:10px!important;
+    font-size:13px!important;
+    font-weight:900!important;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand-container">
+      <div class="brand-logo">MARVEL</div>
+      <div class="brand-sub">Transportes</div>
+    </div>
+    <button id="btnDados" onclick="abrirModulo('dados', this)">Painel de Dados</button>
+    <button id="btnRateio" onclick="abrirModulo('rateio', this)">Rateio de Faturas</button>
+    <div class="footer-note">Versão unificada para testes<br>Depois podemos separar em módulos.</div>
+  </aside>
+  <iframe id="frame" title="Módulo de cotações"></iframe>
+</div>
+
+<template id="tplDados">
+<!DOCTYPE html>
+<!-- saved from url=(0041)https://rateiofrete.vercel.app/dados.html -->
+<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Dados - Cotações PRO</title>
+
+<style>
+:root {
+  --marvel-dark: #002855;
+  --marvel-blue: #004b9c;
+  --marvel-accent: #facc15;
+  --bg-light: #f4f6f9;
+  --text-main: #374151;
+  --border-color: #d1d5db;
+}
+body { margin:0; font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:var(--bg-light); color:var(--text-main); }
+.main { padding: 40px; display: flex; justify-content: center;}
+.grid { display: grid; grid-template-columns: 550px 400px; gap: 30px; align-items: start; max-width: 1000px; width: 100%;}
+
+/* Cards */
+.card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); border: 1px solid #e5e7eb;}
+.resultado-box { background: var(--marvel-dark); color: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,40,85,0.2); min-height: 400px; box-sizing: border-box;}
+
+/* Typography */
+h3 { color: var(--marvel-dark); margin-top: 0; margin-bottom: 20px; font-size: 20px; border-bottom: 2px solid var(--bg-light); padding-bottom: 12px;}
+h4 { color: var(--marvel-dark); margin-top: 25px; margin-bottom: 12px; font-size: 15px; font-weight: bold;}
+.resultado-box h3 { color: white; border-bottom-color: rgba(255,255,255,0.1); }
+
+/* Inputs */
+input { width:100%; padding:12px; margin-bottom:15px; border:1px solid var(--border-color); border-radius:6px; font-size:14px; box-sizing: border-box; transition: all 0.2s; background: #f9fafb;}
+input:focus { outline: none; border-color: var(--marvel-blue); box-shadow: 0 0 0 3px rgba(0, 75, 156, 0.1); background: white;}
+.row { display:flex; gap:15px; }
+
+/* Buttons */
+.btn-primary { width: 100%; padding: 14px; background: var(--marvel-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; margin-top: 15px; transition: background 0.2s;}
+.btn-primary:hover { background: #003a7a; }
+.btn-success { background:#22c55e; color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; transition: background 0.2s; }
+.btn-success:hover { background:#16a34a; }
+
+/* Toggles and Tags */
+.modo-toggle {display:flex; gap:10px; margin-bottom:25px;}
+.modo-btn {flex:1; padding:12px; border:1px solid var(--border-color); background:white; color:var(--text-main); border-radius:6px; cursor:pointer; font-weight:bold; transition: all 0.2s; font-size: 13px;}
+.modo-btn:hover {background: var(--bg-light);}
+.modo-btn.ativo {background:var(--marvel-blue); color:white; border-color:var(--marvel-blue);}
+.tag { background:var(--marvel-blue); color:white; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; font-weight: 600;}
+
+/* Autocomplete/Dropdowns */
+.suggestions {background:white; border:1px solid var(--border-color); border-radius: 6px; position:absolute; z-index:10; width:100%; max-height:180px; overflow:auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+.suggestions div {padding:10px 12px; cursor:pointer; font-size: 13px;}
+.suggestions div:hover {background:var(--bg-light); color: var(--marvel-blue);}
+.dropdown {position:relative; border:1px solid var(--border-color); border-radius:6px; padding:8px; background:#f9fafb; cursor:pointer; margin-bottom:15px; min-height: 20px;}
+.dropdown-box {display:flex; flex-wrap:wrap; gap:6px;}
+.dropdown-list {display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid var(--border-color); border-radius: 6px; max-height:180px; overflow:auto; z-index:20; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 4px;}
+.dropdown.open .dropdown-list {display:block;}
+.dropdown-item {padding:10px 12px; font-size: 14px;}
+.dropdown-item:hover {background:var(--bg-light); color: var(--marvel-blue);}
+.pais-item {border-bottom:1px solid rgba(255,255,255,0.1); padding:15px 0; font-size: 14px; line-height: 1.6;}
+</style>
+</head>
+
+<body>
+
+<div class="main">
+<div class="grid">
+
+<div class="card">
+<h3>SIMULADOR DE DADOS</h3>
+<div class="modo-toggle">
+<button class="modo-btn ativo" onclick="setModo(&#39;normal&#39;,this)">Normal</button>
+<button class="modo-btn" onclick="setModo(&#39;seguro&#39;,this)">Frete + Seguro</button>
+<button class="modo-btn" onclick="setModo(&#39;manual&#39;,this)">Manual</button>
+</div>
+
+<div style="position:relative;">
+<input id="origem" placeholder="Origem da Carga" autocomplete="off">
+<div id="sugOrigem" class="suggestions"></div>
+</div>
+
+<div style="position:relative;">
+<input id="aduana" placeholder="Aduana / Fronteira" autocomplete="off">
+<div id="sugAduana" class="suggestions"></div>
+</div>
+
+<div style="position:relative;">
+<input id="destino" placeholder="Destino Base" autocomplete="off">
+<div id="sugDestino" class="suggestions"></div>
+</div>
+
+<input id="mercadoria" type="number" placeholder="Valor Mercadoria (USD)">
+
+<div class="row">
+<input id="dolar" type="number" placeholder="Cotação Dólar">
+<input id="adv" type="number" placeholder="ADV (%)">
+</div>
+
+<input id="freteBRL" type="number" placeholder="Frete Total (R$)">
+<input id="frota" placeholder="Nº Frota / Veículo">
+
+<div id="manualFields" style="display:none;">
+<input id="freteExternoManual" type="number" placeholder="Frete Externo (USD)">
+<input id="freteInternoManual" type="number" placeholder="Frete Interno (USD)">
+<input id="seguroManual" type="number" placeholder="Seguro Manual (USD)">
+</div>
+
+<h4>País de Destino</h4>
+<div class="dropdown" id="dropdownPais">
+<div class="dropdown-box" id="tags"><div class="tag">Argentina ✕</div></div>
+<div class="dropdown-list" id="listaPaises"><div class="dropdown-item">Argentina</div><div class="dropdown-item">Chile</div><div class="dropdown-item">Uruguai</div><div class="dropdown-item">Peru</div><div class="dropdown-item">Paraguai</div></div>
+</div>
+
+<button class="btn-primary" onclick="calcular()">Processar Cálculo</button>
+
+</div>
+
+<div class="resultado-box">
+<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:15px;margin-bottom:20px;gap:10px;">
+  <h3 style="margin:0;border-bottom:none;padding-bottom:0;">Resultado Operacional</h3>
+  <button class="btn-success" onclick="copiarResultadoFormatado()">📋 Copiar</button>
+</div>
+<div id="resultado" style="font-size: 14px; opacity: 0.8; margin-top: 20px;">Aguardando parâmetros de cálculo...</div>
+</div>
+
+</div>
+</div>
+
+
+<script>
+/* =========================================================
+   CACHE DE KM - Supabase + localStorage
+   1) Rode o SQL enviado no Supabase.
+   2) Preencha SUPABASE_URL e SUPABASE_ANON_KEY abaixo.
+   3) Se deixar vazio, o sistema usa somente cache local do navegador.
+========================================================= */
+var SUPABASE_URL = "https://ndpfmjetlvcujhgphqoi.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGZtamV0bHZjdWpoZ3BocW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDk2MTksImV4cCI6MjA5ODAyNTYxOX0.M1ypP2OOSGOojCGWfq-X1UNJzfYhD8a-J47QtR6Qw00";
+
+function normalizarCoord(coord){
+  return [Number(coord[0]).toFixed(6), Number(coord[1]).toFixed(6)];
+}
+
+function chaveRota(a,b){
+  const A = normalizarCoord(a).join(",");
+  const B = normalizarCoord(b).join(",");
+  return `${A}|${B}`;
+}
+
+async function buscarKmSupabase(chave){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  try{
+    const url = `${SUPABASE_URL}/rest/v1/cache_rotas_km?route_key=eq.${encodeURIComponent(chave)}&select=km&limit=1`;
+    const r = await fetch(url, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if(!r.ok) return null;
+    const dados = await r.json();
+    if(dados && dados.length && Number(dados[0].km) > 0) return Number(dados[0].km);
+  }catch(e){ console.warn("Falha ao buscar km no Supabase", e); }
+  return null;
+}
+
+async function salvarKmSupabase(chave,a,b,km,origemTela){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+  try{
+    const A = normalizarCoord(a);
+    const B = normalizarCoord(b);
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/cache_rotas_km?on_conflict=route_key`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({
+        route_key: chave,
+        origem_lng: Number(A[0]),
+        origem_lat: Number(A[1]),
+        destino_lng: Number(B[0]),
+        destino_lat: Number(B[1]),
+        km: Number(km),
+        origem_tela: origemTela || null,
+        atualizado_em: new Date().toISOString()
+      })
+    });
+    if(!resp.ok){
+      const erro = await resp.text();
+      console.warn("Supabase não salvou a rota:", erro);
+    }
+  }catch(e){ console.warn("Falha ao salvar km no Supabase", e); }
+}
+
+async function getKmComCache(a,b,origemTela){
+  const chave = chaveRota(a,b);
+  const localKey = `km_cache_${chave}`;
+
+  // 1) Busca primeiro no cache local do navegador
+  const cacheLocal = localStorage.getItem(localKey);
+  if(cacheLocal && Number(cacheLocal) > 0){
+    // Se o navegador já tinha a rota salva antes de configurar o Supabase,
+    // sincroniza também com a base para outros usuários aproveitarem.
+    await salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
+    return Number(cacheLocal);
+  }
+
+  // 2) Busca no Supabase
+  const cacheSupabase = await buscarKmSupabase(chave);
+  if(cacheSupabase){
+    localStorage.setItem(localKey, String(cacheSupabase));
+    return cacheSupabase;
+  }
+
+  // 3) Se não achou, consulta API de rota
+  const r = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car`,{
+    method:"POST",
+    headers:{"Authorization":API_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify({coordinates:[a,b], radiuses:[10000,10000]})
+  });
+  const d = await r.json();
+  if(!r.ok || !d.routes || !d.routes[0]){
+    console.warn("OpenRouteService retornou erro:", d);
+    const msg = (d && d.error && d.error.message) ? d.error.message : "Não foi possível calcular esta rota pela API.";
+    throw new Error(msg);
+  }
+  const km = d.routes[0].summary.distance/1000;
+
+  // 4) Salva para próximas consultas
+  localStorage.setItem(localKey, String(km));
+  await salvarKmSupabase(chave,a,b,km,origemTela);
+
+  return km;
+}
+</script>
+
+<script>
+const API_KEY="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjkwZmEzNGRmOTZhMDQ4OTk4Zjk1NDY2NDgzODU0MTMyIiwiaCI6Im11cm11cjY0In0=";
+
+async function carregarDolarBCB(){
+try{
+let hoje = new Date();
+let mes = String(hoje.getMonth()+1).padStart(2,'0');
+let dia = String(hoje.getDate()).padStart(2,'0');
+let ano = hoje.getFullYear();
+
+let url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)?@dataInicial='01-01-${ano}'&@dataFinalCotacao='${mes}-${dia}-${ano}'&$top=1&$orderby=dataHoraCotacao desc&$format=json`;
+
+let r = await fetch(url);
+let j = await r.json();
+
+if(j.value && j.value.length){
+document.getElementById("dolar").value = j.value[0].cotacaoVenda.toFixed(4);
+}else{
+document.getElementById("dolar").value = "5.2800"; 
+}
+}catch(e){
+document.getElementById("dolar").value = "5.2800";
+}
+}
+
+carregarDolarBCB();
+
+let modo="normal";
+function setModo(m,el){
+modo=m;
+document.querySelectorAll(".modo-btn").forEach(b=>b.classList.remove("ativo"));
+el.classList.add("ativo");
+document.getElementById("manualFields").style.display=m==="manual"?"block":"none";
+}
+
+let cidades={origem:null,aduana:null,destino:null};
+
+function auto(id,sug,key){
+let i=document.getElementById(id);
+let box=document.getElementById(sug);
+
+i.addEventListener("input",async()=>{
+cidades[key]=null;
+if(i.value.length<3){box.innerHTML="";return;}
+
+let r=await fetch(`https://api.openrouteservice.org/geocode/autocomplete?api_key=${API_KEY}&text=${i.value}`);
+let d=await r.json();
+
+box.innerHTML="";
+(d.features||[]).slice(0,5).forEach(c=>{
+let div=document.createElement("div");
+div.innerText=c.properties.label;
+div.onclick=()=>{
+i.value=c.properties.label;
+cidades[key]=c.geometry.coordinates;
+box.innerHTML="";
+};
+box.appendChild(div);
+});
+});
+}
+
+auto("origem","sugOrigem","origem");
+auto("aduana","sugAduana","aduana");
+auto("destino","sugDestino","destino");
+
+async function getKm(a,b){
+return await getKmComCache(a,b,"dados");
+}
+
+let paises=["Argentina","Chile","Uruguai","Peru","Paraguai"];
+let selecionado="Argentina";
+
+let dropdown=document.getElementById("dropdownPais");
+dropdown.onclick=()=>dropdown.classList.toggle("open");
+
+function renderLista(){
+let lista=document.getElementById("listaPaises");
+lista.innerHTML="";
+paises.forEach(p=>{
+let div=document.createElement("div");
+div.className="dropdown-item";
+div.innerText=p;
+div.onclick=(e)=>{e.stopPropagation();selecionado=p;renderTags();dropdown.classList.remove("open");};
+lista.appendChild(div);
+});
+}
+
+function renderTags(){
+let t=document.getElementById("tags");
+t.innerHTML="";
+if(!selecionado)return;
+let tag=document.createElement("div");
+tag.className="tag";
+tag.innerHTML=`${selecionado} ✕`;
+tag.onclick=(e)=>{e.stopPropagation();selecionado=null;renderTags();};
+t.appendChild(tag);
+}
+
+renderLista();
+renderTags();
+
+function getPais(p){
+return {
+Argentina:{crt:"AR1780",mic:"AR1780"},
+Chile:{crt:"CL5470",mic:"CL5470"},
+Uruguai:{crt:"UY6480",mic:"UY6480"},
+Peru:{crt:"PE33690",mic:"PE33690"},
+Paraguai:{crt:"PY21300",mic:"PY21300"}
+}[p];
+}
+
+async function calcular(){
+let res=document.getElementById("resultado");
+res.style.opacity = "1";
+res.innerHTML="Processando rotas e valores...";
+
+try{
+if(!cidades.origem||!cidades.aduana||!cidades.destino){
+res.innerHTML="<span style='color:#fca5a5;'>Selecione cidades válidas sugeridas na lista.</span>";
+return;
+}
+
+let km1=await getKm(cidades.origem,cidades.aduana);
+let km2=await getKm(cidades.aduana,cidades.destino);
+let total=km1+km2;
+
+let mercadoria=parseFloat(document.getElementById("mercadoria").value)||0;
+let adv=parseFloat(document.getElementById("adv").value)||0;
+let freteBRL=parseFloat(document.getElementById("freteBRL").value)||0;
+let dolar=parseFloat(document.getElementById("dolar").value)||1;
+
+let freteUSD=freteBRL/dolar;
+
+let seguroInput=parseFloat(document.getElementById("seguroManual").value);
+let seguro=(modo==="manual" && !isNaN(seguroInput))? seguroInput : mercadoria*(adv/100);
+
+let freteBase=freteUSD;
+let freteTotal=0;
+
+if(modo==="normal"){ freteBase=freteUSD-seguro; freteTotal=freteUSD; }
+else if(modo==="seguro"){ freteBase=freteUSD; freteTotal=freteUSD+seguro; }
+else{ freteBase=freteUSD; freteTotal=freteUSD+seguro; }
+
+let extManual=parseFloat(document.getElementById("freteExternoManual").value);
+let intManual=parseFloat(document.getElementById("freteInternoManual").value);
+
+let externo=0, interno=0;
+
+if(modo==="manual"){
+if(isNaN(extManual) && isNaN(intManual)){ externo=freteBase*(km1/total); interno=freteBase*(km2/total); }
+else if(!isNaN(extManual) && !isNaN(intManual)){ externo=extManual; interno=intManual; }
+else if(!isNaN(extManual)){ externo=extManual; interno=freteBase-extManual; }
+else{ interno=intManual; externo=freteBase-intManual; }
+}else{
+externo=freteBase*(km1/total); interno=freteBase*(km2/total);
+}
+
+let d=getPais(selecionado);
+let frota=document.getElementById("frota").value || "-";
+let aduanaDesc=document.getElementById("aduana").value || "-";
+
+window.ultimoResultadoDados = {
+  pais: selecionado,
+  crt: d.crt,
+  mic: d.mic,
+  externo,
+  interno,
+  seguro,
+  freteTotal,
+  mercadoria,
+  aduana: aduanaDesc,
+  frota
+};
+
+res.innerHTML=`
+<div class="pais-item">
+<b style="color:var(--marvel-accent); font-size:18px;">${selecionado}</b><br>
+<span style="opacity:0.8; font-size:12px;">CRT: ${d.crt} &nbsp;|&nbsp; MIC: ${d.mic}</span><br>
+<span style="opacity:0.8; font-size:12px;">Frota: ${frota}</span><br><br>
+
+<div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; margin-bottom:15px;">
+  <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Externo:</span> <b>$ ${externo.toFixed(2)}</b></div>
+  <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Interno:</span> <b>$ ${interno.toFixed(2)}</b></div>
+  <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Seguro:</span> <b>$ ${seguro.toFixed(2)}</b></div>
+  <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.2); padding-top:8px; margin-top:8px; color:var(--marvel-accent);">
+    <span>Frete Total:</span> <b>$ ${freteTotal.toFixed(2)}</b>
+  </div>
+</div>
+
+Valor Mercadoria: $ ${mercadoria.toFixed(2)}<br>
+Aduana Selecionada: ${aduanaDesc}
+</div>
+`;
+}catch(e){
+console.error("Erro no cálculo dos dados:", e);
+res.innerHTML="<span style='color:#fca5a5;'>Erro ao calcular. Verifique a conexão com a API ou selecione novamente as cidades pela lista.</span>";
+}
+}
+
+function formatarMoedaUSD(valor){
+  return `$ ${Number(valor || 0).toFixed(2)}`;
+}
+
+function montarResultadoTextoParaCopiar(){
+  const r = window.ultimoResultadoDados;
+  if(!r) return null;
+  return [
+    `${r.pais}`,
+    `CRT: ${r.crt}`,
+    `MIC: ${r.mic}`,
+    `Externo: ${formatarMoedaUSD(r.externo)}`,
+    `Interno: ${formatarMoedaUSD(r.interno)}`,
+    `Seguro: ${formatarMoedaUSD(r.seguro)}`,
+    `Frete Total: ${formatarMoedaUSD(r.freteTotal)}`,
+    `Valor Mercadoria: $ ${Number(r.mercadoria || 0).toFixed(2)}`,
+    `Aduana Selecionada: ${r.aduana}`,
+    `Frota: ${r.frota}`
+  ].join("\n");
+}
+
+function montarResultadoHtmlParaCopiar(){
+  const r = window.ultimoResultadoDados;
+  if(!r) return null;
+
+  const linha = (label, valor) => `<div><b>${label}:</b> ${valor}</div>`;
+
+  return `
+    <div style="font-family:Arial, Helvetica, sans-serif; color:#000; background:#fff; font-size:14px; line-height:1.22; padding:0; margin:0;">
+      <div><b>${r.pais}</b></div>
+      ${linha('CRT', r.crt)}
+      ${linha('MIC', r.mic)}
+      ${linha('Externo', formatarMoedaUSD(r.externo))}
+      ${linha('Interno', formatarMoedaUSD(r.interno))}
+      ${linha('Seguro', formatarMoedaUSD(r.seguro))}
+      ${linha('Frete Total', formatarMoedaUSD(r.freteTotal))}
+      ${linha('Valor Mercadoria', `$ ${Number(r.mercadoria || 0).toFixed(2)}`)}
+      ${linha('Aduana Selecionada', r.aduana)}
+      ${linha('Frota', r.frota)}
+    </div>
+  `;
+}
+
+function copiarResultadoFormatado(){
+  const html = montarResultadoHtmlParaCopiar();
+  const texto = montarResultadoTextoParaCopiar();
+
+  if(!html || !texto){ alert("Calcule primeiro antes de copiar."); return; }
+
+  if(navigator.clipboard && window.ClipboardItem){
+    const item = new ClipboardItem({
+      "text/html": new Blob([html], {type:"text/html"}),
+      "text/plain": new Blob([texto], {type:"text/plain"})
+    });
+
+    navigator.clipboard.write([item]).then(()=>{
+      const btn = document.querySelector(".btn-success");
+      btn.innerHTML = "✅ Copiado!";
+      setTimeout(()=>{ btn.innerHTML = "📋 Copiar"; }, 2000);
+    }).catch(()=>copiarTextoSimples(texto));
+  }else{
+    copiarTextoSimples(texto);
+  }
+}
+
+function copiarTextoSimples(texto){
+  navigator.clipboard.writeText(texto).then(()=>{
+    const btn = document.querySelector(".btn-success");
+    if(btn){
+      btn.innerHTML = "✅ Copiado!";
+      setTimeout(()=>{ btn.innerHTML = "📋 Copiar"; }, 2000);
+    }else{
+      alert("Copiado.");
+    }
+  }).catch(()=>alert("Não foi possível copiar."));
+}
+
+</script>
+
+
+
+</body></html>
+</template>
+
+<template id="tplRateio">
+<!DOCTYPE html>
+<!-- saved from url=(0042)https://rateiofrete.vercel.app/rateio.html -->
+<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Rateio - Cotações PRO</title>
+
+<style>
+:root {
+  --marvel-dark: #002855;
+  --marvel-blue: #004b9c;
+  --marvel-accent: #facc15;
+  --bg-light: #f4f6f9;
+  --text-main: #374151;
+  --border-color: #d1d5db;
+}
+body { margin:0; font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:var(--bg-light); color:var(--text-main); }
+.main { padding: 40px; display: flex; justify-content: center;}
+.grid { display: grid; grid-template-columns: 550px 400px; gap: 30px; align-items: start; max-width: 1000px; width: 100%;}
+
+/* Cards */
+.card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); border: 1px solid #e5e7eb;}
+.resultado-box { background: var(--marvel-dark); color: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,40,85,0.2); min-height: 400px; box-sizing: border-box;}
+
+/* Typography */
+h3 { color: var(--marvel-dark); margin-top: 0; margin-bottom: 20px; font-size: 20px; border-bottom: 2px solid var(--bg-light); padding-bottom: 12px;}
+h4 { color: var(--marvel-dark); margin-top: 25px; margin-bottom: 12px; font-size: 15px; font-weight: bold;}
+.resultado-box h3 { color: white; border-bottom: none; padding-bottom: 0; margin-bottom: 0;}
+
+/* Inputs */
+input { width:100%; padding:12px; margin-bottom:15px; border:1px solid var(--border-color); border-radius:6px; font-size:14px; box-sizing: border-box; transition: all 0.2s; background: #f9fafb;}
+input:focus { outline: none; border-color: var(--marvel-blue); box-shadow: 0 0 0 3px rgba(0, 75, 156, 0.1); background: white;}
+.row { display:flex; gap:15px; }
+
+/* Buttons */
+.btn-primary { width: 100%; padding: 14px; background: var(--marvel-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; margin-top: 15px; transition: background 0.2s;}
+.btn-primary:hover { background: #003a7a; }
+.btn-secondary { padding: 10px 15px; background: var(--bg-light); color: var(--marvel-dark); border: 1px dashed #9ca3af; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; margin-bottom: 15px; transition: all 0.2s; width: 100%;}
+.btn-secondary:hover { background: #e5e7eb; border-color: var(--marvel-blue); }
+.btn-success { background:#22c55e; color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; transition: background 0.2s; display: flex; align-items: center; gap: 5px;}
+.btn-success:hover { background:#16a34a; }
+
+/* Faturas */
+.fatura-row {display:flex; gap:10px; margin-bottom:10px; align-items:center; background: var(--bg-light); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);}
+.fatura-row input {flex:1; margin-bottom: 0; padding: 10px; background: white;}
+.remove-btn {background:#ef4444; color:white; border:none; padding:10px 12px; border-radius:6px; cursor:pointer; transition: background 0.2s; font-weight: bold;}
+.remove-btn:hover {background:#dc2626;}
+
+/* Dropdowns & Tags */
+.suggestions {background:white; border:1px solid var(--border-color); border-radius: 6px; position:absolute; z-index:10; width:100%; max-height:180px; overflow:auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+.suggestions div {padding:10px 12px; cursor:pointer; font-size: 13px;}
+.suggestions div:hover {background:var(--bg-light); color: var(--marvel-blue);}
+.dropdown {position:relative; border:1px solid var(--border-color); border-radius:6px; padding:8px; background:#f9fafb; cursor:pointer; margin-bottom:15px; min-height: 20px;}
+.dropdown-box {display:flex; flex-wrap:wrap; gap:6px;}
+.dropdown-list {display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid var(--border-color); border-radius: 6px; max-height:180px; overflow:auto; z-index:20; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 4px;}
+.dropdown.open .dropdown-list {display:block;}
+.dropdown-item {padding:10px 12px; font-size: 14px;}
+.dropdown-item:hover {background:var(--bg-light); color: var(--marvel-blue);}
+.tag { background:var(--marvel-blue); color:white; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; font-weight: 600;}
+.pais-item {border-bottom:1px solid rgba(255,255,255,0.1); padding:15px 0; font-size: 14px; line-height: 1.6;}
+</style>
+</head>
+
+<body>
+
+<div class="main">
+<div class="grid">
+
+<div class="card">
+<h3>RATEIO DE FATURAS</h3>
+
+<div style="position:relative;">
+<input id="origem" placeholder="Origem da Carga" autocomplete="off">
+<div id="sugOrigem" class="suggestions"></div>
+</div>
+
+<div style="position:relative;">
+<input id="aduana" placeholder="Aduana / Fronteira" autocomplete="off">
+<div id="sugAduana" class="suggestions"></div>
+</div>
+
+<div style="position:relative;">
+<input id="destino" placeholder="Destino Base" autocomplete="off">
+<div id="sugDestino" class="suggestions"></div>
+</div>
+
+<div class="row">
+<input id="dolar" type="number" placeholder="Cotação Dólar">
+<input id="adv" type="number" placeholder="ADV (%)">
+</div>
+
+<input id="freteBRL" type="number" placeholder="Frete Total (R$)">
+
+<h4>Faturas</h4>
+<div id="faturas"><div class="fatura-row">
+<input placeholder="Fatura #" class="fat-num">
+<input type="number" placeholder="Peso" class="fat-peso">
+<input type="number" placeholder="Mercadoria USD" class="fat-merc">
+<input type="number" placeholder="Adic. R$" class="fat-add">
+<button class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+</div></div>
+<button class="btn-secondary" onclick="addFatura()">+ Adicionar Nova Fatura</button>
+
+<h4>País de Destino</h4>
+<div class="dropdown" id="dropdownPais">
+<div class="dropdown-box" id="tags"><div class="tag">Argentina ✕</div></div>
+<div class="dropdown-list" id="listaPaises"><div class="dropdown-item">Argentina</div><div class="dropdown-item">Chile</div><div class="dropdown-item">Uruguai</div><div class="dropdown-item">Peru</div><div class="dropdown-item">Paraguai</div></div>
+</div>
+
+<button class="btn-primary" onclick="calcular()">Processar Rateio</button>
+
+</div>
+
+<div class="resultado-box">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; gap:10px;">
+  <h3 style="margin:0;border-bottom:none;padding-bottom:0;">Resultado</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+    <button class="btn-success btn-copy-resultado" onclick="copiarResultadoRateioFormatado()">
+      📄 Copiar Resultado
+    </button>
+    <button class="btn-success btn-copy-faturamento" onclick="copiarFaturamento()">
+      📋 Copiar p/ Faturamento
+    </button>
+  </div>
+</div>
+<div id="resultado" style="font-size: 14px; opacity: 0.8;">Aguardando parâmetros...</div>
+</div>
+
+</div>
+</div>
+
+<script>
+/* =========================================================
+   CACHE DE KM - Supabase + localStorage
+   1) Rode o SQL enviado no Supabase.
+   2) Preencha SUPABASE_URL e SUPABASE_ANON_KEY abaixo.
+   3) Se deixar vazio, o sistema usa somente cache local do navegador.
+========================================================= */
+var SUPABASE_URL = "https://ndpfmjetlvcujhgphqoi.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGZtamV0bHZjdWpoZ3BocW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDk2MTksImV4cCI6MjA5ODAyNTYxOX0.M1ypP2OOSGOojCGWfq-X1UNJzfYhD8a-J47QtR6Qw00";
+
+function normalizarCoord(coord){
+  return [Number(coord[0]).toFixed(6), Number(coord[1]).toFixed(6)];
+}
+
+function chaveRota(a,b){
+  const A = normalizarCoord(a).join(",");
+  const B = normalizarCoord(b).join(",");
+  return `${A}|${B}`;
+}
+
+async function buscarKmSupabase(chave){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  try{
+    const url = `${SUPABASE_URL}/rest/v1/cache_rotas_km?route_key=eq.${encodeURIComponent(chave)}&select=km&limit=1`;
+    const r = await fetch(url, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if(!r.ok) return null;
+    const dados = await r.json();
+    if(dados && dados.length && Number(dados[0].km) > 0) return Number(dados[0].km);
+  }catch(e){ console.warn("Falha ao buscar km no Supabase", e); }
+  return null;
+}
+
+async function salvarKmSupabase(chave,a,b,km,origemTela){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+  try{
+    const A = normalizarCoord(a);
+    const B = normalizarCoord(b);
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/cache_rotas_km?on_conflict=route_key`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({
+        route_key: chave,
+        origem_lng: Number(A[0]),
+        origem_lat: Number(A[1]),
+        destino_lng: Number(B[0]),
+        destino_lat: Number(B[1]),
+        km: Number(km),
+        origem_tela: origemTela || null,
+        atualizado_em: new Date().toISOString()
+      })
+    });
+    if(!resp.ok){
+      const erro = await resp.text();
+      console.warn("Supabase não salvou a rota:", erro);
+    }
+  }catch(e){ console.warn("Falha ao salvar km no Supabase", e); }
+}
+
+async function getKmComCache(a,b,origemTela){
+  const chave = chaveRota(a,b);
+  const localKey = `km_cache_${chave}`;
+
+  // 1) Busca primeiro no cache local do navegador
+  const cacheLocal = localStorage.getItem(localKey);
+  if(cacheLocal && Number(cacheLocal) > 0){
+    // Se o navegador já tinha a rota salva antes de configurar o Supabase,
+    // sincroniza também com a base para outros usuários aproveitarem.
+    await salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
+    return Number(cacheLocal);
+  }
+
+  // 2) Busca no Supabase
+  const cacheSupabase = await buscarKmSupabase(chave);
+  if(cacheSupabase){
+    localStorage.setItem(localKey, String(cacheSupabase));
+    return cacheSupabase;
+  }
+
+  // 3) Se não achou, consulta API de rota
+  const r = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car`,{
+    method:"POST",
+    headers:{"Authorization":API_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify({coordinates:[a,b], radiuses:[10000,10000]})
+  });
+  const d = await r.json();
+  if(!r.ok || !d.routes || !d.routes[0]){
+    console.warn("OpenRouteService retornou erro:", d);
+    const msg = (d && d.error && d.error.message) ? d.error.message : "Não foi possível calcular esta rota pela API.";
+    throw new Error(msg);
+  }
+  const km = d.routes[0].summary.distance/1000;
+
+  // 4) Salva para próximas consultas
+  localStorage.setItem(localKey, String(km));
+  await salvarKmSupabase(chave,a,b,km,origemTela);
+
+  return km;
+}
+</script>
+
+<script>
+const API_KEY="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjkwZmEzNGRmOTZhMDQ4OTk4Zjk1NDY2NDgzODU0MTMyIiwiaCI6Im11cm11cjY0In0=";
+
+async function carregarDolarBCB(){
+try{
+let hoje = new Date();
+let mes = String(hoje.getMonth()+1).padStart(2,'0');
+let dia = String(hoje.getDate()).padStart(2,'0');
+let ano = hoje.getFullYear();
+
+let url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)?@dataInicial='01-01-${ano}'&@dataFinalCotacao='${mes}-${dia}-${ano}'&$top=1&$orderby=dataHoraCotacao desc&$format=json`;
+
+let r = await fetch(url);
+let j = await r.json();
+
+if(j.value && j.value.length){
+let valor = j.value[0].cotacaoVenda;
+document.getElementById("dolar").value = valor.toFixed(4);
+}else{
+document.getElementById("dolar").value = "5.2800";
+}
+}catch(e){
+document.getElementById("dolar").value = "5.2800";
+}
+}
+
+carregarDolarBCB();
+const dolarInput = document.getElementById("dolar");
+dolarInput.addEventListener("blur", () => {
+  if(dolarInput.value) dolarInput.value = parseFloat(dolarInput.value).toFixed(4);
+});
+
+let cidades={origem:null,aduana:null,destino:null};
+
+function auto(id,sug,key){
+let i=document.getElementById(id);
+let box=document.getElementById(sug);
+
+i.addEventListener("input",async()=>{
+cidades[key]=null;
+if(i.value.length<3){box.innerHTML="";return;}
+let r=await fetch(`https://api.openrouteservice.org/geocode/autocomplete?api_key=${API_KEY}&text=${i.value}`);
+let d=await r.json();
+box.innerHTML="";
+(d.features||[]).slice(0,5).forEach(c=>{
+let div=document.createElement("div");
+div.innerText=c.properties.label;
+div.onclick=()=>{ i.value=c.properties.label; cidades[key]=c.geometry.coordinates; box.innerHTML=""; };
+box.appendChild(div);
+});
+});
+}
+
+auto("origem","sugOrigem","origem");
+auto("aduana","sugAduana","aduana");
+auto("destino","sugDestino","destino");
+
+async function getKm(a,b){
+return await getKmComCache(a,b,"rateio");
+}
+
+let paises=["Argentina","Chile","Uruguai","Peru","Paraguai"];
+let selecionado="Argentina";
+let dropdown=document.getElementById("dropdownPais");
+dropdown.onclick=()=>dropdown.classList.toggle("open");
+
+function renderLista(){
+let lista=document.getElementById("listaPaises");
+lista.innerHTML="";
+paises.forEach(p=>{
+let div=document.createElement("div");
+div.className="dropdown-item";
+div.innerText=p;
+div.onclick=(e)=>{ e.stopPropagation(); selecionado=p; renderTags(); dropdown.classList.remove("open"); };
+lista.appendChild(div);
+});
+}
+
+function renderTags(){
+let t=document.getElementById("tags");
+t.innerHTML="";
+if(!selecionado) return;
+let tag=document.createElement("div");
+tag.className="tag";
+tag.innerHTML=`${selecionado} ✕`;
+tag.onclick=(e)=>{ e.stopPropagation(); selecionado=null; renderTags(); };
+t.appendChild(tag);
+}
+
+renderLista();
+renderTags();
+
+function getPais(p){
+return { Argentina:{crt:"AR1780",mic:"AR1780"}, Chile:{crt:"CL5470",mic:"CL5470"}, Uruguai:{crt:"UY6480",mic:"UY6480"}, Peru:{crt:"PE33690",mic:"PE33690"}, Paraguai:{crt:"PY21300",mic:"PY21300"} }[p];
+}
+
+function addFatura(){
+let div=document.createElement("div");
+div.className="fatura-row";
+div.innerHTML=`
+<input placeholder="Fatura #" class="fat-num">
+<input type="number" placeholder="Peso" class="fat-peso">
+<input type="number" placeholder="Mercadoria USD" class="fat-merc">
+<input type="number" placeholder="Adic. R$" class="fat-add">
+<button class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+`;
+document.getElementById("faturas").appendChild(div);
+}
+
+addFatura();
+
+async function calcular(){
+let res=document.getElementById("resultado");
+res.style.opacity = "1";
+res.innerHTML="Processando rateio...";
+
+try{
+if(!cidades.origem || !cidades.aduana || !cidades.destino){
+  res.innerHTML="<span style='color:#fca5a5;'>Selecione rotas válidas da lista.</span>"; return;
+}
+if(!selecionado){ res.innerHTML="<span style='color:#fca5a5;'>Selecione um país.</span>"; return; }
+
+let km1=await getKm(cidades.origem,cidades.aduana);
+let km2=await getKm(cidades.aduana,cidades.destino);
+let total=km1+km2;
+
+let freteBRL=parseFloat(document.getElementById("freteBRL").value)||0;
+let dolar=parseFloat(document.getElementById("dolar").value)||1;
+let adv=parseFloat(document.getElementById("adv").value)||0;
+
+let freteTotal=(freteBRL/dolar);
+
+let linhas=document.querySelectorAll(".fatura-row");
+let faturas=[];
+
+linhas.forEach(l=>{
+let numero=l.querySelector(".fat-num").value || "-";
+let peso=parseFloat(l.querySelector(".fat-peso").value)||0;
+let merc=parseFloat(l.querySelector(".fat-merc").value)||0;
+let adicionalBRL=parseFloat(l.querySelector(".fat-add").value)||0;
+if(peso>0)faturas.push({numero,peso,merc,adicionalBRL});
+});
+
+if(faturas.length === 0) {
+  res.innerHTML="<span style='color:#fca5a5;'>Adicione pelo menos uma fatura com peso.</span>"; return;
+}
+
+let pesoTotal=faturas.reduce((s,f)=>s+f.peso,0);
+let d=getPais(selecionado);
+let html="";
+window.ultimoRateioDetalhado = [];
+
+faturas.forEach(f=>{
+let proporcao=f.peso/pesoTotal;
+let freteFatura=freteTotal*proporcao;
+
+let adicionalUSD=f.adicionalBRL/dolar;
+freteFatura+=adicionalUSD;
+let freteFaturaBRL = freteFatura * dolar;
+
+let seguro=f.merc*(adv/100);
+let base=freteFatura-seguro;
+if(base<0) base=0;
+
+let ext=base*(km1/total);
+let int=base*(km2/total);
+
+window.ultimoRateioDetalhado.push({
+  pais: selecionado,
+  numero: f.numero,
+  crt: d.crt,
+  mic: d.mic,
+  externo: ext.toFixed(2),
+  interno: int.toFixed(2),
+  seguro: seguro.toFixed(2),
+  freteTotal: freteFatura.toFixed(2),
+  convertido: formatarBRL3(freteFaturaBRL),
+  mercadoria: f.merc.toFixed(2),
+  aduana: document.getElementById("aduana").value || "-"
+});
+
+html+=`<div class="pais-item">
+<b style="color:var(--marvel-accent); font-size:16px;">${selecionado} - Fatura ${f.numero}</b><br>
+<span style="opacity:0.8; font-size:12px;">CRT: ${d.crt} &nbsp;|&nbsp; MIC: ${d.mic}</span><br><br>
+
+<div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; margin-bottom:12px;">
+  <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>Externo:</span> <b>$ ${ext.toFixed(2)}</b></div>
+  <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>Interno:</span> <b>$ ${int.toFixed(2)}</b></div>
+  <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>Seguro:</span> <b>$ ${seguro.toFixed(2)}</b></div>
+  <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.2); padding-top:6px; margin-top:6px; color:var(--marvel-accent);">
+    <span>Frete Total (USD):</span> <b>$ ${freteFatura.toFixed(2)}</b>
+  </div>
+  <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px; opacity:0.8;">
+    <span>Convertido:</span> <span>R$ ${freteFaturaBRL.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+  </div>
+</div>
+
+Valor Mercadoria: $ ${f.merc.toFixed(2)}<br>
+Aduana: ${document.getElementById("aduana").value}
+</div>`;
+});
+
+res.innerHTML=html;
+
+}catch(e){
+console.error("Erro no cálculo do rateio:", e);
+res.innerHTML="<span style='color:#fca5a5;'>Erro no cálculo. Verifique a conexão com a API ou selecione novamente as cidades pela lista.</span>";
+}
+}
+
+function formatarBRL3(valor){
+  return Number(valor || 0).toLocaleString('pt-BR', {minimumFractionDigits:3, maximumFractionDigits:3});
+}
+
+function gerarTextoRateioDetalhado(){
+  if(!cidades.origem || !cidades.aduana || !cidades.destino){
+    return null;
+  }
+
+  let dolar = parseFloat(document.getElementById("dolar").value)||1;
+  let freteBRL=parseFloat(document.getElementById("freteBRL").value)||0;
+  let adv=parseFloat(document.getElementById("adv").value)||0;
+  let linhas=document.querySelectorAll(".fatura-row");
+  let faturas=[];
+
+  linhas.forEach(l=>{
+    let numero=l.querySelector(".fat-num").value || "-";
+    let peso=parseFloat(l.querySelector(".fat-peso").value)||0;
+    let merc=parseFloat(l.querySelector(".fat-merc").value)||0;
+    let adicionalBRL=parseFloat(l.querySelector(".fat-add").value)||0;
+    if(peso>0) faturas.push({numero,peso,merc,adicionalBRL});
+  });
+
+  if(faturas.length === 0) return null;
+
+  let pesoTotal=faturas.reduce((s,f)=>s+f.peso,0);
+  let freteTotal = freteBRL / dolar;
+  let d=getPais(selecionado);
+  let aduanaTxt=document.getElementById("aduana").value || "-";
+
+  // Usa os KMs já calculados, quando possível. Se não houver cálculo prévio,
+  // o usuário deve clicar em Processar Rateio antes de copiar.
+  // Para evitar nova chamada assíncrona aqui, os valores são recalculados pelo mesmo critério do resultado em tela.
+  let texto = "";
+
+  // Tenta extrair do resultado em tela quando ele já foi calculado, evitando divergência visual.
+  const resultado = document.getElementById("resultado");
+  if(resultado && resultado.innerText && !resultado.innerText.includes("Aguardando") && !resultado.innerText.includes("Processando") && !resultado.innerText.includes("Erro")){
+    // Caso o resultado já esteja pronto, monta com base nos mesmos dados de entrada e nas variáveis globais de cidade.
+  }
+
+  // Recalcular KM de forma síncrona não é possível porque a rota vem da API.
+  // Por isso esta função usa os valores detalhados gravados no último cálculo.
+  if(window.ultimoRateioDetalhado && Array.isArray(window.ultimoRateioDetalhado) && window.ultimoRateioDetalhado.length){
+    return window.ultimoRateioDetalhado.map(item => [
+      `${item.pais} - Fatura ${item.numero}`,
+      `CRT: ${item.crt}`,
+      `MIC: ${item.mic}`,
+      `Externo: $ ${item.externo}`,
+      `Interno: $ ${item.interno}`,
+      `Seguro: $ ${item.seguro}`,
+      `Frete Total (USD): $ ${item.freteTotal}`,
+      `Convertido: R$ ${item.convertido}`,
+      `Valor Mercadoria: $ ${item.mercadoria}`,
+      `Aduana: ${item.aduana}`
+    ].join("\n")).join("\n\n");
+  }
+
+  return null;
+}
+
+function copiarFaturamento(){
+  const texto = gerarTextoRateioDetalhado();
+  if(!texto){
+    alert("Calcule o rateio primeiro antes de copiar.");
+    return;
+  }
+
+  navigator.clipboard.writeText(texto).then(() => {
+      let btn = document.querySelector('.btn-copy-faturamento');
+      btn.innerHTML = "✅ Copiado!";
+      setTimeout(() => { btn.innerHTML = "📋 Copiar p/ Faturamento"; }, 2000);
+  }).catch(err => alert("Erro ao copiar."));
+}
+
+function montarResultadoRateioHtmlParaCopiar(){
+  const textoDetalhado = gerarTextoRateioDetalhado();
+  if(!textoDetalhado) return null;
+
+  const escapeHtml = (txt) => String(txt)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const linhas = escapeHtml(textoDetalhado).split("\n");
+  let htmlLinhas = linhas.map(linha => {
+    if(!linha.trim()) return "<br>";
+    const negrito = linha.replace(/^(Argentina|Chile|Uruguai|Peru|Paraguai) - Fatura (.*)$/,'<b>$1 - Fatura $2</b>')
+      .replace(/^(Externo: \$ )(.*)$/,'$1<b>$2</b>')
+      .replace(/^(Interno: \$ )(.*)$/,'$1<b>$2</b>')
+      .replace(/^(Seguro: \$ )(.*)$/,'$1<b>$2</b>')
+      .replace(/^(Frete Total \(USD\): \$ )(.*)$/,'$1<b>$2</b>');
+    return negrito + "<br>";
+  }).join("");
+
+  return `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;line-height:1.25;color:#111;background:#fff;white-space:normal;">${htmlLinhas}</div>`;
+}
+
+function copiarResultadoRateioFormatado(){
+  const html = montarResultadoRateioHtmlParaCopiar();
+  const texto = gerarTextoRateioDetalhado() || document.getElementById("resultado").innerText;
+
+  if(!html){ alert("Calcule primeiro antes de copiar."); return; }
+
+  if(navigator.clipboard && window.ClipboardItem){
+    const item = new ClipboardItem({
+      "text/html": new Blob([html], {type:"text/html"}),
+      "text/plain": new Blob([texto], {type:"text/plain"})
+    });
+
+    navigator.clipboard.write([item]).then(()=>{
+      const btn = document.querySelector(".btn-copy-resultado");
+      btn.innerHTML = "✅ Copiado!";
+      setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000);
+    }).catch(()=>copiarTextoSimplesRateio(texto));
+  }else{
+    copiarTextoSimplesRateio(texto);
+  }
+}
+
+function copiarTextoSimplesRateio(texto){
+  navigator.clipboard.writeText(texto).then(()=>{
+    alert("Copiado como texto simples. Para manter o quadrado formatado, cole em e-mail, Word, Google Docs ou sistema que aceite HTML.");
+  }).catch(()=>alert("Não foi possível copiar."));
+}
+
+</script>
+
+
+
+</body></html>
+</template>
+
+<script>
+function abrirModulo(modulo, botao) {
+  const frame = document.getElementById('frame');
+  const tpl = document.getElementById(modulo === 'rateio' ? 'tplRateio' : 'tplDados');
+  frame.srcdoc = tpl.innerHTML;
+  document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('ativo'));
+  botao.classList.add('ativo');
+  localStorage.setItem('cotacoes_modulo_ativo', modulo);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const modulo = localStorage.getItem('cotacoes_modulo_ativo') || 'dados';
+  abrirModulo(modulo, document.getElementById(modulo === 'rateio' ? 'btnRateio' : 'btnDados'));
+});
+</script>
+</body>
+</html>

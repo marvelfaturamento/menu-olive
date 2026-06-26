@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+
+<!-- saved from url=(0092)https://faturamento-pendente.vercel.app/?perfil=admin&usuario=Tiago&usuarioRef=tiago.carniel -->
+<html lang="pt-BR"><head><meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Painel 902 v12.2 Paginação Supabase</title>
+<link href="data:," rel="icon"/>
+
+
+
+
+<link href="css/painel902.css" rel="stylesheet"/></head>
+<body>
+<div class="app">
+<aside class="side">
+<div class="brand">
+  <h1>Painel 902</h1>
+  <div class="sideUpdateBox" id="lastUpdateBox" title="Última atualização ainda não registrada">
+    <div class="sideUpdateMain">
+      <span class="sideUpdateDot" id="lastUpdateDot"></span>
+      <span id="lastUpdateAgo">Aguardando atualização</span>
+    </div>
+    <div class="sideUpdateDate" id="lastUpdateDate">Importe ou sincronize a base</div>
+  </div>
+</div>
+<button class="navbtn" data-tab="ativo" data-title="Painel Ativo" data-desc="PCs em operação">Painel Ativo</button>
+<button class="navbtn" data-tab="agNota" data-title="Ag nota" data-desc="Aguardando nota">Ag nota</button>
+<button class="navbtn active" data-tab="aduana" data-title="Aduana" data-desc="Em aduanas monitoradas">Aduana</button>
+<button class="navbtn" data-tab="alertaNac" data-title="Alerta Nacional" data-desc="Clientes fora da UF/regra">Clientes alerta nacional</button>
+<button class="navbtn" data-tab="alertaInt" data-title="Alerta IMPO" data-desc="Internacional importação">Clientes alerta internacional impo</button>
+<button class="navbtn" data-tab="alertaExpo" data-title="Alerta EXPO" data-desc="Internacional exportação">Clientes alerta internacional expo</button>
+<button class="navbtn" data-tab="finalizados" data-title="Finalizados" data-desc="PCs finalizadas">Finalizados</button>
+<button class="navbtn" data-tab="config" data-title="Configurações" data-desc="Regras e cadastros">Configurações</button>
+</aside>
+<main class="main">
+<div class="topbar">
+<div>
+<div class="title" id="pageTitle">Aduana</div>
+<div class="supastatus" id="supabaseStatus">Supabase: carregado e auto save por PC ativo</div><span class="busyHint" id="busyHint"></span>
+</div>
+<div class="actions">
+<label class="filebtn">Importar Excel 902<input accept=".xls,.xlsx,.csv" hidden="" id="fileExcel" type="file"/></label>
+<label class="filebtn">Importar 624<input accept=".xls,.xlsx,.csv" hidden="" id="file624" type="file"/></label>
+<button id="btnSyncSupabase">Sincronizar Supabase</button>
+<button id="btnCarregarSupabase">Carregar Supabase</button>
+<button id="btnExport">Exportar Base</button>
+<label class="filebtn">Importar Base<input accept=".json" hidden="" id="fileBase" type="file"/></label>
+</div>
+</div>
+<div class="cards">
+<button class="cardBtn" data-open="ativo"><div class="k">PCs ativas</div><div class="v" id="cAtivas">154</div><div class="k">No painel principal</div></button>
+<button class="cardBtn" data-open="agNota"><div class="k">Ag nota</div><div class="v" id="cAg">30</div><div class="k" id="cAgFrete">R$ 1.015.010,00 em fretes</div></button>
+<button class="cardBtn" data-open="aduana"><div class="k">Em aduana</div><div class="v" id="cAduana">13</div><div class="k" id="cAduanaFrete">R$ 0,00 em fretes</div></button>
+<button class="cardBtn" data-open="alertaNac"><div class="k">Alerta nacional</div><div class="v" id="cNac">24</div><div class="k">UF destino diferente de EX</div></button>
+<button class="cardBtn" data-open="alertaInt"><div class="k">Alerta internacional impo</div><div class="v" id="cInt">10</div><div class="k">UF EX ou saída de aduana</div></button>
+<button class="cardBtn" data-open="alertaExpo"><div class="k">Alerta internacional expo</div><div class="v" id="cExpo">5</div><div class="k">Clientes exportação com UF destino EX</div></button>
+</div>
+<section class="panel tab hidden" id="tab-ativo">
+<div class="filters">
+<div class="field"><small>Busca</small><input id="buscaAtivo" placeholder="Cavalo, pagador, posição, motorista..."/></div>
+<div class="field"><small>Cliente</small><select id="clienteAtivo"><option value="">Todos</option><option value="A ANGELONI &amp; CIA LTDA">A ANGELONI &amp; CIA LTDA</option><option value="BRATRADE AGRICOLA LTDA">BRATRADE AGRICOLA LTDA</option><option value="BRF S.A.">BRF S.A.</option><option value="BUZARAM COMPANY S.A.">BUZARAM COMPANY S.A.</option><option value="CENCOSUD BRASIL COMERCIAL LTDA">CENCOSUD BRASIL COMERCIAL LTDA</option><option value="CHOCOLATES GAROTO S.A.">CHOCOLATES GAROTO S.A.</option><option value="COMERCIAL INAL 2005 S.A">COMERCIAL INAL 2005 S.A</option><option value="COOPERATIVA AGROINDUSTRIAL LAR">COOPERATIVA AGROINDUSTRIAL LAR</option><option value="COOPERATIVA CENTRAL AURORA ALIMENTOS">COOPERATIVA CENTRAL AURORA ALIMENTOS</option><option value="COSTA SUL PESCADOS S/A">COSTA SUL PESCADOS S/A</option><option value="DAIRY PARTNERS AMERICAS BRASIL LTDA">DAIRY PARTNERS AMERICAS BRASIL LTDA</option><option value="DAUPHINE COMERCIO E IMPORTACAO LTDA">DAUPHINE COMERCIO E IMPORTACAO LTDA</option><option value="EMPRESA BRASILEIRA DE DISTRIBUIÇÃO LTDA">EMPRESA BRASILEIRA DE DISTRIBUIÇÃO LTDA</option><option value="FERRERO DO BRASIL INDUSTRIA DOCEIRA E ALIMENTAR LTDA">FERRERO DO BRASIL INDUSTRIA DOCEIRA E ALIMENTAR LTDA</option><option value="FORTUNCERES">FORTUNCERES</option><option value="FORTUNCERES S.A">FORTUNCERES S.A</option><option value="FORTUNCERES S.A.">FORTUNCERES S.A.</option><option value="FRIGORIFICO JAHU LTDA - MATRIZ">FRIGORIFICO JAHU LTDA - MATRIZ</option><option value="FRIGORIFICO RAINHA DA PAZ LTDA">FRIGORIFICO RAINHA DA PAZ LTDA</option><option value="FRIMESA COOPERATIVA CENTRAL">FRIMESA COOPERATIVA CENTRAL</option><option value="HETROS IMPORTAÇÃO E EXPORTAÇÃO LTDA">HETROS IMPORTAÇÃO E EXPORTAÇÃO LTDA</option><option value="IMPERIAL IMPORTACAO E EXP.LTDA">IMPERIAL IMPORTACAO E EXP.LTDA</option><option value="IRMAOS MUFFATO &amp; CIA LTDA">IRMAOS MUFFATO &amp; CIA LTDA</option><option value="IRMAOS MUFFATO S.A.">IRMAOS MUFFATO S.A.</option><option value="JBS S/A">JBS S/A</option><option value="KIMBERLY-CLARK BRASIL INDUSTRIA E COMERCIO DE PRODUTOS DE HIGIENE LTDA">KIMBERLY-CLARK BRASIL INDUSTRIA E COMERCIO DE PRODUTOS DE HIGIENE LTDA</option><option value="LAMB WESTON ALIMENTOS MODERNOS S.A.">LAMB WESTON ALIMENTOS MODERNOS S.A.</option><option value="LATICINIOS BELA VISTA LTDA">LATICINIOS BELA VISTA LTDA</option><option value="LATICINIOS BELA VISTA S.A">LATICINIOS BELA VISTA S.A</option><option value="MASTER AGROINDUSTRIAL LTDA">MASTER AGROINDUSTRIAL LTDA</option><option value="MASTERFOODS BRASIL ALIM. LTDA">MASTERFOODS BRASIL ALIM. LTDA</option><option value="MCCAIN DO BRASIL ALIMENTOS LTDA">MCCAIN DO BRASIL ALIMENTOS LTDA</option><option value="MINERVA INDÚSTRIA E COMÉRCIO DE ALIMENTOS S/A">MINERVA INDÚSTRIA E COMÉRCIO DE ALIMENTOS S/A</option><option value="MINERVA S.A.">MINERVA S.A.</option><option value="MINERVA S/A">MINERVA S/A</option><option value="NATURAL PORK ALIMENTOS S.A">NATURAL PORK ALIMENTOS S.A</option><option value="NESTLE BRASIL LTDA">NESTLE BRASIL LTDA</option><option value="NESTLE NORDESTE ALIMENTOS E BEBIDAS LTDA">NESTLE NORDESTE ALIMENTOS E BEBIDAS LTDA</option><option value="NORTE SALINEIRA SA IND E COM NORSAL">NORTE SALINEIRA SA IND E COM NORSAL</option><option value="Nestle Brasil Ltda.">Nestle Brasil Ltda.</option><option value="OPERGEL COML E INDL DE PRODUTOS ALIMENTICIOS LTDA">OPERGEL COML E INDL DE PRODUTOS ALIMENTICIOS LTDA</option><option value="PAMPA ALIMENTOS LTDA">PAMPA ALIMENTOS LTDA</option><option value="PAMPAFOODS COMERCIO IMPORTAÇÃO E EXPORTAÇÃO LTDA">PAMPAFOODS COMERCIO IMPORTAÇÃO E EXPORTAÇÃO LTDA</option><option value="POLENGHI INDUSTRIAS ALIMENTICIAS LTDA">POLENGHI INDUSTRIAS ALIMENTICIAS LTDA</option><option value="RFG COMERCIO TRANSPORTES E SERVICIOS LTDA">RFG COMERCIO TRANSPORTES E SERVICIOS LTDA</option><option value="ROYAL CANIN DISTRIBUIDORA LTDA">ROYAL CANIN DISTRIBUIDORA LTDA</option><option value="SAPUTO REPRESENTACAO COMERCIAL DE PRODUTOS LACTEOS DE BRASIL LTDA">SAPUTO REPRESENTACAO COMERCIAL DE PRODUTOS LACTEOS DE BRASIL LTDA</option><option value="SEARA ALIMENTOS LTDA">SEARA ALIMENTOS LTDA</option><option value="SEARA ALIMENTOS LTDA.">SEARA ALIMENTOS LTDA.</option><option value="SEM LIMITE DISTRIBUIDORA DE ALIMENTOS LTDA">SEM LIMITE DISTRIBUIDORA DE ALIMENTOS LTDA</option><option value="SPADER DISTRIBUIDORA DE ALIMENTOS LTDA">SPADER DISTRIBUIDORA DE ALIMENTOS LTDA</option><option value="SUDAMBEEF IND. COM. IMP. E EXP. LTDA">SUDAMBEEF IND. COM. IMP. E EXP. LTDA</option><option value="TANUS JALIL E HIJO SRL">TANUS JALIL E HIJO SRL</option><option value="UMAI COMERCIO IMPORTACAO E EXPORTACAO">UMAI COMERCIO IMPORTACAO E EXPORTACAO</option></select></div>
+<div class="field"><small>UF origem</small><select id="ufOrigemAtivo"><option value="">Todos</option><option value="BA">BA</option><option value="ES">ES</option><option value="EX">EX</option><option value="GO">GO</option><option value="MG">MG</option><option value="MS">MS</option><option value="MT">MT</option><option value="PA">PA</option><option value="PE">PE</option><option value="PR">PR</option><option value="RN">RN</option><option value="RO">RO</option><option value="RS">RS</option><option value="SC">SC</option><option value="SP">SP</option></select></div>
+<div class="field"><small>UF destino</small><select id="ufDestinoAtivo"><option value="">Todos</option><option value="AL">AL</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="EX">EX</option><option value="GO">GO</option><option value="MA">MA</option><option value="MG">MG</option><option value="MS">MS</option><option value="MT">MT</option><option value="PE">PE</option><option value="PR">PR</option><option value="RJ">RJ</option><option value="RO">RO</option><option value="RS">RS</option><option value="SC">SC</option><option value="SE">SE</option><option value="SP">SP</option></select></div>
+</div>
+<h3 class="sectionTitle">PCs ativas</h3>
+<div class="tableWrap"><table id="tbAtivo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="panel tab hidden" id="tab-agNota">
+<div class="filters" style="grid-template-columns:1.5fr 1fr 1fr">
+<div class="field"><small>Busca</small><input id="buscaAg" placeholder="Cavalo, cliente, posição..."/></div>
+<div class="field"><small>Cliente</small><select id="clienteAg"><option value="">Todos</option><option value="ARMAZEM MATEUS S A">ARMAZEM MATEUS S A</option><option value="BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA">BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA</option><option value="CASA AVENIDA COMÉRCIO E IMPORTACAO LTDA">CASA AVENIDA COMÉRCIO E IMPORTACAO LTDA</option><option value="CENCOSUD BRASIL ATACADO LTDA">CENCOSUD BRASIL ATACADO LTDA</option><option value="CENCOSUD BRASIL COMERCIAL LTDA">CENCOSUD BRASIL COMERCIAL LTDA</option><option value="GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA">GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA</option><option value="MINERVA S/A">MINERVA S/A</option><option value="SUPERMERCADO PORECATU LTDA">SUPERMERCADO PORECATU LTDA</option><option value="TENDA ATACADO LTDA">TENDA ATACADO LTDA</option><option value="TUDOBOM COMERCIAL EIRELI">TUDOBOM COMERCIAL EIRELI</option></select></div>
+<div class="field"><small>UF destino</small><select id="ufDestinoAg"><option value="">Todos</option><option value="BA">BA</option><option value="GO">GO</option><option value="MA">MA</option><option value="MG">MG</option><option value="SE">SE</option><option value="SP">SP</option></select></div>
+</div>
+<h3 class="sectionTitle">Ag nota</h3>
+<div class="summaryLine">
+<div>Total de casos: <strong id="sumAgQtd">30</strong></div>
+<div>Total de frete padrão: <strong id="sumAgFrete">R$ 1.015.010,00</strong></div>
+</div>
+<div class="tableWrap"><table id="tbAg"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Frete</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="panel tab" id="tab-aduana">
+<div class="filters" style="grid-template-columns:1.5fr 1fr 1fr">
+<div class="field"><small>Busca</small><input id="buscaAduana" placeholder="Cavalo, cliente, posição..."/></div>
+<div class="field"><small>Cliente</small><select id="clienteAduana"><option value="">Todos</option><option value="ARMAZEM MATEUS S A">ARMAZEM MATEUS S A</option><option value="BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA">BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA</option><option value="GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA">GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA</option><option value="MINERVA S/A">MINERVA S/A</option></select></div>
+<div class="field"><small>UF destino</small><select id="ufDestinoAduana"><option value="">Todos</option><option value="MA">MA</option><option value="SP">SP</option></select></div>
+</div>
+<h3 class="sectionTitle">Aduana</h3>
+<div class="summaryLine">
+<div>Total de casos: <strong id="sumAduanaQtd">13</strong></div>
+<div>Total de frete padrão: <strong id="sumAduanaFrete">R$ 458.800,00</strong></div>
+</div>
+<div class="tableWrap"><table id="tbAduana"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Frete</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="panel tab hidden" id="tab-alertaNac">
+<div class="filters">
+<div class="field"><small>Busca</small><input id="buscaNac" placeholder="Cavalo, cliente, posição..."/></div>
+<div class="field"><small>Cliente</small><select id="clienteNac"><option value="">Todos</option><option value="BRF S.A.">BRF S.A.</option><option value="COLGATE-PALMOLIVE COMERCIAL LTDA">COLGATE-PALMOLIVE COMERCIAL LTDA</option><option value="COMERCIO IMPORTAÇÃO E EXPORTAÇÃO DE FRUTAS CRISFRUT LTDA">COMERCIO IMPORTAÇÃO E EXPORTAÇÃO DE FRUTAS CRISFRUT LTDA</option><option value="MARS - MASTERFOODS BRASIL ALIMENTOS LTDA">MARS - MASTERFOODS BRASIL ALIMENTOS LTDA</option><option value="MARTINS &amp; MARTINS LTDA">MARTINS &amp; MARTINS LTDA</option><option value="NISSIN FOODS DO BRASIL LTDA">NISSIN FOODS DO BRASIL LTDA</option><option value="VALLE D`ORO AGROINDUSTRIAL LTDA.">VALLE D`ORO AGROINDUSTRIAL LTDA.</option></select></div>
+<div class="field"><small>Status</small><select id="statusNac"><option value="">Todos</option><option value="Coleta">Coleta</option><option value="Faturar">Faturar</option></select></div>
+<div class="field"><small>UF destino</small><select id="ufDestinoNac"><option value="">Todos</option><option value="AL">AL</option><option value="BA">BA</option><option value="CE">CE</option><option value="MS">MS</option><option value="MT">MT</option><option value="PI">PI</option><option value="PR">PR</option><option value="SC">SC</option><option value="SP">SP</option></select></div>
+</div>
+<h3 class="sectionTitle">Clientes alerta nacional</h3>
+<div class="tableWrap"><table id="tbNac"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="panel tab hidden" id="tab-alertaInt">
+<div class="filters">
+<div class="field"><small>Busca</small><input id="buscaInt" placeholder="Cavalo, cliente, posição..."/></div>
+<div class="field"><small>Cliente</small><select id="clienteInt"><option value="">Todos</option><option value="BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA">BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA</option><option value="BUZARAM COMPANY S.A.">BUZARAM COMPANY S.A.</option><option value="CENCOSUD BRASIL COMERCIAL LTDA">CENCOSUD BRASIL COMERCIAL LTDA</option><option value="GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA">GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA</option><option value="MCCAIN DO BRASIL ALIMENTOS LTDA">MCCAIN DO BRASIL ALIMENTOS LTDA</option><option value="MINERVA S/A">MINERVA S/A</option><option value="TENDA ATACADO LTDA">TENDA ATACADO LTDA</option></select></div>
+<div class="field"><small>Status</small><select id="statusInt"><option value="">Todos</option><option value="Faturar">Faturar</option></select></div>
+<div class="field"><small>UF destino</small><select id="ufDestinoInt"><option value="">Todos</option><option value="MG">MG</option><option value="SE">SE</option><option value="SP">SP</option></select></div>
+</div>
+<h3 class="sectionTitle">Clientes alerta internacional</h3>
+<div class="tableWrap"><table id="tbInt"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="panel tab hidden" id="tab-alertaExpo">
+<div class="filters">
+<div class="field"><small>Busca</small><input id="buscaExpo" placeholder="Cavalo, cliente, posição..."/></div>
+<div class="field"><small>Cliente</small><select id="clienteExpo"><option value="">Todos</option><option value="BARRY CALLEBAUT BRASIL S/A">BARRY CALLEBAUT BRASIL S/A</option><option value="KENVUE ARGENTINA S.A">KENVUE ARGENTINA S.A</option><option value="MINERVA S/A">MINERVA S/A</option></select></div>
+<div class="field"><small>Status</small><select id="statusExpo"><option value="">Todos</option><option value="Coleta">Coleta</option><option value="Faturar">Faturar</option></select></div>
+<div class="field"><small>UF destino</small><select id="ufDestinoExpo"><option value="">Todos</option><option value="EX">EX</option></select></div>
+</div>
+<h3 class="sectionTitle">Clientes alerta internacional expo</h3>
+<div class="tableWrap"><table id="tbExpo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="panel tab hidden" id="tab-finalizados">
+<div class="summaryLine"><button class="btn-red" id="btnLimparFinalizados">Excluir lote local</button></div>
+<h3 class="sectionTitle">Finalizados</h3>
+<div class="tableWrap"><table id="tbFim"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="panel tab hidden" id="tab-config">
+<div class="grid2">
+<div class="cfgStack">
+<div>
+<h3 class="sectionTitle">Controle mensal</h3>
+<div class="cfgGroup">
+<div class="small" style="margin-bottom:8px">Aqui o admin vê quais competências já podem ser zeradas.</div>
+<div id="mesesBox"><div class="monthCard"><div><div style="font-size:30px;font-weight:900;line-height:1">2026-05</div><div class="small" style="margin-top:8px">Abertos: 23 | Finalizados: 0</div></div><div class="monthStatus warn">Ainda com PV em aberto</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('2026-05')">Exportar</button><button class="mini btn-red" disabled="" onclick="zerarCompetenciaSupabase('2026-05')">Zerar Supabase</button></div></div><div class="monthCard"><div><div style="font-size:30px;font-weight:900;line-height:1">2026-06</div><div class="small" style="margin-top:8px">Abertos: 213 | Finalizados: 0</div></div><div class="monthStatus warn">Ainda com PV em aberto</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('2026-06')">Exportar</button><button class="mini btn-red" disabled="" onclick="zerarCompetenciaSupabase('2026-06')">Zerar Supabase</button></div></div></div>
+</div>
+</div>
+<div>
+<h3 class="sectionTitle">Frete padrão</h3>
+<div class="cfgGroup">
+<div class="cfgInputLine5">
+<div class="field"><small>Tomador</small><input id="fPagador" placeholder="Tomador"/></div>
+<div class="field"><small>Remetente</small><input id="fRemetente" placeholder="Remetente"/></div>
+<div class="field"><small>UF origem</small><input id="fUfOrigem" value="EX"/></div>
+<div class="field"><small>UF destino</small><input id="fUfDestino" placeholder="UF"/></div>
+<div class="field"><small>Frete</small><input id="fFrete" placeholder="0,00"/></div>
+<button class="plusbtn" id="addFrete">+</button>
+</div>
+<div class="cfgFreteHistory" id="fretesBox"><div class="cfgItem5"><div>BENASSI</div><div>SOCIEDAD C&amp;L FRUT SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(0)">x</button></div><div class="cfgItem5"><div>MANFIMEX IMP E EXP LTDA</div><div>-</div><div>EX</div><div>SC</div><div>R$ 21.000,00</div><button class="xbtn btn-red" onclick="removeFrete(1)">x</button></div><div class="cfgItem5"><div>MANFIMEX IMP E EXP LTDA</div><div>-</div><div>EX</div><div>PR</div><div>R$ 21.000,00</div><button class="xbtn btn-red" onclick="removeFrete(2)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>-</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(3)">x</button></div><div class="cfgItem5"><div>TUDOBOM</div><div>-</div><div>EX</div><div>MG</div><div>R$ 34.500,00</div><button class="xbtn btn-red" onclick="removeFrete(4)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>FRIGOMERC</div><div>EX</div><div>SP</div><div>R$ 32.700,00</div><button class="xbtn btn-red" onclick="removeFrete(5)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>FRIGORIFICO BELEN</div><div>EX</div><div>SP</div><div>R$ 32.700,00</div><button class="xbtn btn-red" onclick="removeFrete(6)">x</button></div><div class="cfgItem5"><div>SONDA</div><div>NORIDEL</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(7)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>FRIGORIFICO LOS LAZOS SA</div><div>EX</div><div>SP</div><div>R$ 32.700,00</div><button class="xbtn btn-red" onclick="removeFrete(8)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>COPEFRUT</div><div>EX</div><div>GO</div><div>R$ 29.640,00</div><button class="xbtn btn-red" onclick="removeFrete(9)">x</button></div><div class="cfgItem5"><div>PORECATU</div><div>SOCIEDAD EXPORTADORA VERFRUT SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(10)">x</button></div><div class="cfgItem5"><div>DAUPHINE</div><div>-</div><div>EX</div><div>SC</div><div>R$ 16.500,00</div><button class="xbtn btn-red" onclick="removeFrete(11)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>PULSA</div><div>EX</div><div>SP</div><div>R$ 36.365,00</div><button class="xbtn btn-red" onclick="removeFrete(12)">x</button></div><div class="cfgItem5"><div>SONDA</div><div>EXPORTADORA UNIFRUTTI TRADES SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(13)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>ATLAS FRESH</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(14)">x</button></div><div class="cfgItem5"><div>TIMBRO</div><div>AVEX</div><div>EX</div><div>SC</div><div>R$ 21.500,00</div><button class="xbtn btn-red" onclick="removeFrete(15)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>COMERCIAL GREENVIC</div><div>EX</div><div>MG</div><div>R$ 34.000,00</div><button class="xbtn btn-red" onclick="removeFrete(16)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>OFERAN</div><div>EX</div><div>MG</div><div>R$ 31.065,00</div><button class="xbtn btn-red" onclick="removeFrete(17)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>OFERAN</div><div>EX</div><div>SP</div><div>R$ 31.065,00</div><button class="xbtn btn-red" onclick="removeFrete(18)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>SWIFT ARGENTINA S.A</div><div>EX</div><div>SP</div><div>R$ 30.520,00</div><button class="xbtn btn-red" onclick="removeFrete(19)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>COPEFRUT S.A</div><div>EX</div><div>SE</div><div>R$ 40.800,00</div><button class="xbtn btn-red" onclick="removeFrete(20)">x</button></div><div class="cfgItem5"><div>PAGUE MENOS</div><div>AUSTRADE SRL</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(21)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>JOHNSON FRUIT</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(22)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>EXPORTADORA FRUTICOLA DEL SUR</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(23)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>SOCIEDAD EXPORTADORA VERFRUT SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(24)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>LOS HAROLDOS S.A</div><div>EX</div><div>SP</div><div>R$ 22.950,00</div><button class="xbtn btn-red" onclick="removeFrete(25)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>SAN FRANCISCO LOS GARCES SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(26)">x</button></div><div class="cfgItem5"><div>PAGUE MENOS</div><div>FRUT PREMIUM</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(27)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>FRUT PREMIUM</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(28)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>EMELKA S.A</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(29)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>DAVID DEL CURTO</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(30)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>AGRISOUTH ESTATES</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(31)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>SAN FRANCISCO LOS GARCES SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(32)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>EXPORTADORA SAN CLEMENT</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(33)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>ASUDEPES</div><div>EX</div><div>SP</div><div>R$ 32.700,00</div><button class="xbtn btn-red" onclick="removeFrete(34)">x</button></div><div class="cfgItem5"><div>TENDA</div><div>EMELKA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(35)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>VINOS SANTA EMA</div><div>EX</div><div>SP</div><div>R$ 21.741,20</div><button class="xbtn btn-red" onclick="removeFrete(36)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>Compañía Chilena de la Fruta S.A</div><div>EX</div><div>SP</div><div>R$ 30.000,00</div><button class="xbtn btn-red" onclick="removeFrete(37)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>COPEFRUT</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(38)">x</button></div><div class="cfgItem5"><div>SHIBATA</div><div>EMELKA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(39)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>EXPORTADORA UNIFRUTTI TRADES</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(40)">x</button></div><div class="cfgItem5"><div>JAD</div><div>SOCIEDAD EXPORTADORA VERFRUT SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(41)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>SK GYAN FRUIT SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(42)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>FRUTERA SAN FERNANDO S.A</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(43)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>DOLE CHILE</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(44)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>EXPORTADORA FRUGAL</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(45)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>SK GYAN FRUIT SPA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(46)">x</button></div><div class="cfgItem5"><div>TAJA</div><div>SIMPLOT ARGENTINA SRL</div><div>EX</div><div>SC</div><div>R$ 26.000,00</div><button class="xbtn btn-red" onclick="removeFrete(47)">x</button></div><div class="cfgItem5"><div>MINERVA</div><div>SWIFT</div><div>EX</div><div>SP</div><div>R$ 32.700,00</div><button class="xbtn btn-red" onclick="removeFrete(48)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>MAGNA</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(49)">x</button></div><div class="cfgItem5"><div>SONDA</div><div>PREMIUM</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(50)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>JUAN PATALANO</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(51)">x</button></div><div class="cfgItem5"><div>GARDEN</div><div>-</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(52)">x</button></div><div class="cfgItem5"><div>ARMAZEM MATEUS</div><div>-</div><div>EX</div><div>MA</div><div>R$ 47.600,00</div><button class="xbtn btn-red" onclick="removeFrete(53)">x</button></div><div class="cfgItem5"><div>SIMPLOT</div><div>-</div><div>EX</div><div>SP</div><div>R$ 22.000,00</div><button class="xbtn btn-red" onclick="removeFrete(54)">x</button></div><div class="cfgItem5"><div>TENDA</div><div>-</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(55)">x</button></div><div class="cfgItem5"><div>FRUTIBRASIL</div><div>-</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(56)">x</button></div><div class="cfgItem5"><div>CARREFOUR</div><div>-</div><div>EX</div><div>SP</div><div>R$ 27.025,00</div><button class="xbtn btn-red" onclick="removeFrete(57)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>-</div><div>EX</div><div>RJ</div><div>R$ 29.640,00</div><button class="xbtn btn-red" onclick="removeFrete(58)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>-</div><div>EX</div><div>SP</div><div>R$ 26.780,00</div><button class="xbtn btn-red" onclick="removeFrete(59)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>URUDOR</div><div>EX</div><div>BA</div><div>R$ 44.200,00</div><button class="xbtn btn-red" onclick="removeFrete(60)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>EXPORTADORA PRIZE SA</div><div>EX</div><div>SP</div><div>R$ 47.000,00</div><button class="xbtn btn-red" onclick="removeFrete(61)">x</button></div><div class="cfgItem5"><div>BENASSI</div><div>SOBIFRUITS S.A.C.</div><div>EX</div><div>SP</div><div>R$ 47.000,00</div><button class="xbtn btn-red" onclick="removeFrete(62)">x</button></div><div class="cfgItem5"><div>CASA AVENIDA</div><div>AUSTRADE</div><div>EX</div><div>SP</div><div>R$ 29.000,00</div><button class="xbtn btn-red" onclick="removeFrete(63)">x</button></div><div class="cfgItem5"><div>CENCOSUD</div><div>GARCIA HERMANOS AGROINDUSTRIAL</div><div>EX</div><div>GO</div><div>R$ 26.000,00</div><button class="xbtn btn-red" onclick="removeFrete(64)">x</button></div></div>
+</div>
+</div>
+</div>
+<div class="cfgCols">
+<div class="cfgStack">
+<div>
+<h3 class="sectionTitle">Clientes com regra de aduana</h3>
+<div class="cfgGroup">
+<div class="cfgInputLine">
+<div class="field"><small>Cliente</small><input id="novoPaga" placeholder="Digite e clique em +"/></div>
+<button class="plusbtn" id="addPaga">+</button>
+</div>
+<div class="cfgHistory" id="pagaBox"><div class="cfgItem"><div>GARDEN</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 0)">x</button></div><div class="cfgItem"><div>BENASSI</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 1)">x</button></div><div class="cfgItem"><div>CENCOSUD</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 2)">x</button></div><div class="cfgItem"><div>JAD ZOGHEIB E CIA LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 3)">x</button></div><div class="cfgItem"><div>SHIBATA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 4)">x</button></div><div class="cfgItem"><div>ZOGHEIB</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 5)">x</button></div><div class="cfgItem"><div>ARMAZEM MATEUS</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 6)">x</button></div><div class="cfgItem"><div>TAJA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 7)">x</button></div><div class="cfgItem"><div>TENDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 8)">x</button></div><div class="cfgItem"><div>PAGUE MENOS</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 9)">x</button></div><div class="cfgItem"><div>TIMBRO</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 10)">x</button></div><div class="cfgItem"><div>COVABRA SUPERMERCADOS LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 11)">x</button></div><div class="cfgItem"><div>TUDOBOM</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 12)">x</button></div><div class="cfgItem"><div>CANTU OESTE IMPORTACAO E EXPORTACAO LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 13)">x</button></div><div class="cfgItem"><div>carrefour</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 14)">x</button></div><div class="cfgItem"><div>FRUTIBRASIL</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 15)">x</button></div><div class="cfgItem"><div>SONDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 16)">x</button></div><div class="cfgItem"><div>SIMPLOT</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 17)">x</button></div><div class="cfgItem"><div>MANFIMEX</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 18)">x</button></div><div class="cfgItem"><div>JAB</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 19)">x</button></div><div class="cfgItem"><div>BERGAMINI</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 20)">x</button></div><div class="cfgItem"><div>SUPERMERCADOS BERGAMINI LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 21)">x</button></div><div class="cfgItem"><div>SUPERMERCADO PORECATU LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 22)">x</button></div><div class="cfgItem"><div>DAUPHINE</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 23)">x</button></div><div class="cfgItem"><div>CASA AVENIDA COMÉRCIO E IMPORTACAO LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('paga', 24)">x</button></div></div>
+</div>
+</div>
+<div>
+<h3 class="sectionTitle">Aduanas monitoradas</h3>
+<div class="cfgGroup">
+<div class="cfgInputLine">
+<div class="field"><small>Aduana</small><input id="novoAduana" placeholder="Digite e clique em +"/></div>
+<button class="plusbtn" id="addAduana">+</button>
+</div>
+<div class="cfgHistory" id="aduanasBox"><div class="cfgItem"><div>SAO BORJA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 0)">x</button></div><div class="cfgItem"><div>SANTO TOME</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 1)">x</button></div><div class="cfgItem"><div>DIONISIO</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 2)">x</button></div><div class="cfgItem"><div>FOZ DO IGUACU</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 3)">x</button></div><div class="cfgItem"><div>PUERTO IGUACU</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 4)">x</button></div><div class="cfgItem"><div>CHUY</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 5)">x</button></div><div class="cfgItem"><div>URUGUAIANA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 6)">x</button></div><div class="cfgItem"><div>CHUÍ</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 7)">x</button></div><div class="cfgItem"><div>JAGUARAO</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 8)">x</button></div><div class="cfgItem"><div>BARRACÃO</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 9)">x</button></div><div class="cfgItem"><div>SANTANA DO LIVRAMENTO</div><button class="xbtn btn-red" onclick="removeSimpleCfg('aduanas', 10)">x</button></div></div>
+</div>
+</div>
+</div>
+<div class="cfgStack">
+<div>
+<h3 class="sectionTitle">Clientes alerta nacional</h3>
+<div class="cfgGroup">
+<div class="cfgInputLine">
+<div class="field"><small>Cliente</small><input id="novoAlerta" placeholder="Digite e clique em +"/></div>
+<button class="plusbtn" id="addAlerta">+</button>
+</div>
+<div class="cfgHistory" id="alertasBox"><div class="cfgItem"><div>MARS</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 0)">x</button></div><div class="cfgItem"><div>NISSIN</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 1)">x</button></div><div class="cfgItem"><div>CAMPARI</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 2)">x</button></div><div class="cfgItem"><div>COLGATE</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 3)">x</button></div><div class="cfgItem"><div>FINI</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 4)">x</button></div><div class="cfgItem"><div>SANCHES</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 5)">x</button></div><div class="cfgItem"><div>BARRY</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 6)">x</button></div><div class="cfgItem"><div>ARCOR</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 7)">x</button></div><div class="cfgItem"><div>MARTINS</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 8)">x</button></div><div class="cfgItem"><div>BARILLA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 9)">x</button></div><div class="cfgItem"><div>HARALD</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 10)">x</button></div><div class="cfgItem"><div>OLAM</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 11)">x</button></div><div class="cfgItem"><div>COLGATE-PALMOLIVE COMERCIAL LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 12)">x</button></div><div class="cfgItem"><div>SUPERMERCADO TCHE</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 13)">x</button></div><div class="cfgItem"><div>FRED VERDURAO EIRELI EPP</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 14)">x</button></div><div class="cfgItem"><div>HORTIGRAN</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 15)">x</button></div><div class="cfgItem"><div>OESA COMERCIO E REPRESENTACOES</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 16)">x</button></div><div class="cfgItem"><div>MASTERFOODS BRASIL ALIMENTOS LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 17)">x</button></div><div class="cfgItem"><div>AGUA BRANCA LTDA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 18)">x</button></div><div class="cfgItem"><div>STELLA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 19)">x</button></div><div class="cfgItem"><div>SALSARETI</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 20)">x</button></div><div class="cfgItem"><div>SALSARETTI</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 21)">x</button></div><div class="cfgItem"><div>COLGATE-PALMOLIVE INDUSTRIAL LTDA.</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 22)">x</button></div><div class="cfgItem"><div>OESA</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 23)">x</button></div><div class="cfgItem"><div>AJINOMOTO</div><button class="xbtn btn-red" onclick="removeSimpleCfg('alerta', 24)">x</button></div></div>
+</div>
+</div>
+<div>
+<h3 class="sectionTitle">Clientes exportação EX</h3>
+<div class="cfgGroup">
+<div class="cfgInputLine">
+<div class="field"><small>Cliente</small><input id="novoExpo" placeholder="Digite e clique em +"/></div>
+<button class="plusbtn" id="addExpo">+</button>
+</div>
+<div class="cfgHistory" id="expoBox"><div class="cfgItem"><div>MONDELEZ</div><button class="xbtn btn-red" onclick="removeSimpleCfg('expo', 0)">x</button></div><div class="cfgItem"><div>RICH</div><button class="xbtn btn-red" onclick="removeSimpleCfg('expo', 1)">x</button></div><div class="cfgItem"><div>PERFETTI</div><button class="xbtn btn-red" onclick="removeSimpleCfg('expo', 2)">x</button></div><div class="cfgItem"><div>NESTLE</div><button class="xbtn btn-red" onclick="removeSimpleCfg('expo', 3)">x</button></div><div class="cfgItem"><div>KENVUE</div><button class="xbtn btn-red" onclick="removeSimpleCfg('expo', 4)">x</button></div><div class="cfgItem"><div>UNILEVER</div><button class="xbtn btn-red" onclick="removeSimpleCfg('expo', 5)">x</button></div><div class="cfgItem"><div>BARRY</div><button class="xbtn btn-red" onclick="removeSimpleCfg('expo', 6)">x</button></div></div>
+</div>
+</div>
+<div>
+<h3 class="sectionTitle">Checkpoints especiais</h3>
+<div class="cfgGroup cfgGroupCompact">
+<div class="checkpointCompactLine">
+<input class="cpClienteInput" id="cpCliente" placeholder="Cliente"/>
+<input class="cpCidadeInput" id="cpCidade" placeholder="Cidade"/>
+<input class="cpUfInput" id="cpUfOrigem" value="EX"/>
+<button class="plusbtn" id="addCheckpoint">+</button>
+</div>
+<div class="cfgHistory" id="checkpointBox"><div class="checkpointTag"><div>MINERVA</div><div>VARGINHA</div><div>EX</div><button class="xbtn btn-red" onclick="removeCheckpoint(0)">x</button></div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="summaryLine" style="margin-top:10px">
+<button id="btnSalvarCfg">Salvar configurações</button>
+</div>
+</section>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script defer="True" src="js/app.js"></script>
+<script>
+(function(){
+  function aplicarLabels902(){
+    document.querySelectorAll('.navbtn').forEach(function(btn){
+      if(btn.querySelector('.hover-label')) return;
+      var label = btn.getAttribute('data-title') || btn.textContent.trim();
+      btn.setAttribute('aria-label', label);
+      var span = document.createElement('span');
+      span.className = 'hover-label';
+      span.textContent = label;
+      btn.appendChild(span);
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicarLabels902);
+  else aplicarLabels902();
+})();
+</script>
+
+</body></html>

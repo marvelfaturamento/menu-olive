@@ -1,0 +1,632 @@
+
+    :root{
+      --bg:#08101d; --bg2:#0d1526; --panel:#121d31; --stroke:rgba(255,255,255,.08);
+      --text:#edf3ff; --muted:#9cb0d2; --blue:#4f8cff; --shadow:0 18px 40px rgba(0,0,0,.25); --radius:18px;
+    }
+    *{box-sizing:border-box} html,body{margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);color:var(--text)}
+    .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+    .sidebar{background:#0d1628;border-right:1px solid var(--stroke);padding:20px;position:sticky;top:0;height:100vh;overflow:auto}
+    .brand{margin-bottom:18px;padding:16px;border:1px solid var(--stroke);border-radius:20px;background:linear-gradient(180deg,rgba(79,140,255,.16),rgba(255,255,255,.02));box-shadow:var(--shadow)}
+    .brand h1{margin:0;font-size:23px}.brand p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+    .menu{display:flex;flex-direction:column;gap:10px}
+    .menu button{width:100%;border:none;border-radius:14px;padding:14px 16px;text-align:left;font-weight:700;cursor:pointer;color:#fff;background:#18243a;border:1px solid transparent}
+    .menu button.active{background:linear-gradient(90deg,rgba(79,140,255,.22),rgba(79,140,255,.08));border-color:rgba(79,140,255,.35)}
+    .main{padding:22px}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+    .title h2{margin:0 0 6px;font-size:32px}.title p{margin:0;color:var(--muted)}
+    .chips{display:flex;flex-wrap:wrap;gap:10px}.chip{padding:10px 12px;border-radius:999px;border:1px solid var(--stroke);background:#14233b;color:var(--muted);font-size:12px;white-space:nowrap}
+    .view{display:none}.view.active{display:block}
+    .grid{display:grid;gap:16px}.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .card{background:linear-gradient(180deg,rgba(20,31,52,.95),rgba(17,26,43,.98));border:1px solid var(--stroke);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);min-width:0}
+    .card h3{margin:0 0 8px;font-size:20px}.sub{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:12px}
+    .kpi{padding:18px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06)}
+    .kpi .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+    .kpi .value{font-size:30px;font-weight:700;margin-top:10px}.kpi .hint{margin-top:8px;color:var(--muted);font-size:12px}
+    .controls{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:14px}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .field label{color:var(--muted);font-size:12px;text-transform:uppercase;font-weight:700;letter-spacing:.05em}
+    input,select,textarea{width:100%;border-radius:12px;border:1px solid var(--stroke);background:#0f1728;color:#fff;padding:11px 12px;font:inherit;outline:none}
+    textarea{min-height:140px;resize:vertical}
+    input:focus,select:focus,textarea:focus{border-color:rgba(79,140,255,.55);box-shadow:0 0 0 4px rgba(79,140,255,.12)}
+    .btn{border:none;border-radius:12px;padding:11px 14px;background:linear-gradient(180deg,var(--blue),#3f76df);color:#fff;font-weight:700;cursor:pointer}
+    .btn.secondary{background:#15233a;border:1px solid var(--stroke)} .btn.small{padding:9px 12px;font-size:12px;border-radius:10px}
+    .table-wrap{overflow:auto;border:1px solid var(--stroke);border-radius:16px;background:#0f1728}
+    table{width:100%;border-collapse:collapse;min-width:1100px}.compact table{min-width:720px}
+    th,td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;text-align:left;vertical-align:top}
+    th{position:sticky;top:0;z-index:1;background:#13233d;color:#d5e3ff} tr:hover td{background:rgba(255,255,255,.02)}
+    .tag{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:700}
+    .tag.ok{background:rgba(34,197,94,.18);color:#9af0b8}.tag.bad{background:rgba(239,68,68,.18);color:#ffb0b0}.tag.neutral{background:rgba(79,140,255,.18);color:#aaccff}
+    .box-info{padding:12px 14px;border-radius:12px;border:1px solid rgba(79,140,255,.25);background:#10233f;color:#c4dbff;font-size:13px;line-height:1.5}
+    .box-danger{padding:12px 14px;border-radius:12px;border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.10);color:#ffd0d0;font-size:13px;line-height:1.5}
+    .muted{color:var(--muted)} .center{text-align:center} .chart-box{height:360px}
+    @media (max-width:1200px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:860px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--stroke)}.controls{grid-template-columns:1fr}.grid-4{grid-template-columns:1fr}}
+  
+/* ===== AJUSTE UNIFICADO: submenu compacto com expansão no hover ===== */
+@media (min-width: 861px){
+  .app{grid-template-columns:74px 1fr!important;}
+  .sidebar{
+    width:74px!important;
+    min-width:74px!important;
+    padding:12px 9px!important;
+    overflow:visible!important;
+    z-index:50!important;
+    transition:width .22s ease, box-shadow .22s ease;
+  }
+  .sidebar:hover{
+    width:255px!important;
+    box-shadow:18px 0 36px rgba(0,0,0,.32);
+  }
+  .sidebar .brand{
+    height:42px!important;
+    padding:0!important;
+    margin:0 0 10px!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+  }
+  .sidebar .brand::before{
+    content:'☰';
+    font-size:20px;
+    color:#cfe0ff;
+  }
+  .sidebar:hover .brand{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+  }
+  .sidebar:hover .brand::before{content:'MENU';font-size:13px;font-weight:900;letter-spacing:.08em;}
+  .sidebar .brand h1,.sidebar .brand p{display:none!important;}
+  .menu{gap:8px!important;}
+  .menu button{
+    position:relative!important;
+    height:44px!important;
+    padding:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:13px!important;
+    font-size:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    transition:all .18s ease!important;
+  }
+  .menu button::before{
+    width:44px;
+    min-width:44px;
+    text-align:center;
+    font-size:18px;
+    line-height:1;
+  }
+  .sidebar:hover .menu button{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+    gap:10px!important;
+    font-size:13px!important;
+  }
+  .menu button[data-view="dashboard"]::before{content:'🏠';}
+  .menu button[data-view="registros"]::before{content:'☷';}
+  .menu button[data-view="conciliacao"]::before{content:'↔';}
+  .menu button[data-view="motivos"]::before{content:'🏷️';}
+  .menu button[data-view="usuarios"]::before{content:'👥';}
+  .menu button[data-view="performance"]::before{content:'📊';}
+  .menu button[data-view="clientes"]::before{content:'🧑‍🤝‍🧑';}
+  .menu button[data-view="setores"]::before{content:'🏢';}
+  .menu button[data-view="anual"]::before{content:'🗓️';}
+  .menu button[data-view="cadastro"]::before{content:'➕';}
+  .menu button[data-view="config"]::before{content:'⚙️';}
+}
+
+
+/* ===== v6: submenu lateral somente ícones; expande só o item no hover ===== */
+@media (min-width:861px){
+  .app{grid-template-columns:64px 1fr!important;}
+  .sidebar{width:64px!important;min-width:64px!important;padding:10px 8px!important;overflow:visible!important;z-index:80!important;transition:none!important;}
+  .sidebar:hover{width:64px!important;box-shadow:none!important;}
+  .sidebar .brand{height:42px!important;margin:0 0 8px!important;padding:0!important;display:flex!important;justify-content:center!important;align-items:center!important;overflow:visible!important;border-radius:14px!important;}
+  .sidebar .brand::before{content:'☰'!important;font-size:18px!important;color:#cfe0ff!important;}
+  .sidebar:hover .brand{justify-content:center!important;padding:0!important;}
+  .sidebar:hover .brand::before{content:'☰'!important;font-size:18px!important;letter-spacing:0!important;}
+  .sidebar .brand h1,.sidebar .brand p{display:none!important;}
+  .menu{gap:8px!important;overflow:visible!important;}
+  .menu button{position:relative!important;width:48px!important;min-width:48px!important;height:46px!important;padding:0!important;border-radius:13px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;white-space:nowrap!important;overflow:visible!important;transition:width .18s ease, background .18s ease, box-shadow .18s ease!important;z-index:1!important;}
+  .menu button::before{width:48px!important;min-width:48px!important;text-align:center!important;font-size:18px!important;line-height:1!important;}
+  .sidebar:hover .menu button{font-size:0!important;width:48px!important;padding:0!important;justify-content:center!important;gap:0!important;}
+  .menu button:hover{width:235px!important;justify-content:flex-start!important;padding:0 14px!important;gap:10px!important;font-size:13px!important;background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(37,99,235,.42))!important;box-shadow:12px 12px 32px rgba(0,0,0,.28)!important;z-index:20!important;}
+  .menu button.active{background:linear-gradient(180deg,#0b5bd3,#0d3472)!important;}
+  .menu button.active:hover{background:linear-gradient(90deg,#0b5bd3,#0d3472)!important;}
+}
+
+/* ===== v8: submenu compacto interativo igual Faturamento/Dados ===== */
+@media (min-width:861px){
+  .sidebar,.menu{overflow:visible!important;}
+  .sidebar{z-index:999!important;}
+  .menu button:hover{
+    width:235px!important;
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+    gap:10px!important;
+    font-size:13px!important;
+    background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(37,99,235,.42))!important;
+    box-shadow:12px 12px 32px rgba(0,0,0,.28)!important;
+    z-index:1000!important;
+  }
+  .menu button:hover::after{content:none!important;display:none!important;}
+  .menu button.active:hover{background:linear-gradient(90deg,#0b5bd3,#0d3472)!important;}
+}
+
+
+/* =========================================================
+   AJUSTE v10 - submenu interativo por item (igual Dados/Faturamento)
+   Mantém a barra compacta e mostra a descrição somente no hover do botão.
+========================================================= */
+@media (min-width: 861px){
+  .app{
+    grid-template-columns:64px 1fr!important;
+  }
+  .sidebar{
+    width:64px!important;
+    min-width:64px!important;
+    max-width:64px!important;
+    padding:10px 8px!important;
+    overflow:visible!important;
+    z-index:999!important;
+    transition:none!important;
+    box-shadow:none!important;
+  }
+  .sidebar:hover{
+    width:64px!important;
+    min-width:64px!important;
+    max-width:64px!important;
+    box-shadow:none!important;
+  }
+  .sidebar .brand{
+    height:42px!important;
+    width:46px!important;
+    padding:0!important;
+    margin:0 0 10px!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03))!important;
+  }
+  .sidebar .brand::before{
+    content:'☰'!important;
+    font-size:20px!important;
+    color:#cfe0ff!important;
+    font-weight:900!important;
+    letter-spacing:0!important;
+  }
+  .sidebar:hover .brand{
+    justify-content:center!important;
+    padding:0!important;
+  }
+  .sidebar:hover .brand::before{
+    content:'☰'!important;
+    font-size:20px!important;
+  }
+  .sidebar .brand h1,
+  .sidebar .brand p{display:none!important;}
+  .menu{
+    gap:8px!important;
+    align-items:center!important;
+    overflow:visible!important;
+  }
+  .menu button{
+    position:relative!important;
+    width:46px!important;
+    height:46px!important;
+    min-width:46px!important;
+    padding:0!important;
+    margin:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:14px!important;
+    font-size:0!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+    background:#14213a!important;
+    border:1px solid rgba(255,255,255,.07)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.02)!important;
+  }
+  .sidebar:hover .menu button{
+    width:46px!important;
+    min-width:46px!important;
+    justify-content:center!important;
+    padding:0!important;
+    gap:0!important;
+    font-size:0!important;
+  }
+  .menu button.active,
+  .menu button:hover{
+    background:linear-gradient(180deg,#2563eb,#1744aa)!important;
+    border-color:rgba(96,165,250,.75)!important;
+    box-shadow:0 10px 22px rgba(37,99,235,.24)!important;
+  }
+  .menu button::before{
+    width:auto!important;
+    min-width:0!important;
+    text-align:center!important;
+    font-size:18px!important;
+    line-height:1!important;
+    margin:0!important;
+  }
+  .menu button[data-view="dashboard"]::before{content:'🏠'!important;}
+  .menu button[data-view="registros"]::before{content:'☷'!important;}
+  .menu button[data-view="conciliacao"]::before{content:'↔'!important;}
+  .menu button[data-view="motivos"]::before{content:'🏷️'!important;}
+  .menu button[data-view="usuarios"]::before{content:'👥'!important;}
+  .menu button[data-view="performance"]::before{content:'📊'!important;}
+  .menu button[data-view="clientes"]::before{content:'🧑‍🤝‍🧑'!important;}
+  .menu button[data-view="setores"]::before{content:'🏢'!important;}
+  .menu button[data-view="anual"]::before{content:'🗓️'!important;}
+  .menu button[data-view="cadastro"]::before{content:'➕'!important;}
+  .menu button[data-view="config"]::before{content:'⚙️'!important;}
+  .menu button::after{
+    content: attr(data-title) '\A' attr(data-desc)!important;
+    position:absolute!important;
+    left:58px!important;
+    top:50%!important;
+    transform:translateY(-50%) translateX(-6px)!important;
+    width:190px!important;
+    padding:11px 13px!important;
+    border-radius:13px!important;
+    border:1px solid rgba(96,165,250,.35)!important;
+    background:linear-gradient(180deg,rgba(24,39,67,.98),rgba(12,24,43,.98))!important;
+    box-shadow:0 18px 34px rgba(0,0,0,.34)!important;
+    color:#fff!important;
+    font-size:13px!important;
+    font-weight:900!important;
+    line-height:1.25!important;
+    white-space:pre-line!important;
+    text-align:left!important;
+    opacity:0!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+    z-index:9999!important;
+  }
+  .menu button::selection{background:transparent;}
+  .menu button:hover::after{
+    opacity:1!important;
+    visibility:visible!important;
+    transform:translateY(-50%) translateX(0)!important;
+  }
+}
+
+/* ===== v11 CORREÇÃO FINAL: submenu igual Passar Dados/Faturamento ===== */
+@media (min-width:861px){
+  .app{grid-template-columns:64px minmax(0,1fr)!important;gap:14px!important;}
+  .sidebar{width:64px!important;min-width:64px!important;max-width:64px!important;padding:10px 8px!important;overflow:visible!important;z-index:9999!important;position:sticky!important;top:0!important;height:100vh!important;background:#082044!important;}
+  .sidebar:hover{width:64px!important;min-width:64px!important;max-width:64px!important;box-shadow:none!important;}
+  .sidebar .brand{height:42px!important;margin:0 0 8px!important;padding:0!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:visible!important;background:#0f1f3d!important;border:1px solid rgba(255,255,255,.08)!important;}
+  .sidebar .brand::before{content:'☰'!important;font-size:18px!important;color:#dbeafe!important;font-weight:900!important;}
+  .sidebar .brand h1,.sidebar .brand p{display:none!important;}
+  .menu{display:flex!important;flex-direction:column!important;gap:8px!important;overflow:visible!important;position:relative!important;z-index:10000!important;}
+  .menu button{position:relative!important;width:46px!important;min-width:46px!important;height:46px!important;margin:0!important;padding:0!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;overflow:visible!important;white-space:nowrap!important;font-size:0!important;line-height:1!important;color:#fff!important;background:#14213a!important;border:1px solid rgba(255,255,255,.08)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important;transition:width .18s ease,background .18s ease,box-shadow .18s ease!important;}
+  .menu button::before{font-size:18px!important;line-height:1!important;width:46px!important;min-width:46px!important;text-align:center!important;margin:0!important;}
+  .menu button::after{content:none!important;display:none!important;}
+  .menu button[data-view="dashboard"]::before{content:'🏠'!important;}
+  .menu button[data-view="registros"]::before{content:'☷'!important;}
+  .menu button[data-view="conciliacao"]::before{content:'↔'!important;}
+  .menu button[data-view="motivos"]::before{content:'🏷️'!important;}
+  .menu button[data-view="usuarios"]::before{content:'👥'!important;}
+  .menu button[data-view="performance"]::before{content:'📊'!important;}
+  .menu button[data-view="clientes"]::before{content:'🧑‍🤝‍🧑'!important;}
+  .menu button[data-view="setores"]::before{content:'🏢'!important;}
+  .menu button[data-view="anual"]::before{content:'🗓️'!important;}
+  .menu button[data-view="cadastro"]::before{content:'➕'!important;}
+  .menu button[data-view="config"]::before{content:'⚙️'!important;}
+  .menu button.active{background:linear-gradient(180deg,#0b5bd3,#0d3472)!important;border-color:rgba(96,165,250,.75)!important;box-shadow:0 8px 20px rgba(37,99,235,.22)!important;}
+  .menu button:hover{width:178px!important;min-width:178px!important;padding:0 14px 0 0!important;justify-content:flex-start!important;gap:0!important;font-size:13px!important;font-weight:900!important;background:linear-gradient(90deg,#2f78ff,#82a7ff)!important;color:#fff!important;box-shadow:12px 12px 32px rgba(0,0,0,.28)!important;z-index:10001!important;}
+  .menu button:hover::before{width:46px!important;min-width:46px!important;}
+}
+
+/* ===== v12 FINAL: hover igual Passar Dados/Faturamento - Refaturamento ===== */
+@media (min-width:861px){
+  .app{grid-template-columns:64px minmax(0,1fr)!important;gap:14px!important;}
+  .sidebar{width:64px!important;min-width:64px!important;max-width:64px!important;height:100vh!important;padding:10px 8px!important;overflow:visible!important;z-index:99999!important;position:sticky!important;top:0!important;background:#082044!important;box-shadow:none!important;}
+  .sidebar:hover{width:64px!important;min-width:64px!important;max-width:64px!important;box-shadow:none!important;}
+  .sidebar .brand{height:42px!important;width:48px!important;margin:0 0 8px!important;padding:0!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:visible!important;background:#0f1f3d!important;border:1px solid rgba(255,255,255,.08)!important;}
+  .sidebar .brand::before{content:'☰'!important;font-size:18px!important;color:#dbeafe!important;font-weight:900!important;}
+  .sidebar .brand h1,.sidebar .brand p{display:none!important;}
+  .menu{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:8px!important;overflow:visible!important;position:relative!important;z-index:100000!important;}
+  .menu button{position:relative!important;width:48px!important;min-width:48px!important;height:46px!important;margin:0!important;padding:0!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;overflow:visible!important;white-space:nowrap!important;font-size:0!important;line-height:1!important;color:#fff!important;background:#14213a!important;border:1px solid rgba(255,255,255,.08)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important;transition:width .18s ease,background .18s ease,box-shadow .18s ease!important;}
+  .menu button::before{font-size:18px!important;line-height:1!important;width:48px!important;min-width:48px!important;text-align:center!important;margin:0!important;}
+  .menu button::after{content:none!important;display:none!important;}
+  .menu button[data-view="dashboard"]::before{content:'🏠'!important;}
+  .menu button[data-view="registros"]::before{content:'☷'!important;}
+  .menu button[data-view="conciliacao"]::before{content:'↔'!important;}
+  .menu button[data-view="motivos"]::before{content:'🏷️'!important;}
+  .menu button[data-view="usuarios"]::before{content:'👥'!important;}
+  .menu button[data-view="performance"]::before{content:'📊'!important;}
+  .menu button[data-view="clientes"]::before{content:'🧑‍🤝‍🧑'!important;}
+  .menu button[data-view="setores"]::before{content:'🏢'!important;}
+  .menu button[data-view="anual"]::before{content:'🗓️'!important;}
+  .menu button[data-view="cadastro"]::before{content:'➕'!important;}
+  .menu button[data-view="config"]::before{content:'⚙️'!important;}
+  .menu button .hover-label{display:none!important;font-size:13px!important;font-weight:900!important;line-height:1.1!important;color:#fff!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:170px!important;}
+  .menu button:hover{width:220px!important;min-width:220px!important;padding:0 14px 0 0!important;justify-content:flex-start!important;gap:10px!important;background:linear-gradient(90deg,#2f78ff,#82a7ff)!important;color:#fff!important;box-shadow:12px 12px 32px rgba(0,0,0,.28)!important;z-index:100001!important;}
+  .menu button:hover .hover-label{display:block!important;}
+  .menu button.active{background:linear-gradient(180deg,#0b5bd3,#0d3472)!important;border-color:rgba(96,165,250,.75)!important;box-shadow:0 8px 20px rgba(37,99,235,.22)!important;}
+  .menu button.active:hover{background:linear-gradient(90deg,#0b5bd3,#3b82f6)!important;}
+}
+
+/* ===== v13 DEFINITIVO: Refaturamento igual ao Passar Dados/Faturamento ===== */
+@media (min-width:861px){
+  body .app{grid-template-columns:64px minmax(0,1fr)!important;gap:14px!important;overflow:visible!important;}
+  body .app > aside.sidebar{width:64px!important;min-width:64px!important;max-width:64px!important;height:100vh!important;padding:10px 8px!important;overflow:visible!important;z-index:999999!important;position:sticky!important;top:0!important;background:#082044!important;box-shadow:none!important;}
+  body .app > aside.sidebar:hover{width:64px!important;min-width:64px!important;max-width:64px!important;box-shadow:none!important;}
+  body .app > aside.sidebar .brand{height:42px!important;width:48px!important;margin:0 0 8px!important;padding:0!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:#0f1f3d!important;border:1px solid rgba(255,255,255,.08)!important;}
+  body .app > aside.sidebar .brand::before{content:'☰'!important;font-size:18px!important;color:#dbeafe!important;font-weight:900!important;}
+  body .app > aside.sidebar .brand h1,
+  body .app > aside.sidebar .brand p{display:none!important;}
+  body .app > aside.sidebar .menu{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:8px!important;overflow:visible!important;position:relative!important;z-index:1000000!important;}
+  body .app > aside.sidebar .menu > button{
+    position:relative!important;
+    width:48px!important;min-width:48px!important;height:46px!important;
+    margin:0!important;padding:0!important;
+    border-radius:14px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;
+    overflow:visible!important;white-space:nowrap!important;
+    font-size:0!important;line-height:1!important;
+    color:#fff!important;text-align:left!important;
+    background:#14213a!important;border:1px solid rgba(255,255,255,.08)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important;
+    transition:width .18s ease, background .18s ease, box-shadow .18s ease!important;
+  }
+  body .app > aside.sidebar .menu > button::before{font-size:18px!important;line-height:1!important;width:48px!important;min-width:48px!important;text-align:center!important;margin:0!important;}
+  body .app > aside.sidebar .menu > button::after{content:none!important;display:none!important;}
+  body .app > aside.sidebar .menu > button[data-view="dashboard"]::before{content:'🏠'!important;}
+  body .app > aside.sidebar .menu > button[data-view="registros"]::before{content:'☷'!important;}
+  body .app > aside.sidebar .menu > button[data-view="conciliacao"]::before{content:'↔'!important;}
+  body .app > aside.sidebar .menu > button[data-view="motivos"]::before{content:'🏷️'!important;}
+  body .app > aside.sidebar .menu > button[data-view="usuarios"]::before{content:'👥'!important;}
+  body .app > aside.sidebar .menu > button[data-view="performance"]::before{content:'📊'!important;}
+  body .app > aside.sidebar .menu > button[data-view="clientes"]::before{content:'🧑‍🤝‍🧑'!important;}
+  body .app > aside.sidebar .menu > button[data-view="setores"]::before{content:'🏢'!important;}
+  body .app > aside.sidebar .menu > button[data-view="anual"]::before{content:'🗓️'!important;}
+  body .app > aside.sidebar .menu > button[data-view="cadastro"]::before{content:'➕'!important;}
+  body .app > aside.sidebar .menu > button[data-view="config"]::before{content:'⚙️'!important;}
+  body .app > aside.sidebar .menu > button.active{background:linear-gradient(180deg,#0b5bd3,#0d3472)!important;border-color:rgba(96,165,250,.75)!important;box-shadow:0 8px 20px rgba(37,99,235,.22)!important;}
+  body .app > aside.sidebar .menu > button:hover{
+    width:220px!important;min-width:220px!important;
+    padding:0 14px 0 0!important;
+    justify-content:flex-start!important;gap:10px!important;
+    font-size:13px!important;font-weight:900!important;
+    background:linear-gradient(90deg,#2f78ff,#82a7ff)!important;color:#fff!important;
+    box-shadow:12px 12px 32px rgba(0,0,0,.28)!important;
+    z-index:1000001!important;
+  }
+  body .app > aside.sidebar .menu > button:hover::before{width:48px!important;min-width:48px!important;}
+  body .app > aside.sidebar .menu > button .hover-label{display:none!important;}
+}
+
+
+/* ===== v17: submenu expansível ao passar o mouse (padrão dos prints) ===== */
+@media (min-width:861px){
+  body .app{grid-template-columns:64px minmax(0,1fr)!important;gap:14px!important;overflow:visible!important;}
+  body .app > aside.sidebar{
+    width:64px!important;min-width:64px!important;max-width:64px!important;
+    height:100vh!important;padding:10px 8px!important;overflow:visible!important;
+    z-index:999999!important;position:sticky!important;top:0!important;
+    background:#082044!important;box-shadow:none!important;
+    transition:width .22s ease, max-width .22s ease, box-shadow .22s ease!important;
+  }
+  body .app > aside.sidebar:hover{
+    width:245px!important;min-width:245px!important;max-width:245px!important;
+    box-shadow:18px 0 35px rgba(0,0,0,.28)!important;
+  }
+  body .app > aside.sidebar .brand{
+    height:42px!important;width:48px!important;margin:0 0 8px!important;padding:0!important;
+    border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+    overflow:hidden!important;background:#0f1f3d!important;border:1px solid rgba(255,255,255,.08)!important;
+    transition:width .22s ease, padding .22s ease!important;
+  }
+  body .app > aside.sidebar .brand::before{content:'☰'!important;font-size:18px!important;color:#dbeafe!important;font-weight:900!important;}
+  body .app > aside.sidebar:hover .brand{
+    width:100%!important;justify-content:flex-start!important;padding:0 14px!important;
+  }
+  body .app > aside.sidebar:hover .brand::before{
+    content:'MENU'!important;font-size:13px!important;letter-spacing:.8px!important;
+  }
+  body .app > aside.sidebar .brand h1,
+  body .app > aside.sidebar .brand p{display:none!important;}
+
+  body .app > aside.sidebar .menu{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:8px!important;overflow:visible!important;position:relative!important;z-index:1000000!important;}
+  body .app > aside.sidebar .menu > button{
+    position:relative!important;width:48px!important;min-width:48px!important;height:46px!important;
+    margin:0!important;padding:0!important;border-radius:14px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;
+    overflow:hidden!important;white-space:nowrap!important;font-size:0!important;line-height:1!important;
+    color:#fff!important;text-align:left!important;background:#14213a!important;border:1px solid rgba(255,255,255,.08)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important;
+    transition:width .22s ease, background .18s ease, box-shadow .18s ease, padding .22s ease!important;
+  }
+  body .app > aside.sidebar .menu > button::before{font-size:18px!important;line-height:1!important;width:48px!important;min-width:48px!important;text-align:center!important;margin:0!important;}
+  body .app > aside.sidebar .menu > button::after{content:none!important;display:none!important;}
+  body .app > aside.sidebar .menu > button[data-view="dashboard"]::before{content:'🏠'!important;}
+  body .app > aside.sidebar .menu > button[data-view="registros"]::before{content:'☷'!important;}
+  body .app > aside.sidebar .menu > button[data-view="conciliacao"]::before{content:'↔'!important;}
+  body .app > aside.sidebar .menu > button[data-view="motivos"]::before{content:'🏷️'!important;}
+  body .app > aside.sidebar .menu > button[data-view="usuarios"]::before{content:'👥'!important;}
+  body .app > aside.sidebar .menu > button[data-view="performance"]::before{content:'📊'!important;}
+  body .app > aside.sidebar .menu > button[data-view="clientes"]::before{content:'🧑‍🤝‍🧑'!important;}
+  body .app > aside.sidebar .menu > button[data-view="setores"]::before{content:'🏢'!important;}
+  body .app > aside.sidebar .menu > button[data-view="anual"]::before{content:'🗓️'!important;}
+  body .app > aside.sidebar .menu > button[data-view="cadastro"]::before{content:'➕'!important;}
+  body .app > aside.sidebar .menu > button[data-view="config"]::before{content:'⚙️'!important;}
+  body .app > aside.sidebar .menu > button .hover-label{display:none!important;font-size:12px!important;font-weight:900!important;line-height:1.1!important;color:#fff!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+  body .app > aside.sidebar:hover .menu > button{
+    width:100%!important;min-width:100%!important;justify-content:flex-start!important;padding:0 14px 0 0!important;gap:10px!important;
+  }
+  body .app > aside.sidebar:hover .menu > button .hover-label{display:block!important;}
+  body .app > aside.sidebar .menu > button.active,
+  body .app > aside.sidebar .menu > button:hover{
+    background:linear-gradient(90deg,#0b5bd3,#2468dd)!important;border-color:rgba(96,165,250,.75)!important;box-shadow:0 10px 22px rgba(37,99,235,.20)!important;
+  }
+}
+
+
+/* ===== v18: botões mais modernos ===== */
+button,.btn,.navbtn,.menu button{transition:transform .18s ease, box-shadow .18s ease, background .18s ease!important;}
+button:hover,.btn:hover,.navbtn:hover,.menu button:hover{transform:translateY(-1px);}
+.btn-primary,.primary{background:linear-gradient(135deg,#60a5fa,#2563eb)!important;color:#fff!important;box-shadow:0 10px 22px rgba(37,99,235,.18)!important;}
+.btn-success,.success{background:linear-gradient(135deg,#34d399,#16a34a)!important;color:#062315!important;box-shadow:0 10px 22px rgba(22,163,74,.16)!important;}
+.btn-secondary,.secondary{background:linear-gradient(180deg,#253a5e,#1a2a46)!important;border:1px solid rgba(148,163,184,.18)!important;}
+
+
+/* ===== v19: submenu expansível translúcido + correção Leitor Scanner ===== */
+@media (min-width:861px){
+  /* Base visual translúcida para submenus expansíveis */
+  body .app > aside.sidebar,
+  body .app > aside.side,
+  body .app > aside,
+  .layout > .sidebar,
+  .wrap > .topbar{
+    background:rgba(8,20,40,.22)!important;
+    backdrop-filter:blur(12px)!important;
+    -webkit-backdrop-filter:blur(12px)!important;
+    border-right:1px solid rgba(148,163,184,.10)!important;
+    box-shadow:none!important;
+  }
+
+  body .app > aside.sidebar:hover,
+  body .app > aside.side:hover,
+  body .app > aside:hover,
+  .layout > .sidebar:hover,
+  .wrap > .topbar:hover{
+    background:rgba(8,20,40,.18)!important;
+    box-shadow:18px 0 36px rgba(0,0,0,.18)!important;
+  }
+
+  /* Linha MENU mais marcada */
+  body .app > aside.sidebar .brand,
+  body .app > aside.side .brand,
+  body .app > aside .brand,
+  .layout > .sidebar .brand-container,
+  .wrap > .topbar::before{
+    background:linear-gradient(180deg,rgba(30,41,59,.96),rgba(15,23,42,.96))!important;
+    border:1px solid rgba(148,163,184,.18)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 18px rgba(0,0,0,.12)!important;
+  }
+
+  /* Botões com visual mais leve e moderno */
+  body .app > aside.sidebar .menu > button,
+  body .app > aside.sidebar .navbtn,
+  body .app > aside.side .navbtn,
+  body .app > aside .tab,
+  .layout > .sidebar button,
+  .wrap > .topbar .tabbtn{
+    background:rgba(15,23,42,.56)!important;
+    border:1px solid rgba(148,163,184,.16)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important;
+    color:#eaf2ff!important;
+  }
+
+  body .app > aside.sidebar .menu > button:hover,
+  body .app > aside.sidebar .menu > button.active,
+  body .app > aside.sidebar .navbtn:hover,
+  body .app > aside.sidebar .navbtn.active,
+  body .app > aside.side .navbtn:hover,
+  body .app > aside.side .navbtn.active,
+  body .app > aside .tab:hover,
+  body .app > aside .tab.active,
+  .layout > .sidebar button:hover,
+  .layout > .sidebar button.ativo,
+  .wrap > .topbar .tabbtn:hover,
+  .wrap > .topbar .tabbtn.active{
+    background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(59,130,246,.48))!important;
+    border-color:rgba(96,165,250,.70)!important;
+    box-shadow:0 12px 24px rgba(37,99,235,.16)!important;
+    color:#fff!important;
+  }
+
+  /* Leitor Scanner: remove sobra do modo antigo e deixa igual aos demais */
+  body .app > aside{
+    width:74px!important;
+    min-width:74px!important;
+    max-width:74px!important;
+    padding:12px 9px!important;
+    overflow:visible!important;
+    z-index:9999!important;
+    transition:width .22s ease, max-width .22s ease, box-shadow .22s ease!important;
+  }
+  body .app > aside:hover{
+    width:255px!important;
+    min-width:255px!important;
+    max-width:255px!important;
+  }
+  body .app > aside .brand{
+    width:100%!important;
+    height:42px!important;
+    margin:0 0 10px!important;
+    padding:0!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    font-size:0!important;
+  }
+  body .app > aside .brand::before{
+    content:'☰'!important;
+    font-size:20px!important;
+    color:#dbeafe!important;
+    font-weight:900!important;
+  }
+  body .app > aside:hover .brand{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+  }
+  body .app > aside:hover .brand::before{
+    content:'MENU'!important;
+    font-size:13px!important;
+    letter-spacing:.8px!important;
+  }
+  body .app > aside .brand *,
+  body .app > aside .sub{display:none!important;}
+
+  body .app > aside .tab{
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    height:46px!important;
+    padding:0!important;
+    margin-bottom:8px!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    font-size:0!important;
+    line-height:1!important;
+    text-align:left!important;
+    transition:all .18s ease!important;
+  }
+  body .app > aside .tab::before{
+    width:46px!important;
+    min-width:46px!important;
+    text-align:center!important;
+    font-size:18px!important;
+    line-height:1!important;
+  }
+  body .app > aside .tab:nth-of-type(1)::before{content:'📄'!important;}
+  body .app > aside .tab:nth-of-type(2)::before{content:'🖼️'!important;}
+  body .app > aside .tab:nth-of-type(3)::before{content:'📋'!important;}
+  body .app > aside .tab:nth-of-type(4)::before{content:'🧾'!important;}
+  body .app > aside:hover .tab{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+    gap:10px!important;
+    font-size:13px!important;
+    font-weight:900!important;
+  }
+}

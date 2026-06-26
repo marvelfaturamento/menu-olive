@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leitor de Chaves de Acesso - Scanner Local V40</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#eef4f7;--card:#fff;--ink:#101828;--muted:#667085;--line:#d9e2ec;
+      --blue:#2563eb;--blue2:#1d4ed8;--green:#16a34a;--red:#dc2626;--amber:#d97706;
+      --soft:#f8fafc;--dark:#0f172a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#edf6f9,#f8fafc);color:var(--ink)}
+    .app{display:flex;min-height:100vh}
+    aside{width:255px;background:#0f172a;color:white;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .brand{font-weight:900;font-size:21px;margin-bottom:4px}
+    .sub{color:#cbd5e1;font-size:13px;margin-bottom:24px;line-height:1.35}
+    .tab{width:100%;border:0;border-radius:14px;padding:13px 14px;margin-bottom:10px;text-align:left;font-weight:800;cursor:pointer;background:#1e293b;color:#cbd5e1}
+    .tab.active{background:#2563eb;color:white}
+    main{flex:1;padding:26px;max-width:1500px;margin:0 auto}
+    .panel{display:none}.panel.active{display:block}
+    .hero{background:rgba(255,255,255,.94);border:1px solid #e2e8f0;border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(15,23,42,.08);margin-bottom:18px}
+    h1{margin:0 0 8px;font-size:26px} h2{margin:0 0 12px;font-size:19px}
+    .hint{color:var(--muted);font-size:14px;line-height:1.45}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+    input[type=file]{background:#fff;border:1px dashed #cbd5e1;border-radius:14px;padding:10px;min-width:260px}
+    button{border:0;border-radius:13px;padding:12px 16px;font-weight:900;cursor:pointer}
+    .primary{background:var(--blue);color:#fff}.primary:hover{background:var(--blue2)}
+    .ok{background:var(--green);color:#fff}.danger{background:var(--red);color:#fff}.light{background:#e8eef6;color:#0f172a}
+    .tiny{font-size:12px;padding:7px 10px;border-radius:10px}
+    .opts{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:#475569;margin-top:13px;font-weight:700}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-top:16px}
+    .stat{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+    .stat b{font-size:18px;display:block;margin-bottom:2px;line-height:1.15}.stat span{font-size:11px;color:#64748b}
+    .progress{height:12px;background:#dbe4ef;border-radius:999px;overflow:hidden;margin-top:14px}
+    .bar{height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e);transition:.2s}
+    .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:17px;box-shadow:0 10px 28px rgba(15,23,42,.05);margin-bottom:16px}
+    .search{width:100%;border:1px solid #dbe3ee;border-radius:14px;padding:12px;margin:8px 0 10px;font-size:14px}
+    table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid #dbe3ee;border-radius:16px;overflow:hidden;background:#fff}
+    th,td{padding:10px 11px;border-bottom:1px solid #e5edf5;font-size:13px;text-align:left;vertical-align:top}
+    th{background:#f8fafc;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+    tr:last-child td{border-bottom:0}.key{font-family:Consolas,monospace;font-weight:800}
+    .badge{display:inline-block;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900}
+    .b-ok{background:#dcfce7;color:#166534}.b-warn{background:#fef3c7;color:#92400e}.b-bad{background:#fee2e2;color:#991b1b}
+    .log{background:#0b1220;color:#dbeafe;border-radius:17px;padding:14px;height:220px;overflow:auto;font-family:Consolas,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap}
+    .reviewCard{border:1px solid #dbe3ee;border-radius:16px;padding:10px;margin:10px 0;background:#f8fafc}
+    .reviewCard img{width:100%;border-radius:12px;border:1px solid #dbe3ee;background:white;display:block}
+    .reviewCard input{width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:10px;margin-top:8px;font-family:Consolas,monospace}
+    .reviewCard .row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+    .pageList{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:10px;margin-top:12px}
+    .pageItem{border:1px solid #fecaca;background:#fff7f7;border-radius:16px;padding:8px;text-align:center;cursor:pointer;transition:.15s}
+    .pageItem:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(15,23,42,.10)}
+    .pageThumb{width:100%;height:78px;object-fit:contain;background:white;border:1px solid #dbe3ee;border-radius:10px;display:block;margin-bottom:6px}
+    .pageNum{font-weight:900;font-size:15px;color:#991b1b}
+    .scannerModal{position:fixed;inset:0;background:rgba(2,6,23,.88);z-index:9999;display:none;align-items:center;justify-content:center;padding:18px}
+    .scannerBox{width:min(1200px,96vw);height:min(900px,94vh);background:#fff;border-radius:22px;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+    .scannerTop{padding:12px 14px;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .scannerTop b{font-size:15px}.scannerTools{display:flex;gap:8px;flex-wrap:wrap}
+    .scannerTools button{padding:8px 10px;border-radius:10px;font-size:12px}
+    .scannerView{overflow:auto;background:#e5e7eb;display:flex;align-items:flex-start;justify-content:center;padding:14px}
+    .scannerView img{max-width:none;background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(15,23,42,.25);transform-origin:center top}
+    .scannerBottom{padding:12px;background:#f8fafc;border-top:1px solid #e2e8f0;display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+    .scannerBottom input{width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:12px;font-family:Consolas,monospace;font-size:15px}
+    .warnBox{margin-top:12px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:16px;padding:12px;font-size:13px}
+    .previewBox{border:2px dashed #cbd5e1;background:#f8fafc;border-radius:18px;padding:14px;text-align:center;min-height:180px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#64748b}
+    .previewBox img{max-width:100%;max-height:420px;border-radius:14px;border:1px solid #dbe3ee;background:white}
+    .pasteZone{outline:none}
+    .monoOut{font-family:Consolas,monospace;background:#f8fafc;border:1px solid #dbe3ee;border-radius:14px;padding:12px;white-space:pre-wrap;min-height:80px}
+    .groupTitle{font-size:16px;font-weight:900;margin:16px 0 8px}
+    @media(max-width:950px){.app{display:block}aside{width:100%;height:auto;position:relative}.grid,.stats{grid-template-columns:1fr}main{padding:16px}}
+
+    /* ===== AJUSTE UNIFICADO: submenu compacto com expansão no hover ===== */
+    @media(min-width:951px){
+      .app{grid-template-columns:68px 1fr!important;}
+      aside{width:68px!important;min-width:68px!important;padding:12px 8px!important;overflow:visible!important;z-index:50!important;transition:width .22s ease, box-shadow .22s ease;}
+      aside:hover{width:220px!important;box-shadow:18px 0 36px rgba(0,0,0,.28);}
+      aside .brand{height:42px!important;margin:0 0 8px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;overflow:hidden!important;}
+      aside .brand::before{content:'☰';font-size:20px;color:#cfe0ff;}
+      aside:hover .brand{justify-content:flex-start!important;font-size:13px!important;}
+      aside:hover .brand::before{content:'Leitor Scanner';font-size:13px;font-weight:900;}
+      aside .sub{display:none!important;}
+      aside .tab{height:44px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;white-space:nowrap!important;overflow:hidden!important;transition:all .18s ease!important;}
+      aside .tab::first-letter{font-size:19px!important;}
+      aside:hover .tab{justify-content:flex-start!important;padding:0 13px!important;font-size:13px!important;gap:10px!important;}
+    }
+  
+
+/* ===== v6: submenu lateral somente ícones; expande só o item no hover ===== */
+@media(min-width:951px){
+  .app{display:grid!important;grid-template-columns:64px 1fr!important;}
+  aside{width:64px!important;min-width:64px!important;padding:10px 8px!important;overflow:visible!important;z-index:80!important;transition:none!important;}
+  aside:hover{width:64px!important;box-shadow:none!important;}
+  aside .brand{height:42px!important;margin:0 0 8px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;overflow:visible!important;}
+  aside .brand::before{content:'☰'!important;font-size:18px!important;color:#cfe0ff!important;}
+  aside:hover .brand{justify-content:center!important;font-size:0!important;}
+  aside:hover .brand::before{content:'☰'!important;font-size:18px!important;}
+  aside .sub{display:none!important;}
+  aside .tab{position:relative!important;width:48px!important;min-width:48px!important;height:44px!important;padding:0!important;margin-bottom:8px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;white-space:nowrap!important;overflow:visible!important;border-radius:13px!important;transition:width .18s ease, background .18s ease, box-shadow .18s ease!important;z-index:1!important;}
+  aside .tab::before{width:48px!important;min-width:48px!important;text-align:center!important;font-size:18px!important;line-height:1!important;}
+  aside .tab:nth-of-type(1)::before{content:'📄';}aside .tab:nth-of-type(2)::before{content:'🖼️';}aside .tab:nth-of-type(3)::before{content:'📋';}aside .tab:nth-of-type(4)::before{content:'🧾';}
+  aside:hover .tab{font-size:0!important;width:48px!important;padding:0!important;justify-content:center!important;gap:0!important;}
+  aside .tab:hover{width:205px!important;justify-content:flex-start!important;padding:0 14px!important;gap:10px!important;font-size:13px!important;background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(37,99,235,.42))!important;box-shadow:12px 12px 32px rgba(0,0,0,.28)!important;z-index:20!important;}
+  aside .tab.active{background:linear-gradient(180deg,#0b5bd3,#0d3472)!important;color:white!important;}
+}
+
+
+
+/* ===== v18: submenu expansível moderno ===== */
+@media (min-width:861px){
+  .layout{grid-template-columns:74px 1fr!important;}
+  aside{width:74px!important;min-width:74px!important;padding:12px 9px!important;overflow:visible!important;z-index:90!important;transition:width .22s ease, box-shadow .22s ease!important;background:#0f172a!important;}
+  aside:hover{width:255px!important;box-shadow:18px 0 36px rgba(0,0,0,.32)!important;}
+  aside .brand{height:42px!important;margin:0 0 10px!important;padding:0!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;}
+  aside .brand::before{content:'☰'!important;font-size:20px!important;color:#dbeafe!important;}
+  aside:hover .brand{justify-content:flex-start!important;padding:0 14px!important;background:rgba(255,255,255,.06)!important;}
+  aside:hover .brand::before{content:'MENU'!important;font-size:13px!important;font-weight:900!important;letter-spacing:.08em!important;}
+  aside .brand *, aside .sub{display:none!important;}
+  aside .tab{width:100%!important;min-width:0!important;height:46px!important;padding:0!important;margin-bottom:8px!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;white-space:nowrap!important;overflow:hidden!important;transition:all .18s ease!important;background:rgba(255,255,255,.055)!important;border:1px solid rgba(148,163,184,.11)!important;}
+  aside .tab::before{width:46px!important;min-width:46px!important;text-align:center!important;font-size:18px!important;line-height:1!important;}
+  aside:hover .tab{justify-content:flex-start!important;padding:0 14px!important;gap:10px!important;font-size:13px!important;}
+  aside .tab:hover, aside .tab.active{background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(37,99,235,.42))!important;box-shadow:0 12px 24px rgba(37,99,235,.16)!important;}
+}
+button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18s ease!important;} button:hover,.tab:hover{transform:translateY(-1px);}
+
+
+/* ===== v19: submenu expansível translúcido + correção Leitor Scanner ===== */
+@media (min-width:861px){
+  /* Base visual translúcida para submenus expansíveis */
+  body .app > aside.sidebar,
+  body .app > aside.side,
+  body .app > aside,
+  .layout > .sidebar,
+  .wrap > .topbar{
+    background:rgba(8,20,40,.22)!important;
+    backdrop-filter:blur(12px)!important;
+    -webkit-backdrop-filter:blur(12px)!important;
+    border-right:1px solid rgba(148,163,184,.10)!important;
+    box-shadow:none!important;
+  }
+
+  body .app > aside.sidebar:hover,
+  body .app > aside.side:hover,
+  body .app > aside:hover,
+  .layout > .sidebar:hover,
+  .wrap > .topbar:hover{
+    background:rgba(8,20,40,.18)!important;
+    box-shadow:18px 0 36px rgba(0,0,0,.18)!important;
+  }
+
+  /* Linha MENU mais marcada */
+  body .app > aside.sidebar .brand,
+  body .app > aside.side .brand,
+  body .app > aside .brand,
+  .layout > .sidebar .brand-container,
+  .wrap > .topbar::before{
+    background:linear-gradient(180deg,rgba(30,41,59,.96),rgba(15,23,42,.96))!important;
+    border:1px solid rgba(148,163,184,.18)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 18px rgba(0,0,0,.12)!important;
+  }
+
+  /* Botões com visual mais leve e moderno */
+  body .app > aside.sidebar .menu > button,
+  body .app > aside.sidebar .navbtn,
+  body .app > aside.side .navbtn,
+  body .app > aside .tab,
+  .layout > .sidebar button,
+  .wrap > .topbar .tabbtn{
+    background:rgba(15,23,42,.56)!important;
+    border:1px solid rgba(148,163,184,.16)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important;
+    color:#eaf2ff!important;
+  }
+
+  body .app > aside.sidebar .menu > button:hover,
+  body .app > aside.sidebar .menu > button.active,
+  body .app > aside.sidebar .navbtn:hover,
+  body .app > aside.sidebar .navbtn.active,
+  body .app > aside.side .navbtn:hover,
+  body .app > aside.side .navbtn.active,
+  body .app > aside .tab:hover,
+  body .app > aside .tab.active,
+  .layout > .sidebar button:hover,
+  .layout > .sidebar button.ativo,
+  .wrap > .topbar .tabbtn:hover,
+  .wrap > .topbar .tabbtn.active{
+    background:linear-gradient(90deg,rgba(37,99,235,.92),rgba(59,130,246,.48))!important;
+    border-color:rgba(96,165,250,.70)!important;
+    box-shadow:0 12px 24px rgba(37,99,235,.16)!important;
+    color:#fff!important;
+  }
+
+  /* Leitor Scanner: remove sobra do modo antigo e deixa igual aos demais */
+  body .app > aside{
+    width:74px!important;
+    min-width:74px!important;
+    max-width:74px!important;
+    padding:12px 9px!important;
+    overflow:visible!important;
+    z-index:9999!important;
+    transition:width .22s ease, max-width .22s ease, box-shadow .22s ease!important;
+  }
+  body .app > aside:hover{
+    width:255px!important;
+    min-width:255px!important;
+    max-width:255px!important;
+  }
+  body .app > aside .brand{
+    width:100%!important;
+    height:42px!important;
+    margin:0 0 10px!important;
+    padding:0!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    font-size:0!important;
+  }
+  body .app > aside .brand::before{
+    content:'☰'!important;
+    font-size:20px!important;
+    color:#dbeafe!important;
+    font-weight:900!important;
+  }
+  body .app > aside:hover .brand{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+  }
+  body .app > aside:hover .brand::before{
+    content:'MENU'!important;
+    font-size:13px!important;
+    letter-spacing:.8px!important;
+  }
+  body .app > aside .brand *,
+  body .app > aside .sub{display:none!important;}
+
+  body .app > aside .tab{
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    height:46px!important;
+    padding:0!important;
+    margin-bottom:8px!important;
+    border-radius:14px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    font-size:0!important;
+    line-height:1!important;
+    text-align:left!important;
+    transition:all .18s ease!important;
+  }
+  body .app > aside .tab::before{
+    width:46px!important;
+    min-width:46px!important;
+    text-align:center!important;
+    font-size:18px!important;
+    line-height:1!important;
+  }
+  body .app > aside .tab:nth-of-type(1)::before{content:'📄'!important;}
+  body .app > aside .tab:nth-of-type(2)::before{content:'🖼️'!important;}
+  body .app > aside .tab:nth-of-type(3)::before{content:'📋'!important;}
+  body .app > aside .tab:nth-of-type(4)::before{content:'🧾'!important;}
+  body .app > aside:hover .tab{
+    justify-content:flex-start!important;
+    padding:0 14px!important;
+    gap:10px!important;
+    font-size:13px!important;
+    font-weight:900!important;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">Leitor Scanner V40</div>
+    <div class="sub">HTML puro<br>PDF + TXT por viagem</div>
+    <button class="tab active" onclick="openTab('pdf')">📄 Ler PDF</button>
+    <button class="tab" onclick="openTab('img')">🖼️ Ler Imagem</button>
+    <button class="tab" onclick="openTab('paste')">📋 Colar Print</button>
+    <button class="tab" onclick="openTab('txt')">🧾 Ler TXT</button>
+  </aside>
+
+  <main>
+    <section id="pdf" class="panel active">
+      <div class="hero">
+        <h1>Leitor de chaves em PDF</h1>
+        <div class="hint">
+          V40: adiciona CNPJ do transportador no TXT Nestlé/PBR, validando a lista informada. 
+          Páginas sem leitura aparecem para conferência manual com recorte visual.
+        </div>
+
+        <div class="controls">
+          <input id="pdfFiles" type="file" accept="application/pdf" multiple>
+          <button class="primary" onclick="readPDFs()">Ler PDF estável</button>
+          <button class="ok" onclick="copyPDFKeys()">Copiar chaves</button>
+          <button class="light" onclick="downloadPDFCSV()">Baixar CSV</button>
+          <button class="light" onclick="(()=>{const i=orderedPages.findIndex(p=>!p.key); i>=0 ? openScannerOrdered(i) : alert('Nenhuma página sem leitura para conferir.');})()">Scanner falhas</button>
+          <button class="danger" onclick="clearPDF()">Limpar</button>
+        </div>
+
+        <div class="opts">
+          <label><input id="useBarcode" type="checkbox" checked> Tentar código de barras</label>
+          <label><input id="useOCR" type="checkbox" checked> Usar OCR no topo</label>
+          <label><input id="tryRotated" type="checkbox" checked> Tentar páginas de lado</label>
+          <label><input id="fullRotationMode" type="checkbox"> Rotação completa 90°/180°</label>
+          <label><input id="deepMode" type="checkbox"> Modo profundo nas falhas</label>
+          <label><input id="manualReview" type="checkbox" checked> Mostrar recorte manual</label>
+        </div>
+
+        <div class="warnBox">
+          Importante: em PDF escaneado ruim, 100% automático não é garantido. Esta versão evita travar: lê rápido e mostra exatamente quais páginas precisam conferência.
+        </div>
+
+        <div class="stats">
+          <div class="stat"><b id="stFiles">0</b><span>arquivos</span></div>
+          <div class="stat"><b id="stPages">0</b><span>páginas</span></div>
+          <div class="stat"><b id="stKeys">0</b><span>chaves válidas</span></div>
+          <div class="stat"><b id="stFail">0</b><span>páginas sem leitura</span></div>
+        </div>
+        <div class="progress"><div id="pdfBar" class="bar"></div></div>
+        <div id="pdfStatus" class="hint" style="margin-top:10px">Aguardando arquivo...</div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Resultado PDF</h2>
+          <input id="pdfSearch" class="search" placeholder="Buscar por chave, arquivo, página ou NF..." oninput="renderPDFTable()">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Arquivo</th><th>Página</th><th>Chave de acesso</th><th>NF</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="pdfRows"><tr><td colspan="6">Nenhuma chave encontrada ainda.</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Páginas com erro</h2>
+          <div id="failList" class="hint" style="margin-bottom:10px">Nenhuma página sem leitura ainda.</div>
+          <div id="pageList" class="pageList"></div>
+          <div id="reviewBox" style="display:none"></div>
+          <h2 style="margin-top:16px">Log</h2>
+          <div id="pdfLog" class="log">Aguardando leitura...</div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="img" class="panel">
+      <div class="hero">
+        <h1>Leitor de imagem</h1>
+        <div class="hint">Envie JPG/PNG/WebP de uma DANFE ou de um recorte da chave. O sistema tenta localizar somente chaves válidas.</div>
+        <div class="controls">
+          <input id="imgFiles" type="file" accept="image/*" multiple>
+          <button class="primary" onclick="readImages()">Ler imagem</button>
+          <button class="ok" onclick="copyImageKeys()">Copiar chaves</button>
+          <button class="light" onclick="downloadImageCSV()">Baixar CSV</button>
+          <button class="danger" onclick="clearImages()">Limpar</button>
+        </div>
+        <div class="opts">
+          <label><input id="imgTryRotate" type="checkbox" checked> Tentar imagem virada</label>
+          <label><input id="imgContrast" type="checkbox" checked> Melhorar contraste</label>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h2>Resultado imagem</h2>
+          <table>
+            <thead><tr><th>#</th><th>Arquivo</th><th>Chave de acesso</th><th>NF</th><th>Status</th></tr></thead>
+            <tbody id="imgRows"><tr><td colspan="5">Nenhuma imagem lida ainda.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Prévia / log</h2>
+          <div id="imgPreview" class="previewBox">Selecione uma imagem para iniciar.</div>
+          <div id="imgLog" class="log" style="margin-top:12px;height:180px">Aguardando imagem...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="paste" class="panel">
+      <div class="hero">
+        <h1>Colar print da chave</h1>
+        <div class="hint">Clique na área abaixo e cole com <b>Ctrl+V</b>. Pode ser print da chave, do código de barras ou da parte superior da DANFE.</div>
+        <div class="controls">
+          <button class="primary" onclick="readPastedImage()">Ler print colado</button>
+          <button class="ok" onclick="copyPasteKeys()">Copiar chaves</button>
+          <button class="danger" onclick="clearPaste()">Limpar</button>
+        </div>
+        <div class="opts">
+          <label><input id="pasteTryRotate" type="checkbox" checked> Tentar print virado</label>
+          <label><input id="pasteContrast" type="checkbox" checked> Melhorar contraste</label>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h2>Área de colagem</h2>
+          <div id="pasteZone" class="previewBox pasteZone" tabindex="0">Clique aqui e pressione Ctrl+V para colar o print.</div>
+        </div>
+        <div class="card">
+          <h2>Resultado do print</h2>
+          <div id="pasteResult" class="monoOut">Nenhum print lido ainda.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="txt" class="panel">
+      <div class="hero">
+        <h1>Leitor de TXT por viagem</h1>
+        <div class="hint">
+          Lê TXT/CSV separado por ponto e vírgula. Agrupa por <b>pedido</b>, mostra frete líquido/bruto e permite copiar as chaves de cada pedido separadamente.
+        </div>
+        <div class="controls">
+          <select id="txtCliente" class="search" style="width:auto;min-width:220px;margin:0">
+            <option value="auto">Cliente: Automático</option>
+            <option value="pbr_marvel">Nestlé</option>
+            <option value="arcor">Arcor</option>
+            <option value="ferrero">Ferrero</option>
+            <option value="generico">Genérico por cabeçalho</option>
+          </select>
+          <input id="txtFiles" type="file" accept=".txt,.csv,text/plain" multiple>
+          <button class="primary" onclick="readTXTs()">Ler TXT</button>
+          <button class="ok" onclick="copyTXTKeysOnly()">Copiar somente chaves</button>
+          <button class="light" onclick="downloadTXTCSV()">Baixar CSV</button>
+          <button class="danger" onclick="clearTXT()">Limpar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Resultado TXT</h2>
+        <input id="txtSearch" class="search" placeholder="Buscar pedido, viagem, NF ou chave..." oninput="renderTXT()">
+        <div id="txtResult">Nenhum TXT lido ainda.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+let pdfResults = [];
+let pdfFails = [];
+let reviewImages = [];
+let orderedPages = [];
+let txtRows = [];
+let imageRows = [];
+let pastedCanvas = null;
+let pasteRows = [];
+let worker = null;
+
+function openTab(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function logPDF(msg){
+  const el = document.getElementById('pdfLog');
+  if(el.textContent === 'Aguardando leitura...') el.textContent = '';
+  el.textContent += msg + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+function setPDFStatus(msg){ document.getElementById('pdfStatus').textContent = msg; }
+function onlyDigits(s){ return (s || '').replace(/\D/g,''); }
+
+function validDV(chave){
+  chave = onlyDigits(chave);
+  if(chave.length !== 44) return false;
+  let pesos = [2,3,4,5,6,7,8,9];
+  let soma = 0, p = 0;
+  for(let i=42;i>=0;i--){
+    soma += Number(chave[i]) * pesos[p];
+    p = (p + 1) % pesos.length;
+  }
+  let mod = soma % 11;
+  let dv = (mod === 0 || mod === 1) ? 0 : 11 - mod;
+  return dv === Number(chave[43]);
+}
+
+function isRealAccessKey(chave){
+  chave = onlyDigits(chave);
+  if(!validDV(chave)) return false;
+
+  const ufs = new Set(['11','12','13','14','15','16','17','21','22','23','24','25','26','27','28','29','31','32','33','35','41','42','43','50','51','52','53']);
+  if(!ufs.has(chave.substring(0,2))) return false;
+
+  const mm = Number(chave.substring(4,6));
+  if(mm < 1 || mm > 12) return false;
+
+  const modelo = chave.substring(20,22);
+  if(!['55','57','58','65'].includes(modelo)) return false;
+
+  const cnpj = chave.substring(6,20);
+  if(/^0+$/.test(cnpj)) return false;
+
+  const numero = chave.substring(25,34);
+  if(/^0+$/.test(numero)) return false;
+
+  return true;
+}
+
+function findKeys(text){
+  const found = new Set();
+  const raw = String(text || '');
+  const chunks = raw.match(/(?:\d[\s.\-\/]*){44,60}/g) || [];
+  chunks.forEach(c => {
+    const d = onlyDigits(c);
+    for(let i=0;i<=d.length-44;i++){
+      const k = d.substring(i,i+44);
+      if(isRealAccessKey(k)) found.add(k);
+    }
+  });
+  return [...found];
+}
+
+function modeloDoc(chave){
+  const m = chave.substring(20,22);
+  if(m==='55') return 'NF-e';
+  if(m==='57') return 'CT-e';
+  if(m==='58') return 'MDF-e';
+  if(m==='65') return 'NFC-e';
+  return m || '-';
+}
+function extractNFfromKey(chave){ return chave && chave.length===44 ? chave.substring(25,34).replace(/^0+/,'') : ''; }
+
+async function getWorker(){
+  if(worker) return worker;
+  worker = await Tesseract.createWorker('por');
+  await worker.setParameters({
+    tessedit_char_whitelist: '0123456789 .-/',
+    preserve_interword_spaces: '1'
+  });
+  return worker;
+}
+
+function makeCanvas(w,h){
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.floor(w));
+  c.height = Math.max(1, Math.floor(h));
+  return c;
+}
+
+async function renderPage(page, scale=1.65){
+  const viewport = page.getViewport({ scale });
+  const canvas = makeCanvas(viewport.width, viewport.height);
+  const ctx = canvas.getContext('2d', { willReadFrequently:true });
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  return canvas;
+}
+
+function rotateCanvas(src, deg){
+  if(!deg) return src;
+  const rad = deg*Math.PI/180;
+  const swap = deg === 90 || deg === 270;
+  const out = makeCanvas(swap ? src.height : src.width, swap ? src.width : src.height);
+  const ctx = out.getContext('2d', { willReadFrequently:true });
+  ctx.translate(out.width/2, out.height/2);
+  // rotação corrigida: usa sentido anti-horário para páginas deitadas do DANFE
+  ctx.rotate(-rad);
+  ctx.drawImage(src, -src.width/2, -src.height/2);
+  return out;
+}
+
+function cropCanvas(src, x,y,w,h){
+  const c = makeCanvas(w,h);
+  const ctx = c.getContext('2d', { willReadFrequently:true });
+  ctx.drawImage(src, x,y,w,h,0,0,w,h);
+  return c;
+}
+
+function enhanceCanvas(src){
+  const c = makeCanvas(src.width, src.height);
+  const ctx = c.getContext('2d', { willReadFrequently:true });
+  ctx.drawImage(src,0,0);
+  const img = ctx.getImageData(0,0,c.width,c.height);
+  const d = img.data;
+  for(let i=0;i<d.length;i+=4){
+    let g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    // contraste forte, mas preserva números mais fracos
+    g = g > 188 ? 255 : (g < 115 ? 0 : Math.min(255, g*1.18));
+    d[i]=d[i+1]=d[i+2]=g;
+  }
+  ctx.putImageData(img,0,0);
+  return c;
+}
+
+
+function thresholdCanvas(src, threshold=168){
+  const c = makeCanvas(src.width, src.height);
+  const ctx = c.getContext('2d', { willReadFrequently:true });
+  ctx.drawImage(src,0,0);
+  const img = ctx.getImageData(0,0,c.width,c.height);
+  const d = img.data;
+  for(let i=0;i<d.length;i+=4){
+    const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    const v = g > threshold ? 255 : 0;
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  ctx.putImageData(img,0,0);
+  return c;
+}
+
+function upscaleCanvas(src, factor=1.4){
+  const c = makeCanvas(src.width * factor, src.height * factor);
+  const ctx = c.getContext('2d', { willReadFrequently:true });
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+
+function topKeyCrops(canvas){
+  const W = canvas.width, H = canvas.height;
+  return [
+    {name:'topo-direito-chave', x:W*0.36, y:H*0.00, w:W*0.63, h:H*0.27},
+    {name:'topo-total', x:W*0.02, y:H*0.00, w:W*0.96, h:H*0.34}
+  ];
+}
+
+function reviewImage(canvas){
+  const W = canvas.width, H = canvas.height;
+  const c = cropCanvas(canvas, W*0.24, H*0.00, W*0.75, H*0.34);
+  return c.toDataURL('image/jpeg', 0.86);
+}
+
+function fullPageImage(canvas){
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+async function tryNativeBarcode(canvas){
+  if(!document.getElementById('useBarcode').checked) return [];
+  let text = '';
+
+  if('BarcodeDetector' in window){
+    try{
+      const detector = new BarcodeDetector({ formats:['code_128','ean_13','pdf417','qr_code'] });
+      const codes = await detector.detect(canvas);
+      text += ' ' + codes.map(c=>c.rawValue).join(' ');
+    }catch(e){}
+  }
+
+  try{
+    if(window.ZXing && ZXing.BrowserMultiFormatReader){
+      const reader = new ZXing.BrowserMultiFormatReader();
+      const result = await reader.decodeFromCanvas(canvas);
+      if(result && result.text) text += ' ' + result.text;
+      reader.reset();
+    }
+  }catch(e){}
+
+  return findKeys(text);
+}
+
+async function tryBarcodes(canvas){
+  const rotations = document.getElementById('fullRotationMode') && document.getElementById('fullRotationMode').checked ? [0,270,90,180] : (document.getElementById('tryRotated').checked ? [0,270] : [0]);
+  for(const rot of rotations){
+    const base = rotateCanvas(canvas, rot);
+    for(const crop of topKeyCrops(base)){
+      const c = cropCanvas(base, crop.x, crop.y, crop.w, crop.h);
+      const keys = await tryNativeBarcode(enhanceCanvas(c));
+      if(keys.length) return {keys, method:`código de barras ${rot ? rot+'°' : ''}`.trim()};
+    }
+  }
+  return {keys:[], method:''};
+}
+
+async function ocrCanvas(canvas){
+  const w = await getWorker();
+  const res = await w.recognize(canvas);
+  return res?.data?.text || '';
+}
+
+async function tryOCR(canvas){
+  if(!document.getElementById('useOCR').checked) return {keys:[], method:''};
+
+  const rotations = document.getElementById('fullRotationMode') && document.getElementById('fullRotationMode').checked ? [0,270,90,180] : (document.getElementById('tryRotated').checked ? [0,270] : [0]);
+
+  for(const rot of rotations){
+    const base = rotateCanvas(canvas, rot);
+    for(const crop of topKeyCrops(base)){
+      const c = enhanceCanvas(cropCanvas(base, crop.x, crop.y, crop.w, crop.h));
+      const txt = await ocrCanvas(c);
+      const keys = findKeys(txt);
+      if(keys.length) return {keys, method:`OCR ${crop.name}${rot ? ' '+rot+'°' : ''}`};
+    }
+  }
+
+  if(document.getElementById('deepMode').checked){
+    for(const rot of [0,270,90,180]){
+      const base = rotateCanvas(canvas, rot);
+      const c = enhanceCanvas(base);
+      const txt = await ocrCanvas(c);
+      const keys = findKeys(txt);
+      if(keys.length) return {keys, method:`OCR profundo${rot ? ' '+rot+'°' : ''}`};
+    }
+  }
+
+  return {keys:[], method:''};
+}
+
+async function readPDFs(){
+  const files = [...document.getElementById('pdfFiles').files];
+  if(!files.length){ alert('Selecione pelo menos um PDF.'); return; }
+
+  clearPDF(false);
+  document.getElementById('stFiles').textContent = files.length;
+  logPDF('Iniciando leitura local rápida...');
+  setPDFStatus('Preparando arquivos...');
+
+  let totalPages = 0;
+  const loaded = [];
+  for(const f of files){
+    const ab = await f.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:ab}).promise;
+    loaded.push({file:f, pdf});
+    totalPages += pdf.numPages;
+  }
+  document.getElementById('stPages').textContent = totalPages;
+
+  let done = 0;
+  const seen = new Set();
+
+  for(const item of loaded){
+    const {file,pdf} = item;
+
+    for(let p=1;p<=pdf.numPages;p++){
+      setPDFStatus(`Lendo ${file.name} • página ${p}/${pdf.numPages}`);
+      logPDF(`Página ${p}: analisando...`);
+
+      const page = await pdf.getPage(p);
+
+      // 1) texto selecionável, quando existir
+      let keys = [];
+      let method = '';
+      try{
+        const txtContent = await page.getTextContent();
+        const txt = txtContent.items.map(i=>i.str).join(' ');
+        keys = findKeys(txt);
+        if(keys.length) method = 'texto PDF';
+      }catch(e){}
+
+      const canvas = await renderPage(page, 1.65);
+
+      const pageRecord = {
+        file:file.name,
+        page:p,
+        key:'',
+        nf:'',
+        status:'Lendo...',
+        method:'',
+        thumb:reviewImage(canvas),
+        full:fullPageImage(canvas)
+      };
+      orderedPages.push(pageRecord);
+      renderErrorPages();
+
+      // 2) barcode
+      if(!keys.length){
+        const r = await tryBarcodes(canvas);
+        keys = r.keys;
+        method = r.method;
+      }
+
+      // 3) OCR recortado
+      if(!keys.length){
+        setPDFStatus(`OCR na página ${p}/${pdf.numPages}...`);
+        await new Promise(r=>setTimeout(r,5));
+        const r = await tryOCR(canvas);
+        keys = r.keys;
+        method = r.method;
+      }
+
+      if(keys.length){
+        keys.forEach(k=>{
+          if(!seen.has(k)){
+            seen.add(k);
+            const result = {
+              file:file.name,
+              page:p,
+              key:k,
+              model:modeloDoc(k),
+              nf:extractNFfromKey(k),
+              status:method || 'leitura'
+            };
+            pdfResults.push(result);
+            pageRecord.key = k;
+            pageRecord.nf = result.nf;
+            pageRecord.status = 'Chave localizada';
+            pageRecord.method = result.status;
+          }
+        });
+        logPDF(`Página ${p}: ${keys.length} chave(s) válida(s) via ${method}.`);
+      }else{
+        pageRecord.status = 'Chave não localizada';
+        pageRecord.method = 'manual pendente';
+        pdfFails.push({file:file.name,page:p,reason:'Sem chave válida'});
+        if(document.getElementById('manualReview').checked){
+          reviewImages.push({file:file.name,page:p,img:reviewImage(canvas),full:fullPageImage(canvas)});
+        }
+        logPDF(`Página ${p}: sem leitura.`);
+      }
+
+      done++;
+      document.getElementById('pdfBar').style.width = Math.round(done*100/totalPages) + '%';
+      document.getElementById('stKeys').textContent = pdfResults.length;
+      document.getElementById('stFail').textContent = pdfFails.length;
+      renderPDFTable();
+      renderFailList();
+      renderReviewBox();
+      renderErrorPages();
+
+      await new Promise(r=>setTimeout(r,10));
+    }
+  }
+
+  setPDFStatus(`Finalizado: ${pdfResults.length} chave(s). ${pdfFails.length} página(s) sem leitura.`);
+  logPDF('Leitura finalizada.');
+}
+
+function renderPDFTable(){
+  const q = document.getElementById('pdfSearch').value.toLowerCase();
+  const rows = pdfResults.slice().sort((a,b)=> a.file===b.file ? a.page-b.page : a.file.localeCompare(b.file)).filter(r => JSON.stringify(r).toLowerCase().includes(q));
+  const tb = document.getElementById('pdfRows');
+  if(!rows.length){ tb.innerHTML = '<tr><td colspan="6">Nenhuma chave encontrada.</td></tr>'; return; }
+  tb.innerHTML = rows.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.file}</td>
+      <td>${r.page}</td>
+      <td class="key">${r.key}</td>
+      <td>${r.nf || '-'}</td>
+      <td><span class="badge b-ok">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderFailList(){
+  const el = document.getElementById('failList');
+  if(!pdfFails.length){ el.textContent = 'Nenhuma página sem leitura ainda.'; return; }
+  el.innerHTML = '<b>Páginas sem chave válida encontrada:</b><br>' +
+    pdfFails.map(f => `${f.file} — página ${f.page} sem leitura`).join('<br>');
+}
+
+
+function renderErrorPages(){
+  const box = document.getElementById('pageList');
+  if(!box) return;
+
+  const failPages = orderedPages.filter(p=>!p.key);
+  const ok = orderedPages.length - failPages.length;
+  const fl = document.getElementById('failList');
+
+  if(!orderedPages.length){
+    if(fl) fl.textContent = 'Aguardando leitura...';
+    box.innerHTML = '';
+    return;
+  }
+
+  if(!failPages.length){
+    if(fl) fl.innerHTML = `<b>${ok}</b> com chave localizada • nenhuma pendência`;
+    box.innerHTML = '<div class="hint">Nenhuma página com erro.</div>';
+    return;
+  }
+
+  if(fl) fl.innerHTML = `<b>${failPages.length}</b> página(s) sem leitura. Clique para preencher.`;
+
+  box.innerHTML = failPages.map((p)=>{
+    const realIndex = orderedPages.indexOf(p);
+    return `
+      <div class="pageItem" onclick="openScannerOrdered(${realIndex})" title="Abrir página ${p.page}">
+        <img class="pageThumb" src="${p.thumb}">
+        <div class="pageNum">Pg ${p.page}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderReviewBox(){
+  const box = document.getElementById('reviewBox');
+  if(!box) return;
+  if(!reviewImages.length){ box.innerHTML = ''; return; }
+
+  box.innerHTML = '<div class="hint"><b>Conferência rápida:</b> recorte das páginas não lidas. Cole/digite a chave e clique em adicionar.</div>' +
+    reviewImages.map((r,i)=>`
+      <div class="reviewCard">
+        <b>${r.file} — página ${r.page}</b>
+        <img src="${r.img}" alt="Recorte da página ${r.page}">
+        <input id="manualKey_${i}" placeholder="Digite ou cole a chave de acesso desta página">
+        <div class="row">
+          <button class="tiny ok" onclick="addManualKey(${i})">Adicionar chave</button>
+          <button class="tiny primary" onclick="openScanner(${i})">Abrir scanner</button>
+          <span id="manualMsg_${i}" class="hint"></span>
+        </div>
+      </div>
+    `).join('');
+}
+
+function addManualKey(i){
+  const input = document.getElementById('manualKey_'+i);
+  const msg = document.getElementById('manualMsg_'+i);
+  const keys = findKeys(input.value);
+  if(!keys.length){
+    msg.innerHTML = '<span style="color:#b91c1c;font-weight:800">Chave inválida ou incompleta.</span>';
+    return;
+  }
+
+  const r = reviewImages[i];
+  const existing = new Set(pdfResults.map(x=>x.key));
+  keys.forEach(k=>{
+    if(!existing.has(k)){
+      pdfResults.push({
+        file:r.file,
+        page:r.page,
+        key:k,
+        model:modeloDoc(k),
+        nf:extractNFfromKey(k),
+        status:'manual validado'
+      });
+    }
+  });
+
+  pdfFails = pdfFails.filter(f => !(f.file === r.file && f.page === r.page));
+  reviewImages = reviewImages.filter((_,idx)=>idx!==i);
+
+  document.getElementById('stKeys').textContent = pdfResults.length;
+  document.getElementById('stFail').textContent = pdfFails.length;
+  renderPDFTable();
+  renderFailList();
+  renderReviewBox();
+      renderErrorPages();
+}
+
+
+let scannerIndex = 0;
+let scannerScale = 1;
+let scannerDeg = 0;
+
+function openScannerOrdered(i){
+  scannerIndex = i;
+  scannerScale = 1;
+  scannerDeg = 0;
+  const r = orderedPages[i];
+  if(!r) return;
+  document.getElementById('scannerTitle').textContent = `Página ${r.page} — preencher chave de acesso`;
+  document.getElementById('scannerImg').src = r.full || r.thumb;
+  document.getElementById('scannerKey').value = r.key || '';
+  document.getElementById('scannerModal').style.display = 'flex';
+  scannerFit();
+  setTimeout(()=>document.getElementById('scannerKey').focus(),150);
+}
+
+function openScanner(i){
+  if(orderedPages.length) return openScannerOrdered(i);
+  scannerIndex = i;
+  scannerScale = 1;
+  scannerDeg = 0;
+  const r = reviewImages[i];
+  if(!r) return;
+  document.getElementById('scannerTitle').textContent = `${r.file} — página ${r.page} sem leitura`;
+  document.getElementById('scannerImg').src = r.full || r.img;
+  document.getElementById('scannerKey').value = '';
+  document.getElementById('scannerModal').style.display = 'flex';
+  scannerFit();
+  setTimeout(()=>document.getElementById('scannerKey').focus(),150);
+}
+
+function closeScanner(){
+  document.getElementById('scannerModal').style.display = 'none';
+}
+
+function applyScannerTransform(){
+  const img = document.getElementById('scannerImg');
+  img.style.transform = `scale(${scannerScale}) rotate(${scannerDeg}deg)`;
+}
+
+function scannerZoom(delta){
+  scannerScale = Math.max(0.45, Math.min(2.8, scannerScale + delta));
+  applyScannerTransform();
+}
+
+function scannerRotate(){
+  // no scanner manual, girar para esquerda primeiro também
+  scannerDeg = (scannerDeg - 90) % 360;
+  applyScannerTransform();
+}
+
+function scannerFit(){
+  scannerScale = 1;
+  scannerDeg = 0;
+  applyScannerTransform();
+}
+
+function saveScannerKey(){
+  const input = document.getElementById('scannerKey');
+  const keys = findKeys(input.value);
+  if(!keys.length){
+    alert('Chave inválida ou incompleta. Verifique os 44 dígitos.');
+    input.focus();
+    return;
+  }
+
+  if(orderedPages.length){
+    const r = orderedPages[scannerIndex];
+    const k = keys[0];
+
+    pdfResults = pdfResults.filter(x => !(x.file === r.file && x.page === r.page));
+    pdfResults.push({
+      file:r.file,
+      page:r.page,
+      key:k,
+      model:modeloDoc(k),
+      nf:extractNFfromKey(k),
+      status:'manual validado'
+    });
+
+    r.key = k;
+    r.nf = extractNFfromKey(k);
+    r.status = 'Chave preenchida manualmente';
+    r.method = 'manual validado';
+
+    pdfFails = pdfFails.filter(f => !(f.file === r.file && f.page === r.page));
+    pdfResults.sort((a,b)=> a.file===b.file ? a.page-b.page : a.file.localeCompare(b.file));
+
+    document.getElementById('stKeys').textContent = pdfResults.length;
+    document.getElementById('stFail').textContent = pdfFails.length;
+    renderPDFTable();
+    renderFailList();
+    renderErrorPages();
+
+    nextScanner();
+    return;
+  }
+
+  const r = reviewImages[scannerIndex];
+  const existing = new Set(pdfResults.map(x=>x.key));
+  keys.forEach(k=>{
+    if(!existing.has(k)){
+      pdfResults.push({
+        file:r.file,
+        page:r.page,
+        key:k,
+        model:modeloDoc(k),
+        nf:extractNFfromKey(k),
+        status:'scanner manual'
+      });
+    }
+  });
+
+  pdfFails = pdfFails.filter(f => !(f.file === r.file && f.page === r.page));
+  reviewImages.splice(scannerIndex,1);
+
+  document.getElementById('stKeys').textContent = pdfResults.length;
+  document.getElementById('stFail').textContent = pdfFails.length;
+  renderPDFTable();
+  renderFailList();
+  renderReviewBox();
+
+  if(reviewImages.length){
+    if(scannerIndex >= reviewImages.length) scannerIndex = reviewImages.length - 1;
+    openScanner(scannerIndex);
+  }else{
+    closeScanner();
+  }
+}
+
+function nextScanner(){
+  if(orderedPages.length){
+    for(let step=1; step<=orderedPages.length; step++){
+      const ni = (scannerIndex + step) % orderedPages.length;
+      if(!orderedPages[ni].key){
+        openScannerOrdered(ni);
+        return;
+      }
+    }
+    closeScanner();
+    return;
+  }
+
+  if(!reviewImages.length){ closeScanner(); return; }
+  scannerIndex++;
+  if(scannerIndex >= reviewImages.length) scannerIndex = 0;
+  openScanner(scannerIndex);
+}
+
+document.addEventListener('keydown', function(e){
+  const modal = document.getElementById('scannerModal');
+  if(!modal || modal.style.display !== 'flex') return;
+  if(e.key === 'Escape') closeScanner();
+  if(e.key === 'ArrowRight') nextScanner();
+  if(e.key === '+') scannerZoom(0.15);
+  if(e.key === '-') scannerZoom(-0.15);
+});
+
+function copyPDFKeys(){
+  const keys = [...new Set(pdfResults.map(r=>r.key))].join('\n');
+  if(!keys) return alert('Nenhuma chave para copiar.');
+  navigator.clipboard.writeText(keys);
+  alert('Chaves copiadas.');
+}
+
+function downloadPDFCSV(){
+  const csv = ['Arquivo;Pagina;Chave;Modelo;Numero NF;Status']
+    .concat(pdfResults.map(r=>[r.file,r.page,r.key,r.model,r.nf,r.status].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(';'))).join('\n');
+  downloadFile(csv, 'chaves_pdf.csv', 'text/csv;charset=utf-8');
+}
+
+function clearPDF(resetInput=true){
+  pdfResults=[]; pdfFails=[]; reviewImages=[]; orderedPages=[];
+  document.getElementById('pdfRows').innerHTML='<tr><td colspan="6">Nenhuma chave encontrada ainda.</td></tr>';
+  document.getElementById('pdfLog').textContent='Aguardando leitura...';
+  document.getElementById('pdfBar').style.width='0';
+  ['stFiles','stPages','stKeys','stFail'].forEach(id=>document.getElementById(id).textContent='0');
+  document.getElementById('failList').textContent='Nenhuma página sem leitura ainda.';
+  document.getElementById('reviewBox').innerHTML=''; const pl=document.getElementById('pageList'); if(pl) pl.innerHTML='';
+  setPDFStatus('Aguardando arquivo...');
+  if(resetInput) document.getElementById('pdfFiles').value='';
+}
+
+
+function logImage(msg){
+  const el = document.getElementById('imgLog');
+  if(el && el.textContent === 'Aguardando imagem...') el.textContent = '';
+  if(el){ el.textContent += msg + "\n"; el.scrollTop = el.scrollHeight; }
+}
+
+function loadImageFileToCanvas(file){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const c = makeCanvas(img.naturalWidth, img.naturalHeight);
+      c.getContext('2d', {willReadFrequently:true}).drawImage(img,0,0);
+      URL.revokeObjectURL(img.src);
+      resolve(c);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function readKeysFromImageCanvas(canvas, options={}){
+  const useRotate = options.rotate !== false;
+  const useContrast = options.contrast !== false;
+  const rotations = useRotate ? [0,270,90,180] : [0];
+
+  for(const rot of rotations){
+    const base = rotateCanvas(canvas, rot);
+    const W = base.width, H = base.height;
+    const areas = [
+      {name:'imagem inteira', x:0, y:0, w:W, h:H},
+      {name:'topo', x:0, y:0, w:W, h:H*0.60},
+      {name:'faixa central', x:0, y:H*0.15, w:W, h:H*0.55}
+    ];
+
+    for(const area of areas){
+      const raw = cropCanvas(base, area.x, area.y, area.w, area.h);
+      const attempts = useContrast ? [
+        {name:'normal', canvas:raw},
+        {name:'contraste', canvas:enhanceCanvas(raw)},
+        {name:'preto/branco', canvas:thresholdCanvas(raw,168)}
+      ] : [{name:'normal', canvas:raw}];
+
+      for(const at of attempts){
+        const factor = Math.max(1, Math.min(1.8, 1200 / Math.max(1, at.canvas.width)));
+        const prepared = upscaleCanvas(at.canvas, factor);
+        const txt = await ocrCanvas(prepared);
+        const keys = findKeys(txt);
+        if(keys.length) return {keys, method:`${area.name} ${at.name}${rot ? ' '+rot+'°' : ''}`};
+        await new Promise(r=>setTimeout(r,5));
+      }
+    }
+  }
+  return {keys:[], method:'sem leitura'};
+}
+
+async function readImages(){
+  const files = [...document.getElementById('imgFiles').files];
+  if(!files.length){ alert('Selecione uma imagem.'); return; }
+  imageRows = [];
+  document.getElementById('imgRows').innerHTML = '<tr><td colspan="5">Lendo imagens...</td></tr>';
+  document.getElementById('imgLog').textContent = '';
+  document.getElementById('imgPreview').innerHTML = 'Processando...';
+
+  for(const file of files){
+    logImage(`Lendo ${file.name}...`);
+    const canvas = await loadImageFileToCanvas(file);
+    document.getElementById('imgPreview').innerHTML = `<img src="${canvas.toDataURL('image/jpeg',0.82)}">`;
+
+    const res = await readKeysFromImageCanvas(canvas, {
+      rotate: document.getElementById('imgTryRotate').checked,
+      contrast: document.getElementById('imgContrast').checked
+    });
+
+    if(res.keys.length){
+      res.keys.forEach(k=>{
+        if(!imageRows.some(r=>r.key===k)){
+          imageRows.push({file:file.name,key:k,nf:extractNFfromKey(k),status:res.method});
+        }
+      });
+      logImage(`${file.name}: ${res.keys.length} chave(s) encontrada(s).`);
+    }else{
+      imageRows.push({file:file.name,key:'',nf:'',status:'Chave não localizada'});
+      logImage(`${file.name}: chave não localizada.`);
+    }
+    renderImageRows();
+  }
+}
+
+function renderImageRows(){
+  const tb = document.getElementById('imgRows');
+  if(!imageRows.length){ tb.innerHTML='<tr><td colspan="5">Nenhuma imagem lida ainda.</td></tr>'; return; }
+  tb.innerHTML = imageRows.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.file}</td>
+      <td class="key">${r.key || '-'}</td>
+      <td>${r.nf || '-'}</td>
+      <td><span class="badge ${r.key?'b-ok':'b-bad'}">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+function copyImageKeys(){
+  const keys = imageRows.filter(r=>r.key).map(r=>r.key).join('\n');
+  if(!keys) return alert('Nenhuma chave para copiar.');
+  navigator.clipboard.writeText(keys);
+  alert('Chaves copiadas.');
+}
+
+function downloadImageCSV(){
+  const csv = ['Arquivo;Chave;NF;Status']
+    .concat(imageRows.map(r=>[r.file,r.key,r.nf,r.status].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(';'))).join('\n');
+  downloadFile(csv, 'chaves_imagem.csv', 'text/csv;charset=utf-8');
+}
+
+function clearImages(){
+  imageRows = [];
+  document.getElementById('imgFiles').value = '';
+  document.getElementById('imgRows').innerHTML = '<tr><td colspan="5">Nenhuma imagem lida ainda.</td></tr>';
+  document.getElementById('imgPreview').innerHTML = 'Selecione uma imagem para iniciar.';
+  document.getElementById('imgLog').textContent = 'Aguardando imagem...';
+}
+
+document.addEventListener('paste', async (e)=>{
+  const activePanel = document.getElementById('paste');
+  if(!activePanel || !activePanel.classList.contains('active')) return;
+
+  const items = e.clipboardData?.items || [];
+  for(const item of items){
+    if(item.type && item.type.startsWith('image/')){
+      const file = item.getAsFile();
+      const canvas = await loadImageFileToCanvas(file);
+      pastedCanvas = canvas;
+      document.getElementById('pasteZone').innerHTML = `<img src="${canvas.toDataURL('image/jpeg',0.86)}">`;
+      document.getElementById('pasteResult').textContent = 'Print colado. Clique em "Ler print colado".';
+      e.preventDefault();
+      return;
+    }
+  }
+});
+
+async function readPastedImage(){
+  if(!pastedCanvas){ alert('Cole um print primeiro com Ctrl+V.'); return; }
+  document.getElementById('pasteResult').textContent = 'Lendo print...';
+
+  const res = await readKeysFromImageCanvas(pastedCanvas, {
+    rotate: document.getElementById('pasteTryRotate').checked,
+    contrast: document.getElementById('pasteContrast').checked
+  });
+
+  pasteRows = res.keys.map(k=>({key:k,nf:extractNFfromKey(k),status:res.method}));
+
+  if(!pasteRows.length){
+    document.getElementById('pasteResult').textContent = 'Chave não localizada neste print.';
+    return;
+  }
+
+  document.getElementById('pasteResult').textContent = pasteRows.map((r,i)=>`${i+1}. ${r.key}   NF: ${r.nf}   (${r.status})`).join('\n');
+}
+
+function copyPasteKeys(){
+  const keys = pasteRows.map(r=>r.key).join('\n');
+  if(!keys) return alert('Nenhuma chave para copiar.');
+  navigator.clipboard.writeText(keys);
+  alert('Chaves copiadas.');
+}
+
+function clearPaste(){
+  pastedCanvas = null;
+  pasteRows = [];
+  document.getElementById('pasteZone').innerHTML = 'Clique aqui e pressione Ctrl+V para colar o print.';
+  document.getElementById('pasteResult').textContent = 'Nenhum print lido ainda.';
+}
+
+function splitCSVLine(line){
+  const out=[]; let cur='', inside=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch === '"'){ inside=!inside; continue; }
+    if(ch === ';' && !inside){ out.push(cur); cur=''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(x=>x.trim());
+}
+
+
+function escapeAttr(s){
+  return String(s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+
+function normalizeHeaderName(s){
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toUpperCase().trim();
+}
+
+function parseMoneyBR(v){
+  if(v === undefined || v === null) return null;
+  let s = String(v).trim();
+  if(!s) return null;
+  s = s.replace(/\s+/g,'');
+  if(/^-?\d{1,3}(\.\d{3})*,\d{2,3}$/.test(s)) s = s.replace(/\./g,'').replace(',','.');
+  else if(/^-?\d+,\d+$/.test(s)) s = s.replace(',','.');
+  const n = Number(s);
+  if(!Number.isFinite(n)) return null;
+  return n;
+}
+
+function firstMoney(values){
+  for(const v of values){
+    const n = parseMoneyBR(v);
+    if(n !== null && Math.abs(n) > 0.0001) return n;
+  }
+  return null;
+}
+
+function formatMoneyText(v){
+  if(v === null || v === undefined || !Number.isFinite(Number(v))) return '-';
+  return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function findHeaderIndex(header, candidates){
+  const norm = header.map(normalizeHeaderName);
+  for(const c of candidates){
+    const nc = normalizeHeaderName(c);
+    const exact = norm.findIndex(h => h === nc);
+    if(exact >= 0) return exact;
+  }
+  for(const c of candidates){
+    const nc = normalizeHeaderName(c);
+    const contains = norm.findIndex(h => h.includes(nc) || nc.includes(h));
+    if(contains >= 0) return contains;
+  }
+  return -1;
+}
+
+function copyTXTKeysByPedido(pedido){
+  const keys = [...new Set(txtRows.filter(r => String(r.pedido || 'SEM PEDIDO') === String(pedido)).map(r=>r.key))].join('\n');
+  if(!keys) return alert('Nenhuma chave para copiar neste pedido.');
+  navigator.clipboard.writeText(keys);
+  alert('Chaves do pedido ' + pedido + ' copiadas.');
+}
+
+async function readTXTs(){
+  const files = [...document.getElementById('txtFiles').files];
+  if(!files.length){ alert('Selecione pelo menos um TXT.'); return; }
+  txtRows=[];
+  for(const file of files){
+    const text = await file.text();
+    parseTXT(text, file.name);
+  }
+  renderTXT();
+}
+
+
+function getTXTLayoutConfig(header, rawText=''){
+  const selected = document.getElementById('txtCliente') ? document.getElementById('txtCliente').value : 'auto';
+  const joined = header.map(normalizeHeaderName).join('|');
+  const rawUpper = normalizeHeaderName(rawText.slice(0,1500));
+
+  let layout = selected;
+  if(layout === 'auto'){
+    if(rawUpper.includes('FERRERO DO BRASIL') || rawUpper.includes('FRDNE') || rawUpper.includes('NOTFI')){
+      layout = 'ferrero';
+    }else if(rawUpper.includes('ARCOR DO BRASIL') || rawUpper.includes('521NOT')){
+      layout = 'arcor';
+    }else if(joined.includes('EBELN-PCH') && joined.includes('ACCESS_KEY') && joined.includes('TAX_BASE_CALC')){
+      layout = 'pbr_marvel';
+    }else{
+      layout = 'generico';
+    }
+  }
+
+  if(layout === 'ferrero'){
+    return { nome: 'Ferrero', fixed: true, tipo: 'ferrero' };
+  }
+
+  if(layout === 'arcor'){
+    return { nome: 'Arcor', fixed: true, tipo: 'arcor' };
+  }
+
+  if(layout === 'pbr_marvel'){
+    return {
+      nome: 'Nestlé',
+      key: ['ACCESS_KEY', 'Chave de acesso'],
+      pedido: ['EBELN-PCH', 'Pedido Compras / PCH', 'Pedido Compras', 'PCH'],
+      viagem: ['REBEL', 'Doc. Transporte', 'VIAGEM'],
+      nf: ['NFNUM9', 'Numero Nota Fiscal', 'Número Nota Fiscal'],
+      freteLiquido: ['KZWI1', 'TOT_FRGHT_AMNT', 'Valor Frete e adicionais', 'Frete Rateado'],
+      freteBruto: ['TAX_BASE_CALC', 'Base Calculo Imposto']
+    };
+  }
+
+  return {
+    nome: 'Genérico',
+    key: ['ACCESS_KEY', 'Chave de acesso'],
+    pedido: ['EBELN-PCH', 'Pedido Compras / PCH', 'Pedido Compras', 'PCH', 'Pedido'],
+    viagem: ['REBEL', 'Doc. Transporte', 'VIAGEM'],
+    nf: ['NFNUM9', 'Numero Nota Fiscal', 'Número Nota Fiscal', 'NF'],
+    freteLiquido: ['Frete Liquido', 'Frete Líquido', 'NET_VALUE_TAXES', 'Valor Total do frete', 'KZWI1', 'TOT_FRGHT_AMNT'],
+    freteBruto: ['Frete Bruto', 'TAX_BASE_CALC', 'Base Calculo Imposto', 'Valor Frete e adicionais']
+  };
+}
+
+
+function firstNonZeroColumn(cols, indexes){
+  for(const idx of indexes){
+    if(idx >= 0){
+      const n = parseMoneyBR(cols[idx]);
+      if(n !== null && Math.abs(n) > 0.0001) return cols[idx];
+    }
+  }
+  // se todos estiverem zerados, devolve o primeiro campo existente para manter rastreabilidade
+  for(const idx of indexes){
+    if(idx >= 0 && cols[idx] !== undefined && String(cols[idx]).trim() !== '') return cols[idx];
+  }
+  return '';
+}
+
+
+function centsToMoneyBR(raw){
+  const d = onlyDigits(raw);
+  if(!d) return '';
+  const n = Number(d) / 100;
+  if(!Number.isFinite(n) || n === 0) return '';
+  return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function extractArcorFreteFromText(text){
+  // ARCOR/BAGLEY 521NOT:
+  // o frete da nota fica no registro 313 após o marcador RLP9I31N.
+  // É um campo fixo de 15 dígitos, com as 2 últimas casas como centavos.
+  // Ex. A: RLP9I31N000000001414910 => 14.149,10
+  // Ex. B: RLP9I31N000000000001986 => 19,86
+  const m = text.match(/RLP9I31N(\d{15})/i);
+  if(m && m[1]) return centsToMoneyBR(m[1]);
+
+  // Fallback: em alguns arquivos o mesmo valor aparece antes do "I" no fim do bloco.
+  const m2 = text.match(/RLP9I31N[\s\S]*?(\d{15})I/i);
+  if(m2 && m2[1]) return centsToMoneyBR(m2[1]);
+
+  return '';
+}
+
+
+function parseArcorTXT(text, fileName, cfg){
+  const rows = [];
+  const keys = findKeys(text);
+
+  let pedido = '';
+  const pedidoMatch = text.match(/\b(\d{3}NOT\d{6,})\b/i) || fileName.match(/(\d{3}NOT\d{6,})/i);
+  if(pedidoMatch) pedido = pedidoMatch[1].toUpperCase();
+
+  let nf = '';
+  const nfMatch = pedido.match(/NOT(\d+)/i);
+  if(nfMatch) nf = nfMatch[1];
+
+  let viagem = '';
+  const viagemMatch = text.match(/\b310\s*\d{3}NOT\d+\.([A-Z0-9]+)/i) || text.match(/\b313\s*(\d{6,})/i);
+  if(viagemMatch) viagem = viagemMatch[1];
+
+  const freteBruto = extractArcorFreteFromText(text);
+
+  keys.forEach(k => rows.push({
+    file:fileName,
+    layout: cfg.nome,
+    transportador: validaTransportadorTXT(text),
+    viagem,
+    pedido,
+    nf: nf || extractNFfromKey(k),
+    freteLiquido: '',
+    freteBruto,
+    key:k
+  }));
+
+  return rows;
+}
+
+
+function parseFerreroTXT(text, fileName, cfg){
+  const rows = [];
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+
+  let pedido = '';
+  const pedidoMatch =
+    text.match(/\b310\|([^|\r\n]+)/i) ||
+    text.match(/\b(NOT[A-Z0-9]+)\b/i) ||
+    fileName.match(/(NOT[A-Z0-9]+)/i);
+
+  if(pedidoMatch) pedido = pedidoMatch[1].trim().toUpperCase();
+
+  for(const line of lines){
+    const cleanLine = line.trim();
+    if(!cleanLine.startsWith('313|')) continue;
+
+    const cols = cleanLine.split('|');
+    const nf = (cols[8] || '').trim();
+
+    // Ferrero:
+    // O frete correto é o campo logo após:
+    // ... |N|000000000000000|FRETE| ...
+    // Ex.: |N|000000000000000|000000000069411| => 694,11
+    let freteBruto = '';
+    const m = cleanLine.match(/\|N\|0{15}\|(\d{15})\|/i);
+    if(m && m[1]){
+      freteBruto = centsToMoneyBR(m[1]);
+    }else{
+      // fallback: se a estrutura variar, procura depois do marcador |N|
+      const afterN = cleanLine.split('|N|')[1] || '';
+      const parts = afterN.split('|').filter(Boolean);
+      if(parts.length >= 2){
+        freteBruto = centsToMoneyBR(parts[1]);
+      }
+    }
+
+    const keys = findKeys(cleanLine);
+
+    if(keys.length){
+      keys.forEach(k => rows.push({
+        file:fileName,
+        layout: cfg.nome,
+        transportador: validaTransportadorTXT(text),
+        viagem:'',
+        pedido,
+        nf: nf || extractNFfromKey(k),
+        freteLiquido:'',
+        freteBruto,
+        key:k
+      }));
+    }
+  }
+
+  if(!rows.length){
+    const keys = findKeys(text);
+    keys.forEach(k => rows.push({
+      file:fileName,
+      layout: cfg.nome,
+      transportador: validaTransportadorTXT(text),
+      viagem:'',
+      pedido,
+      nf: extractNFfromKey(k),
+      freteLiquido:'',
+      freteBruto:'',
+      key:k
+    }));
+  }
+
+  return rows;
+}
+
+
+
+const TRANSPORTADORES_VALIDOS_TXT = [
+  '83084301000178',
+  '83084301000500',
+  '83084301000763',
+  '83084301000844',
+  '83084301000925'
+];
+
+function validaTransportadorTXT(valor){
+  const cnpj = onlyDigits(valor || '');
+  return TRANSPORTADORES_VALIDOS_TXT.includes(cnpj) ? cnpj : '';
+}
+
+function parseTXT(text, fileName){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length < 1) return;
+
+  const firstLine = lines[0] || '';
+  const header = splitCSVLine(firstLine);
+  const cfg = getTXTLayoutConfig(header, text);
+
+  if(cfg.fixed && cfg.tipo === 'ferrero'){
+    txtRows.push(...parseFerreroTXT(text, fileName, cfg));
+    return;
+  }
+
+  if(cfg.fixed && cfg.tipo === 'arcor'){
+    txtRows.push(...parseArcorTXT(text, fileName, cfg));
+    return;
+  }
+
+  if(lines.length < 2) return;
+
+  const iKey = findHeaderIndex(header, cfg.key);
+  const iPedido = findHeaderIndex(header, cfg.pedido);
+  const iViagem = findHeaderIndex(header, cfg.viagem);
+  const iNF = findHeaderIndex(header, cfg.nf);
+
+  const iFreteLiquidoList = cfg.freteLiquido.map(c => findHeaderIndex(header, [c]));
+  const iFreteBrutoList = cfg.freteBruto.map(c => findHeaderIndex(header, [c]));
+
+  for(let i=1;i<lines.length;i++){
+    const cols = splitCSVLine(lines[i]);
+    const rawKey = iKey>=0 ? cols[iKey] : '';
+    const keys = findKeys(rawKey || lines[i]);
+
+    const freteLiquido = firstNonZeroColumn(cols, iFreteLiquidoList);
+    const freteBruto = firstNonZeroColumn(cols, iFreteBrutoList);
+
+    keys.forEach(k => txtRows.push({
+      file:fileName,
+      layout: cfg.nome,
+      transportador: validaTransportadorTXT(cols[0]),
+      viagem: iViagem>=0 ? cols[iViagem] : '',
+      pedido: iPedido>=0 ? cols[iPedido] : '',
+      nf: iNF>=0 ? cols[iNF] : extractNFfromKey(k),
+      freteLiquido,
+      freteBruto,
+      key:k
+    }));
+  }
+}
+
+
+function renderTXT(){
+  const q = document.getElementById('txtSearch').value.toLowerCase();
+  const result = document.getElementById('txtResult');
+  const rows = txtRows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+
+  if(!rows.length){ result.innerHTML='Nenhum resultado encontrado.'; return; }
+
+  const groups = {};
+  rows.forEach(r=>{
+    const g = r.pedido || 'SEM PEDIDO';
+    if(!groups[g]) groups[g]=[];
+    groups[g].push(r);
+  });
+
+  const totalKeys = [...new Set(rows.map(r=>r.key))].length;
+  const totalPedidos = Object.keys(groups).length;
+
+  result.innerHTML = `
+    <div class="stats" style="grid-template-columns:repeat(3,minmax(110px,1fr));margin-bottom:10px">
+      <div class="stat"><b>${totalPedidos}</b><span>pedidos</span></div>
+      <div class="stat"><b>${totalKeys}</b><span>chaves</span></div>
+      <div class="stat"><b>${rows.length}</b><span>notas</span></div>
+    </div>
+  ` + Object.entries(groups).map(([pedido, arr])=>{
+    const uniqueKeys = [...new Set(arr.map(r=>r.key))];
+    const viagens = [...new Set(arr.map(r=>r.viagem).filter(Boolean))].join(', ') || '-';
+
+    const freteLiquido = firstMoney(arr.map(r=>r.freteLiquido));
+    const freteBruto = arr.reduce((total, r) => {
+      const v = parseMoneyBR(r.freteBruto);
+      return total + (v || 0);
+    }, 0);
+
+    return `
+      <div class="groupTitle" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span>Pedido: ${pedido}</span>
+        <span class="badge b-ok">${uniqueKeys.length} chaves</span>
+        <span class="badge b-warn">${arr[0]?.layout || 'layout'}</span>
+        <button class="tiny ok" onclick="copyTXTKeysByPedido('${escapeAttr(pedido)}')">Copiar chaves</button>
+        <button class="tiny light" onclick="copyTXTFretesByPedido('${escapeAttr(pedido)}')">Copiar fretes</button>
+      </div>
+
+      <div class="stats" style="grid-template-columns:repeat(4,minmax(110px,1fr));margin:6px 0 8px">
+        <div class="stat"><b>${formatMoneyText(freteLiquido)}</b><span>frete líquido</span></div>
+        <div class="stat"><b>${formatMoneyText(freteBruto)}</b><span>total frete bruto</span></div>
+        <div class="stat"><b>${arr[0]?.transportador || '-'}</b><span>transportador</span></div>
+        <div class="stat"><b>${viagens}</b><span>viagem</span></div>
+      </div>
+
+      <table>
+        <thead><tr><th>#</th><th>Pedido</th><th>NF</th><th>Frete bruto</th><th>Transportador</th><th>Chave de acesso</th></tr></thead>
+        <tbody>
+        ${arr.map((r,i)=>`<tr><td>${i+1}</td><td>${r.pedido||'-'}</td><td>${r.nf||'-'}</td><td>${formatMoneyText(parseMoneyBR(r.freteBruto))}</td><td>${r.transportador||'-'}</td><td class="key">${r.key}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+  }).join('');
+}
+
+
+function copyTXTFretesByPedido(pedido){
+  const rows = txtRows.filter(r => String(r.pedido || 'SEM PEDIDO') === String(pedido));
+  if(!rows.length) return alert('Nenhum frete neste pedido.');
+
+  const text = rows.map(r => `${r.nf || '-'}\t${formatMoneyText(parseMoneyBR(r.freteBruto))}\t${r.transportador || '-'}\t${r.key}`).join('\n');
+  navigator.clipboard.writeText(text);
+  alert('Fretes por nota copiados.');
+}
+
+function copyTXTKeysOnly(){
+  const keys = [...new Set(txtRows.map(r=>r.key))].join('\n');
+  if(!keys) return alert('Nenhuma chave para copiar.');
+  navigator.clipboard.writeText(keys);
+  alert('Somente as chaves foram copiadas.');
+}
+
+function downloadTXTCSV(){
+  const csv = ['Arquivo;Pedido;Viagem;NF;Frete Liquido;Frete Bruto;Transportador;Chave']
+    .concat(txtRows.map(r=>[
+      r.file,
+      r.pedido,
+      r.viagem,
+      r.nf,
+      formatMoneyText(parseMoneyBR(r.freteLiquido)),
+      formatMoneyText(parseMoneyBR(r.freteBruto)),
+      r.transportador,
+      r.key
+    ].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(';'))).join('\n');
+  downloadFile(csv, 'chaves_txt_por_pedido.csv', 'text/csv;charset=utf-8');
+}
+
+
+function clearTXT(){
+  txtRows=[];
+  document.getElementById('txtFiles').value='';
+  document.getElementById('txtResult').innerHTML='Nenhum TXT lido ainda.';
+}
+
+function downloadFile(content, name, type){
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+
+<div id="scannerModal" class="scannerModal">
+  <div class="scannerBox">
+    <div class="scannerTop">
+      <b id="scannerTitle">Conferência da página</b>
+      <div class="scannerTools">
+        <button class="light" onclick="scannerZoom(-0.15)">− Zoom</button>
+        <button class="light" onclick="scannerZoom(0.15)">+ Zoom</button>
+        <button class="light" onclick="scannerRotate()">Girar 90° esquerda</button>
+        <button class="light" onclick="scannerFit()">Ajustar</button>
+        <button class="danger" onclick="closeScanner()">Fechar</button>
+      </div>
+    </div>
+    <div class="scannerView">
+      <img id="scannerImg" alt="Página para conferência">
+    </div>
+    <div class="scannerBottom">
+      <input id="scannerKey" placeholder="Digite ou cole a chave de acesso desta página">
+      <button class="ok" onclick="saveScannerKey()">Salvar e avançar</button>
+      <button class="primary" onclick="nextScanner()">Pular</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

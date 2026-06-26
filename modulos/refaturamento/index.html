@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+
+<!-- saved from url=(0085)https://refaturamento.vercel.app/?perfil=admin&usuario=Tiago&usuarioRef=tiago.carniel -->
+<html lang="pt-BR"><head><meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Painel Refaturamento e Baixas</title>
+<link href="data:," rel="icon"/>
+
+
+
+
+
+<meta id="dcngeagmmhegagicpcmpinaoklddcgon"/><link href="css/refaturamento.css" rel="stylesheet"/></head>
+<body>
+<div class="app">
+<aside class="sidebar">
+<div class="brand">
+<h1>Painel de Baixas</h1>
+<p>Parser guiado pelos nomes dos blocos e cabeçalhos do Excel.</p>
+</div>
+<div class="menu">
+<button class="active" data-view="dashboard" data-title="Dashboard" data-desc="Visão geral">Dashboard</button>
+<button data-view="registros" data-title="Registros" data-desc="Refaturados e substitutos">Registros</button>
+<button data-view="conciliacao" data-title="Conciliação" data-desc="Conciliação de dados">Conciliação</button>
+<button data-view="motivos" data-title="Análise de Motivos" data-desc="Análise por motivos">Análise de Motivos</button>
+<button data-view="usuarios" data-title="Análise de Usuários" data-desc="Por usuário">Análise de Usuários</button>
+<button data-view="performance" data-title="Performance Usuários" data-desc="Performance">Performance Usuários</button>
+<button data-view="clientes" data-title="Análise de Clientes" data-desc="Por clientes">Análise de Clientes</button>
+<button data-view="setores" data-title="Análise por Setor" data-desc="Por setor">Análise por Setor</button>
+<button class="" data-view="anual" data-title="Análise Anual" data-desc="Análise anual">Análise Anual</button>
+<button class="" data-view="cadastro" data-title="Cadastro Manual" data-desc="Cadastro manual">Cadastro Manual</button>
+<button class="" data-view="config" data-title="Configuração" data-desc="Configurações">Configuração</button>
+</div>
+</aside>
+<main class="main">
+<div class="topbar">
+<div class="title">
+<h2>Painel de Refaturamento</h2>
+<p id="subtitle">Excel carregado com 1 aba(s). Refaturados: 115. Substitutos: 100.</p>
+</div>
+<div class="chips">
+<div class="chip" id="chipSheets">1 abas</div>
+<div class="chip" id="chipRef">115 refaturados</div>
+<div class="chip" id="chipSub">100 substitutos</div>
+<div class="chip" id="chipFat">84 faturamento</div>
+<div class="chip" id="chipTotal">1.856.123,72</div>
+</div>
+<div class="field" style="min-width:260px; max-width:320px;">
+<label>Mês consultado</label>
+<div style="display:flex; gap:8px; align-items:center;">
+<select id="monthViewSelect"><option value="">Último importado</option><option value="2026-01">Jan/2026</option><option value="2026-02">Fev/2026</option><option value="2026-03">Mar/2026</option><option value="2026-04">Abr/2026</option><option value="2026-05">Mai/2026</option><option value="2026-06">Jun/2026</option></select>
+<button class="btn secondary" id="btnApplyMonthView" type="button">Consultar</button>
+</div>
+</div>
+</div>
+<section class="view active" id="dashboard">
+<div class="grid grid-4" id="kpiGrid"></div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Resumo executivo</h3><div class="sub">Visão geral consolidada.</div><div class="box-info" id="resumoBox">Carregando...</div></div>
+<div class="card"><h3>Alertas</h3><div class="sub">Solicitação e consistência.</div><div class="box-danger" id="alertasBox">Carregando...</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Top clientes por valor refaturado</h3><div class="sub">Cliente x soma de frete_refaturado.</div><div class="chart-box"><canvas height="300" id="chartTopClienteRef" style="display: block; box-sizing: border-box; height: 360px; width: 931px;" width="775"></canvas></div></div>
+<div class="card"><h3>Top clientes por valor substituto</h3><div class="sub">Cliente x soma de frete_substituto.</div><div class="chart-box"><canvas height="300" id="chartTopClienteSub" style="display: block; box-sizing: border-box; height: 360px; width: 931px;" width="775"></canvas></div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Setores por valor</h3><div class="sub">Soma do débito por setor.</div><div class="chart-box"><canvas height="300" id="chartSetoresDebito" style="display: block; box-sizing: border-box; height: 360px; width: 931px;" width="775"></canvas></div></div>
+<div class="card"><h3>Resumo por setor</h3><div class="sub">Tabela rápida dos totais.</div><div class="table-wrap compact"><table><thead><tr><th>Setor</th><th>Débito</th></tr></thead><tbody id="tbodyDashSetor"></tbody></table></div></div>
+</div>
+</section>
+<section class="view" id="registros">
+<div class="card">
+<h3>Registros</h3>
+<div class="sub">Substitutos, refaturados e vínculos por setor.</div>
+<div class="controls">
+<div class="field"><label>Buscar</label><input id="filterSearch" placeholder="CTE, cliente, usuário..."/></div>
+<div class="field"><label>Tipo</label><select id="filterTipo"><option value="todos">Todos</option><option value="refaturado">Refaturados</option><option value="substituto">Substitutos</option></select></div>
+<div class="field"><label>Status baixa</label><select id="filterStatus"><option value="todos">Todos</option><option value="ok">Mês correto</option><option value="bad">Mês diferente</option><option value="empty">Sem solicitação</option></select></div>
+<div class="field"><label>Somente série 80/81</label><select id="filterSerie80"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
+<div class="field"><label> </label><button class="btn secondary" id="btnExportJson">Exportar cadastro manual</button></div>
+<div class="field"><label> </label><button class="btn secondary" id="btnClearManual">Limpar cadastro manual</button></div>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Tipo</th><th>CTE</th><th>Original</th><th>Cliente</th><th>Usuário original</th><th>Setor</th><th>Baixa</th><th>Débito</th><th>Frete original</th><th>Frete refaturado</th><th>Frete substituto</th><th>Motivo</th></tr></thead>
+<tbody id="tbodyRegistros"></tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="view" id="conciliacao">
+<div class="grid grid-2">
+<div class="card"><h3>Série 80/81 sem solicitação</h3><div class="table-wrap compact"><table><thead><tr><th>CTE</th><th>Cliente</th><th>Baixa</th><th>Débito</th></tr></thead><tbody id="tbodySemSolicitacao"></tbody></table></div></div>
+<div class="card"><h3>Baixa em mês diferente</h3><div class="table-wrap compact"><table><thead><tr><th>CTE</th><th>Cliente</th><th>Solicitação</th><th>Baixa</th><th>Status</th></tr></thead><tbody id="tbodyMesDiferente"></tbody></table></div></div>
+</div>
+</section>
+<section class="view" id="motivos">
+<div class="grid grid-2">
+<div class="card"><h3>Ranking de valores: total x refaturado x substituto</h3><div class="sub">Total = refaturado + substituto. Refaturado = soma dos débitos dos setores.</div><div class="chart-box"><canvas height="0" id="chartOriginalRefSubs" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Motivos por quantidade</h3><div class="chart-box"><canvas height="0" id="chartMotivosQtd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Motivos por valor</h3><div class="sub">Soma do débito vinculado ao motivo.</div><div class="chart-box"><canvas height="0" id="chartMotivosValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Tabela de motivos</h3><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>Qtd.</th><th>Valor original</th><th>Valor refaturado</th><th>Valor substituto</th><th>Débito</th></tr></thead><tbody id="tbodyMotivos"></tbody></table></div></div>
+</div>
+</section>
+<section class="view" id="usuarios"><div class="card" style="margin-bottom: 16px;">
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+<div>
+<h3>Filtro da análise</h3>
+<div class="sub">Controla os gráficos e a tabela principal desta aba.</div>
+</div>
+<div class="field" style="max-width:280px;min-width:200px;">
+<label>Usuário</label>
+<select id="filtroUsuarioTop"><option value="TODOS">Todos</option><option value="karoline.romanini">karoline.romanini</option><option value="angelica.lucca">angelica.lucca</option><option value="geovana.silva">geovana.silva</option><option value="ademir.fernandes">ademir.fernandes</option><option value="tiago.carniel">tiago.carniel</option><option value="josete.gabriel">josete.gabriel</option><option value="tayner.percio">tayner.percio</option><option value="angelita.santos">angelita.santos</option><option value="leia.mattos">leia.mattos</option><option value="jonatan.balestrin">jonatan.balestrin</option><option value="integracao.xml">integracao.xml</option><option value="carolina.pasquali">carolina.pasquali</option><option value="elisangela.vieira">elisangela.vieira</option><option value="matheus.devise">matheus.devise</option><option value="multisoft.service">multisoft.service</option><option value="ademir.fernandes, geovana.silva">ademir.fernandes, geovana.silva</option></select>
+</div>
+</div></div>
+<div class="grid grid-2">
+<div class="card"><h3>Ranking de impacto por usuário</h3><div class="sub">Somente setor Faturamento.</div><div class="chart-box"><canvas height="0" id="chartUsuariosErroQtd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Ranking de impacto por usuário por valor</h3><div class="sub">Impacto considerando refaturado + substituto.</div><div class="chart-box"><canvas height="0" id="chartUsuariosErroValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+</div>
+<div class="card" style="margin-top:16px;">
+<h3>Tabela de usuários</h3>
+<div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Qtd Ref</th><th>Qtd Sub</th><th>Qtd Total</th><th>Valor Ref</th><th>Valor Sub</th><th>Impacto</th></tr></thead><tbody id="tbodyUsuarios"></tbody></table></div>
+</div>
+<div class="card" style="margin-top:16px;">
+<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+<div>
+<h3>Motivos por usuário</h3>
+<div class="sub">Selecione um usuário para ver os motivos ligados aos CTEs com erro no faturamento.</div>
+</div>
+<div class="field" style="max-width:260px; min-width:180px;">
+<label>Usuário</label>
+<select id="usuariosReasonSelect"><option value="TODOS">Todos</option><option value="karoline.romanini">karoline.romanini</option><option value="angelica.lucca">angelica.lucca</option><option value="geovana.silva">geovana.silva</option><option value="ademir.fernandes">ademir.fernandes</option><option value="tiago.carniel">tiago.carniel</option><option value="josete.gabriel">josete.gabriel</option><option value="tayner.percio">tayner.percio</option><option value="angelita.santos">angelita.santos</option><option value="leia.mattos">leia.mattos</option><option value="jonatan.balestrin">jonatan.balestrin</option><option value="integracao.xml">integracao.xml</option><option value="carolina.pasquali">carolina.pasquali</option><option value="elisangela.vieira">elisangela.vieira</option><option value="matheus.devise">matheus.devise</option><option value="multisoft.service">multisoft.service</option><option value="ademir.fernandes, geovana.silva">ademir.fernandes, geovana.silva</option></select>
+</div>
+</div>
+<div class="grid grid-2" style="margin-top:12px;">
+<div class="card" style="padding:14px;">
+<h3 style="font-size:18px;">Motivos por quantidade</h3>
+<div class="chart-box"><canvas height="0" id="chartUsuarioMotivosQtd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+<div class="card" style="padding:14px;">
+<h3 style="font-size:18px;">Motivos por valor</h3>
+<div class="chart-box"><canvas height="0" id="chartUsuarioMotivosValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+</div>
+<div class="table-wrap" style="margin-top:16px;">
+<table>
+<thead><tr><th>CTE</th><th>Cliente</th><th>Usuário</th><th>Motivo</th><th>Valor em erro</th><th>Setor</th></tr></thead>
+<tbody id="tbodyUsuariosMotivos"></tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="view" id="clientes">
+<div class="grid grid-2">
+<div class="card"><h3>Cliente x quantidade refaturada</h3><div class="chart-box"><canvas height="0" id="chartClienteQtd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Cliente x valor refaturado</h3><div class="sub">Soma do débito vinculado aos refaturados.</div><div class="chart-box"><canvas height="0" id="chartClienteValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Cliente x principal motivo</h3><div class="chart-box"><canvas height="0" id="chartClienteMotivo" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Tabela de clientes</h3><div class="table-wrap"><table><thead><tr><th>Cliente agrupado</th><th>Qtd.</th><th>Valor refaturado</th><th>Principal motivo</th></tr></thead><tbody id="tbodyClientes"></tbody></table></div></div>
+</div>
+</section>
+<section class="view" id="setores">
+<div class="grid grid-2">
+<div class="card"><h3>Setor x valor refaturado</h3><div class="sub">Soma de frete_substituto por setor do reduzido.</div><div class="chart-box"><canvas height="0" id="chartSetorRef" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Setor x valor substituto</h3><div class="sub">Soma de frete_refaturado por setor do reduzido.</div><div class="chart-box"><canvas height="0" id="chartSetorSub" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Setor x valor total</h3><div class="sub">Refaturado + substituto por setor.</div><div class="chart-box"><canvas height="0" id="chartSetorTotal" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Tabela por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th></tr></thead><tbody id="tbodySetores"></tbody></table></div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Quantitativo refaturado por setor</h3><div class="sub">Total de linhas refaturadas por setor.</div><div class="chart-box"><canvas height="0" id="chartRefQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Quantitativo substituto por setor</h3><div class="sub">Total de linhas substitutas por setor.</div><div class="chart-box"><canvas height="0" id="chartSubQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Reduzido quantitativo dos setores</h3><div class="sub">Quantidade por setor no campo reduzido.</div><div class="chart-box"><canvas height="0" id="chartReduzidoQtdSetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Observação</h3><div class="sub">Quando um registro tiver dois setores no campo reduzido, o valor do substituto é dividido igualmente entre eles.</div><div class="box-info">Exemplo: FATURAMENTO/COMERCIAL com valor 5.113,64 vira 2.556,82 para FATURAMENTO e 2.556,82 para COMERCIAL.</div></div>
+</div>
+<div class="card" style="margin-top:16px;">
+<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+<div>
+<h3>Motivos por setor</h3>
+<div class="sub">Selecione um setor para ver os motivos ligados aos CTEs desse setor.</div>
+</div>
+<div class="field" style="max-width:260px; min-width:180px;">
+<label>Setor</label>
+<select id="setorReasonSelect"><option value="TODOS">Todos</option><option value="CLIENTE">CLIENTE</option><option value="COMERCIAL">COMERCIAL</option><option value="FATURAMENTO">FATURAMENTO</option><option value="FINANCEIRO">FINANCEIRO</option><option value="PCO">PCO</option></select>
+</div>
+</div>
+<div class="grid grid-2" style="margin-top:12px;">
+<div class="card" style="padding:14px;">
+<h3 style="font-size:18px;">Motivos por quantidade</h3>
+<div class="chart-box"><canvas height="0" id="chartSetorMotivosQtd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+<div class="card" style="padding:14px;">
+<h3 style="font-size:18px;">Motivos por valor</h3>
+<div class="chart-box"><canvas height="0" id="chartSetorMotivosValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+</div>
+<div class="table-wrap" style="margin-top:16px;">
+<table>
+<thead><tr><th>CTE</th><th>Cliente</th><th>Setor</th><th>Motivo</th><th>Valor em erro</th><th>Usuário</th></tr></thead>
+<tbody id="tbodySetoresMotivos"></tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="view" id="performance">
+<div class="grid grid-2">
+<div class="card">
+<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+<div>
+<h3>Documentos do usuário no mês</h3>
+<div class="sub">Total mensal do usuário selecionado. A produção usa CTRC + Manifesto + NF.fat + OST.</div>
+</div>
+<div class="field" style="max-width:220px; min-width:180px;">
+<label>Usuário</label>
+<select id="performanceUserSelect"><option value="TODOS">Todos</option><option value="ademir.fernandes">ademir.fernandes</option><option value="adenilson.filho">adenilson.filho</option><option value="angelica.lucca">angelica.lucca</option><option value="angelita.santos">angelita.santos</option><option value="carolina.pasquali">carolina.pasquali</option><option value="elisangela.vieira">elisangela.vieira</option><option value="geovana.silva">geovana.silva</option><option value="integracao.xml">integracao.xml</option><option value="jhonatan.ghizzi">jhonatan.ghizzi</option><option value="jonatan.balestrin">jonatan.balestrin</option><option value="josete.gabriel">josete.gabriel</option><option value="karllin">karllin</option><option value="karoline.romanini">karoline.romanini</option><option value="leia.mattos">leia.mattos</option><option value="matheus.devise">matheus.devise</option><option value="multisoft.service">multisoft.service</option><option value="tayner.percio">tayner.percio</option><option value="tiago.carniel">tiago.carniel</option></select>
+</div>
+</div>
+<div class="chart-box"><canvas height="0" id="chartProdUsuarioMes" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+<div class="card">
+<h3>Tipos de documento no mês por usuário</h3>
+<div class="sub">Distribuição entre CTRC, Manifesto, NF.fat e OST.</div>
+<div class="chart-box"><canvas height="0" id="chartProdTiposMes" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card">
+<h3>Performance % por usuário</h3>
+<div class="sub">Percentual positivo com base no erro do operador: 100 - ((erros × 100) / (CTRC + OST)).</div>
+<div class="chart-box"><canvas height="0" id="chartPerformance" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+<div class="card">
+<h3>Faixa de performance</h3>
+<div class="sub">Ótimo 99,51 a 100, Regular 97 a 99,50 e Ruim 90 a 96,9.</div>
+<div class="chart-box"><canvas height="0" id="chartPerformancePie" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+</div>
+</section>
+<section class="view" id="anual">
+<div class="grid grid-2">
+<div class="card">
+<h3>Análise anual</h3>
+<div class="sub">Importe um mês por vez e salve na base anual.</div>
+<div class="chart-box"><canvas height="0" id="chartAnnualTotals" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+<div class="card">
+<h3>Setor no ano</h3>
+<div class="sub">Selecione um setor para ver refaturado, substituto e total por mês.</div>
+<div class="field" style="max-width:260px; margin-bottom:12px;">
+<label>Setor</label>
+<select id="annualSectorSelect"><option value="">Todos</option><option value="CLIENTE">CLIENTE</option><option value="COMERCIAL">COMERCIAL</option><option value="FATURAMENTO">FATURAMENTO</option><option value="FINANCEIRO">FINANCEIRO</option><option value="PCO">PCO</option><option value="RODOPAR">RODOPAR</option></select>
+</div>
+<div class="chart-box"><canvas height="0" id="chartAnnualSector" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+</div>
+<div class="card" style="margin-top:16px;">
+<h3>Documentos anuais</h3>
+<div class="sub">Quantidade total de documentos por mês no Excel de produtividade.</div>
+<div class="chart-box"><canvas height="0" id="chartAnnualProd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div>
+</div>
+<div class="card" style="margin-top:16px;">
+<h3>Meses salvos</h3>
+<div class="sub">Resumo da base anual salva neste navegador.</div>
+<div class="table-wrap compact">
+<table>
+<thead><tr><th>Mês</th><th>Refaturado</th><th>Substituto</th><th>Total</th><th>Documentos</th><th>Ação</th></tr></thead>
+<tbody id="tbodyAnnualMonths"></tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="view" id="cadastro">
+<div class="card">
+<h3>Cadastro manual por refaturado</h3>
+<div class="sub">O motivo tenta vir automático do Excel.</div>
+<div class="table-wrap">
+<table><thead><tr><th>CTE</th><th>Cliente</th><th>Data baixa</th><th>Solicitação</th><th>Motivo</th><th>Detalhamento</th><th>Auditoria</th><th>Salvar</th></tr></thead><tbody id="tbodyCadastro"></tbody></table>
+</div>
+</div>
+</section>
+<section class="view" id="config">
+<div class="grid grid-2">
+<div class="card">
+<h3>Importar Excel</h3>
+<div class="field"><label>Arquivo</label><input accept=".xls,.xlsx,.csv" id="excelUpload" type="file"/></div>
+<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:10px; margin-top:14px; align-items:end;">
+<div class="field"><label>Mês</label><select id="annualMonth"><option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div>
+<div class="field"><label>Ano</label><input id="annualYear" type="number" value="2026"/></div>
+<button class="btn secondary" id="btnSaveCurrentMonth">Salvar mês</button>
+</div>
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+<button class="btn secondary" id="btnClearAnnual">Limpar mês anual</button>
+</div>
+<div class="box-info" id="importMsg" style="margin-top:14px;">
+          Excel importado com sucesso.<br/>
+          Abas encontradas: <strong>1</strong><br/>
+          Refaturados: <strong>26</strong><br/>
+          Substitutos: <strong>40</strong><br/>
+          Linhas de setor: <strong>63</strong>
+</div>
+</div>
+<div class="card"><h3>Console do parser</h3><textarea id="logBox" readonly=""></textarea></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card">
+<h3>Importar Excel de produtividade</h3>
+<div class="sub">Usado para a aba Performance Usuários e para Documentos anuais. A conta anual considera CTRC + OST.</div>
+<div class="field"><label>Arquivo</label><input accept=".xls,.xlsx,.csv" id="prodExcelUpload" type="file"/></div>
+<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:10px; margin-top:14px; align-items:end;">
+<div class="field"><label>Mês produtividade</label><select id="prodMonth"><option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div>
+<div class="field"><label>Ano produtividade</label><input id="prodYear" type="number" value="2026"/></div>
+<button class="btn secondary" id="btnSaveProdMonth">Salvar docs</button>
+</div>
+<div class="box-info" id="prodImportMsg" style="margin-top:14px;">Nenhum Excel de produtividade importado.</div>
+</div>
+<div class="card">
+<h3>Supabase</h3>
+<div class="sub">Use Importar mês novo para primeira carga do mês. Use Reimportar mês seguro para corrigir um mês já existente.</div>
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+<button class="btn secondary" id="btnSyncSupabase">Importar mês novo</button>
+<button class="btn secondary" id="btnReimportarMesSeguro" type="button">Reimportar mês seguro</button>
+<button class="btn secondary" id="btnExportExcel" type="button">Extrair Excel</button></div>
+<div class="box-info" id="syncStatus" style="margin-top:14px;">Mês 01/2026 carregado da Supabase (73 duplicado(s) ignorado(s) na leitura).</div>
+<textarea readonly="" style="margin-top:14px; min-height:170px;">SQL inicial:
+create extension if not exists "uuid-ossp";
+
+create table if not exists refaturamento (
+  id uuid default uuid_generate_v4() primary key,
+  documento text,
+  original_doc text,
+  cliente text,
+  usuario text,
+  setor text,
+  debito numeric,
+  frete_refaturado numeric,
+  frete_substituto numeric,
+  frete_original numeric,
+  tipo text,
+  mes text,
+  ano text,
+  unique(documento, mes, ano, tipo)
+);
+
+create table if not exists produtividade (
+  id uuid default uuid_generate_v4() primary key,
+  usuario text,
+  tipo_doc text,
+  quantidade numeric,
+  mes text,
+  ano text,
+  unique(usuario, tipo_doc, mes, ano)
+);
+
+create table if not exists manual (
+  documento text primary key,
+  motivo text,
+  detalhamento text,
+  auditoria text
+);</textarea>
+</div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+<div class="card">
+<h3>Motivos padrão</h3>
+<textarea id="reasonBox"></textarea>
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+<button class="btn" id="btnSaveReasons">Salvar motivos</button>
+<button class="btn secondary" id="btnResetReasons">Restaurar padrão</button>
+</div>
+</div>
+<div class="card"><h3>Observação</h3><div class="box-danger">Parser guiado por cabeçalhos. Sem dependência de linha fixa.</div></div>
+</div>
+</section>
+</main>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer="True" src="js/app.js"></script>
+<script>
+(function(){
+  function aplicarLabelsRefaturamento(){
+    document.querySelectorAll('.menu button').forEach(function(btn){
+      if(btn.querySelector('.hover-label')) return;
+      var label = btn.getAttribute('data-title') || btn.textContent.trim();
+      btn.setAttribute('aria-label', label);
+      var span = document.createElement('span');
+      span.className = 'hover-label';
+      span.textContent = label;
+      btn.appendChild(span);
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicarLabelsRefaturamento);
+  else aplicarLabelsRefaturamento();
+})();
+</script>
+
+</body></html>
