@@ -2504,8 +2504,19 @@ function renderPerformanceView(){
   }
 }
 
+
+function updateMonthConsultVisibility(){
+  const active = __getActiveViewId();
+  const box = document.getElementById('monthConsultWrapper');
+  if(!box) return;
+  // A análise anual e a performance anual são fixas/consolidadas;
+  // não devem exibir o seletor global de mês consultado.
+  box.style.display = (active === 'anual' || active === 'performanceAnual') ? 'none' : '';
+}
+
 function renderAll(){
   renderCurrentView();
+  updateMonthConsultVisibility();
 }
 
 function bindMenu(){
@@ -2516,6 +2527,7 @@ function bindMenu(){
       btn.classList.add('active');
       const target = document.getElementById(btn.dataset.view);
       if(target) target.classList.add('active');
+      updateMonthConsultVisibility();
       renderCurrentView();
     });
   });
@@ -2831,6 +2843,7 @@ if (viewAtiva && !liberadas.includes(viewAtiva.id)) {
   if (viewEl) viewEl.classList.add("active");
   if (btnEl) btnEl.classList.add("active");
 }
+  updateMonthConsultVisibility();
   bootstrap();
 });
 
