@@ -5285,3 +5285,173 @@ function __perfAnualAggregate(){
 
   return { months: months.map(m => m.key), rows };
 }
+
+/* ===== v33 - Performance Anual sempre consolida TODOS os meses salvos =====
+   Correção: em ambiente novo (GitHub/Vercel), quando só um mês era consultado,
+   a Performance Anual ficava limitada ao mês selecionado porque apenas esse mês
+   existia no localStorage. Agora, ao abrir a Performance Anual, o painel busca
+   todos os meses importados na Supabase, monta snapshots silenciosos e soma tudo.
+*/
+(function(){
+  const oldRenderPerfAnual = window.renderPerformanceAnualView || (typeof renderPerformanceAnualView === 'function' ? renderPerformanceAnualView : null);
+  let loadingAllMonths = null;
+
+  function v33MonthKeysFromRows(rows){
+    return Array.from(new Set((rows || [])
+      .map(r => `${r.ano}-${String(r.mes).padStart(2,'0')}`)
+      .filter(k => /^\d{4}-\d{2}$/.test(k))
+    )).sort();
+  }
+
+  function v33BuildSnapshotFromSupabase(refData, prodData, monthKey){
+    const allRef = (refData || []).slice().sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
+    const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || '').localeCompare(String(b.operador || '')));
+    const refRows = allRef.filter(r => r.tipo === 'refaturado');
+    const subRows = allRef.filter(r => r.tipo === 'substituto');
+    const setorRows = allRef.filter(r => r.tipo === 'setor');
+
+    const prodRows = [];
+    allProd.forEach(r => {
+      const usuario = prodNorm(r.operador || '');
+      const pushRow = (tipo, quantidade) => {
+        const q = parseNumber(quantidade || 0);
+        if(q > 0) prodRows.push({ usuario, tipo, quantidade: q });
+      };
+      pushRow('ctrc', r.ctrc);
+      pushRow('manifesto', r.manifesto);
+      pushRow('ost', r.ost);
+      pushRow('nf.fat', r.nf_fat);
+    });
+
+    let snapshot = {
+      sheets: ['supabase'],
+      refaturados: refRows.map(r => ({
+        dataRefaturado: r.data_baixa || '',
+        tomadorRefaturado: r.cliente || '',
+        refaturado: r.documento || '',
+        freteRefaturado: parseNumber(r.frete_refaturado || 0),
+        dataOriginal: '',
+        operadorOriginal: r.operador || '',
+        tomadorOriginal: r.cliente || '',
+        original: r.documento_original || '',
+        freteOriginal: parseNumber(r.frete_original || 0),
+        diferenca: 0,
+        reduzido: r.reduzido || '',
+        motivoBaixa: r.motivo_baixa || '',
+        clientGroup: clientGroup(r.cliente || ''),
+        originalTail: (tailDigits(r.documento_original || '') || '').replace(/^0+/,'') || '0',
+        debit: parseNumber(r.debito || 0),
+        userSetor: r.operador || '',
+        setorLancamento: r.setor || ''
+      })),
+      substitutos: subRows.map(r => ({
+        dataSubstituto: r.data_baixa || '',
+        tomadorSubstituto: r.cliente || '',
+        substituto: r.documento || '',
+        freteSubstituto: parseNumber(r.frete_substituto || 0),
+        dataOriginal: '',
+        operadorOriginal: r.operador || '',
+        tomadorOriginal: r.cliente || '',
+        original: r.documento_original || '',
+        freteOriginal: parseNumber(r.frete_original || 0),
+        diferenca: 0,
+        reduzido: r.reduzido || '',
+        motivoBaixa: r.motivo_baixa || '',
+        clientGroup: clientGroup(r.cliente || ''),
+        originalTail: (tailDigits(r.documento_original || '') || '').replace(/^0+/,'') || '0',
+        debit: 0
+      })),
+      setores: setorRows.map(r => ({
+        data: (String(r.documento || '').split('|')[1] || ''),
+        docto: (String(r.documento || '').split('|')[2] || ''),
+        cliente: r.cliente || '',
+        debit: parseNumber(r.debito || 0),
+        documentos: docTokens(r.documento_original || ''),
+        usuario: r.operador || '',
+        setor: r.setor || 'NÃO IDENTIFICADO',
+        clientGroup: clientGroup(r.cliente || '')
+      })),
+      prodRows
+    };
+
+    const filtered = snapshotFilteredByMonth(snapshot, monthKey);
+    if(snapshotHasMonthlyData(filtered)) snapshot = filtered;
+    return snapshot;
+  }
+
+  function v33SummaryFromSnapshot(snapshot){
+    const backup = cloneMonthlySnapshot();
+    try{
+      applySnapshot(snapshot);
+      return { ...currentAnnualSummary(), snapshot: cloneMonthlySnapshot() };
+    }finally{
+      applySnapshot(backup);
+    }
+  }
+
+  async function v33EnsureAllAnnualMonthsLoaded(){
+    if(!ensureSupabaseConnected()) return;
+    if(loadingAllMonths) return loadingAllMonths;
+
+    loadingAllMonths = (async () => {
+      try{
+        const { data: mesesData, error: mesesError } = await state.supabase
+          .from('meses_importados')
+          .select('mes,ano')
+          .order('ano', { ascending: true })
+          .order('mes', { ascending: true });
+        if(mesesError){
+          console.warn('Performance Anual: não foi possível listar meses importados.', mesesError);
+          return;
+        }
+
+        const keys = v33MonthKeysFromRows(mesesData);
+        state.remoteMonths = keys;
+
+        for(const key of keys){
+          const hasRefSnapshot = !!(state.annual && state.annual[key] && state.annual[key].snapshot);
+          const hasProdRows = !!(state.annualProd && state.annualProd[key] && Array.isArray(state.annualProd[key].rows));
+          if(hasRefSnapshot && hasProdRows) continue;
+
+          const [ano, mes] = key.split('-');
+          const [{ data: refData, error: refError }, { data: prodData, error: prodError }] = await Promise.all([
+            state.supabase.from('refaturamento_importado').select('*').eq('ano', ano).eq('mes', mes),
+            state.supabase.from('produtividade_usuarios').select('*').eq('ano', ano).eq('mes', mes)
+          ]);
+          if(refError || prodError){
+            console.warn('Performance Anual: falha ao carregar mês', key, refError || prodError);
+            continue;
+          }
+
+          const snapshot = v33BuildSnapshotFromSupabase(refData || [], prodData || [], key);
+          state.annual[key] = v33SummaryFromSnapshot(snapshot);
+          state.annualProd[key] = {
+            documentos: (snapshot.prodRows || [])
+              .filter(x => ['ctrc','ost'].includes(normalizeDocType(x.tipo)))
+              .reduce((s,x)=>s+Number(x.quantidade||0),0),
+            rows: JSON.parse(JSON.stringify(snapshot.prodRows || []))
+          };
+        }
+
+        writeStorage('painel_ref_annual_v32', state.annual);
+        writeStorage('painel_ref_annual_prod_v36', state.annualProd);
+        refreshMonthViewSelect?.();
+      }catch(err){
+        console.warn('Performance Anual: erro ao consolidar todos os meses.', err);
+      }finally{
+        loadingAllMonths = null;
+      }
+    })();
+
+    return loadingAllMonths;
+  }
+
+  window.renderPerformanceAnualView = async function(){
+    const status = document.getElementById('syncStatus');
+    const previousText = status?.textContent || '';
+    if(status) status.textContent = 'Consolidando Performance Anual de todos os meses salvos...';
+    await v33EnsureAllAnnualMonthsLoaded();
+    if(status && previousText) status.textContent = previousText;
+    return oldRenderPerfAnual ? oldRenderPerfAnual.apply(this, arguments) : undefined;
+  };
+})();
