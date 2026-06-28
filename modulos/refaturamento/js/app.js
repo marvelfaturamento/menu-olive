@@ -51,6 +51,8 @@ function renderCurrentView(){
     renderUsuariosView?.();
   }else if(view === 'performance'){
     renderPerformanceView?.();
+  }else if(view === 'performanceAnual'){
+    renderPerformanceAnualView?.();
   }else if(view === 'clientes'){
     renderClientesView?.();
   }else if(view === 'setores'){
@@ -2776,6 +2778,7 @@ window.addEventListener('DOMContentLoaded', function(){
     "clientes",
     "setores",
     "performance",
+    "performanceAnual",
     "anual",
     "cadastro",
     "config"
@@ -2789,6 +2792,7 @@ window.addEventListener('DOMContentLoaded', function(){
     "clientes",
     "setores",
     "performance",
+    "performanceAnual",
     "anual",
     "cadastro",
     "config"
@@ -4734,4 +4738,425 @@ if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', ligarBotaoReimportarMesSeguroV15Final);
 }else{
   ligarBotaoReimportarMesSeguroV15Final();
+}
+
+
+/* ===== Performance Anual de Usuários ===== */
+function __perfAnualEnsureUser(map, usuario){
+  const u = prodNorm(usuario || '');
+  if(!u) return null;
+  if(!map.has(u)){
+    map.set(u, {
+      usuario:u, ctrc:0, manifesto:0, nfFat:0, ost:0, totalDocs:0, baseDocs:0,
+      erros:0, qtdRef:0, qtdSub:0, valorRef:0, valorSub:0, impacto:0,
+      meses:{}, performance:null, erroPerc:null, docsErro:0
+    });
+  }
+  return map.get(u);
+}
+function __perfAnualMonthItem(row, key){
+  if(!row.meses[key]) row.meses[key] = { baseDocs:0, erros:0, impacto:0, performance:null };
+  return row.meses[key];
+}
+function __perfAnualSplitUsers(value){
+  const raw = String(value || '').trim();
+  if(!raw) return [];
+  return raw
+    .split(/[,;|]+/g)
+    .map(v => prodNorm(v))
+    .filter(Boolean)
+    .filter((v, i, arr) => arr.indexOf(v) === i);
+}
+
+function __perfAnualIsUsuarioTecnico(usuario){
+  const u = prodNorm(usuario || '');
+  return u === 'integracao.xml' || u === 'integração.xml' || u === 'multisoft.service';
+}
+function __perfAnualSnapshots(){
+  const keys = Array.from(new Set([
+    ...Object.keys(state.annual || {}),
+    ...Object.keys(state.annualProd || {})
+  ])).filter(k => /^\d{4}-\d{2}$/.test(k)).sort();
+  return keys.map(key => {
+    const entry = (state.annual || {})[key] || {};
+    const prodEntry = (state.annualProd || {})[key] || {};
+    const snap = entry.snapshot || {};
+    return {
+      key,
+      setores: snap.setores || [],
+      substitutos: snap.substitutos || [],
+      prodRows: prodEntry.rows || snap.prodRows || []
+    };
+  });
+}
+function __perfAnualAggregate(){
+  const map = new Map();
+  const usados = new Set();
+  const months = __perfAnualSnapshots();
+
+  months.forEach(month => {
+    (month.prodRows || []).forEach(r => {
+      const item = __perfAnualEnsureUser(map, r.usuario || r.operador || '');
+      if(!item) return;
+      const tipo = normalizeDocType(r.tipo || r.documento || '');
+      const qtd = Number(r.quantidade || r.qtd || 0);
+      if(!qtd) return;
+      const m = __perfAnualMonthItem(item, month.key);
+      if(tipo === 'ctrc') item.ctrc += qtd;
+      else if(tipo === 'ost') item.ost += qtd;
+      else if(tipo === 'manifesto') item.manifesto += qtd;
+      else if(tipo === 'nf.fat') item.nfFat += qtd;
+      item.totalDocs += qtd;
+      if(tipo === 'ctrc' || tipo === 'ost'){
+        item.baseDocs += qtd;
+        m.baseDocs += qtd;
+      }
+    });
+
+    (month.setores || []).forEach(s => {
+      const setor = upper(s.setor || s.setorLancamento || '');
+      if(setor !== 'FATURAMENTO') return;
+      const usuarios = __perfAnualSplitUsers(s.usuario || s.userSetor || s.operador || '');
+      if(!usuarios.length) return;
+
+      // Contagem objetiva definida para a análise anual:
+      // 1 lançamento de refaturamento = 1 documento com erro quando há um único usuário responsável.
+      // Quando a linha possui usuários em lote, o valor financeiro continua rateado,
+      // mas a quantidade NÃO é somada ao gráfico de documentos para não inflar o ranking por usuário.
+      const qtdDocsErro = usuarios.length === 1 ? 1 : 0;
+      const valorTotal = Number(s.debit || s.debito || 0);
+      const pesoValor = 1 / usuarios.length;
+      usuarios.forEach(usuario => {
+        const item = __perfAnualEnsureUser(map, usuario);
+        if(!item) return;
+        const valor = valorTotal * pesoValor;
+        const m = __perfAnualMonthItem(item, month.key);
+        item.erros += qtdDocsErro; item.qtdRef += qtdDocsErro; item.valorRef += valor; item.impacto += valor;
+        m.erros += qtdDocsErro; m.impacto += valor;
+      });
+    });
+
+    (month.substitutos || []).forEach(s => {
+      const setores = parseReducedSectors(s.reduzido || s.setor || s.setorLancamento || '');
+      const isFat = setores.includes('FATURAMENTO') || upper(s.setorLancamento || '') === 'FATURAMENTO';
+      if(!isFat) return;
+      const usuarios = __perfAnualSplitUsers(s.userSetor || s.operadorOriginal || s.usuario || s.operador || '');
+      if(!usuarios.length) return;
+
+      // 1 lançamento de substituto = 1 documento com erro quando há um único usuário responsável.
+      // Quando a linha possui usuários em lote, o valor financeiro continua rateado,
+      // mas a quantidade NÃO é somada ao gráfico de documentos para não inflar o ranking por usuário.
+      const qtdDocsErro = usuarios.length === 1 ? 1 : 0;
+      const valorTotal = Number(s.freteSubstituto || s.frete_substituto || 0);
+      const pesoValor = 1 / usuarios.length;
+      usuarios.forEach(usuario => {
+        const item = __perfAnualEnsureUser(map, usuario);
+        if(!item) return;
+        const valor = valorTotal * pesoValor;
+        const m = __perfAnualMonthItem(item, month.key);
+        item.erros += qtdDocsErro; item.qtdSub += qtdDocsErro; item.valorSub += valor; item.impacto += valor;
+        m.erros += qtdDocsErro; m.impacto += valor;
+      });
+    });
+  });
+
+  const rows = Array.from(map.values()).map(r => {
+    r.erroPerc = r.baseDocs ? (r.erros * 100 / r.baseDocs) : null;
+    r.performance = r.baseDocs ? Math.max(0, Math.min(100, 100 - r.erroPerc)) : null;
+    // Quantidade de documentos com erro: refaturados + substitutos por usuário.
+    // Contagem objetiva: 1 documento errado para cada ocorrência vinculada ao usuário.
+    r.docsErro = Number(r.qtdRef || 0) + Number(r.qtdSub || 0);
+    Object.keys(r.meses).forEach(k => {
+      const m = r.meses[k];
+      m.performance = m.baseDocs ? Math.max(0, Math.min(100, 100 - ((m.erros * 100) / m.baseDocs))) : null;
+    });
+    return r;
+  }).filter(r => r.baseDocs > 0 || r.erros > 0 || r.impacto > 0);
+
+  return { months: months.map(m => m.key), rows };
+}
+function __perfAnualFmtQtd(v){
+  const n = Number(v || 0);
+  return n % 1 === 0 ? n.toLocaleString('pt-BR') : n.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function __perfAnualPerfColor(value){
+  const p = Number(value || 0);
+  if(p >= 99.51) return '#12c97a';
+  if(p >= 98.50) return '#76d66f';
+  if(p >= 97.00) return '#f4c20d';
+  if(p >= 95.00) return '#f97316';
+  return '#ef4444';
+}
+function __perfAnualPerfClass(value){
+  const p = Number(value || 0);
+  if(p >= 99.51) return 'Ótimo';
+  if(p >= 97.00) return 'Regular';
+  return 'Atenção';
+}
+function __renderPerfAnualRankingChart(rows){
+  destroyChart('chartPerfAnualRanking');
+  const ctx = document.getElementById('chartPerfAnualRanking');
+  if(!ctx) return;
+  const labels = rows.map(r => r.usuario);
+  state.charts.chartPerfAnualRanking = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: labels.map(l => String(l).length > 18 ? String(l).slice(0,18)+'…' : String(l)),
+      datasets:[{
+        label:'Performance %',
+        data: rows.map(r => Number(r.performance || 0)),
+        backgroundColor: rows.map(r => __perfAnualPerfColor(r.performance)),
+        borderColor: rows.map(r => __perfAnualPerfColor(r.performance)),
+        borderWidth:1,
+        borderRadius:8
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false, layout:{ padding:{ left:6, right:72 } },
+      plugins:{
+        legend:{ labels:{ color:'#fff' } },
+        tooltip:{
+          callbacks:{
+            title:(items)=> items.length ? String(labels[items[0].dataIndex] || '') : '',
+            label:(ctx)=> `${Number(ctx.raw).toFixed(2)}% - ${__perfAnualPerfClass(ctx.raw)}`
+          }
+        },
+        datalabels:{
+          color:'#fff', anchor:'end', align:'right', clamp:false, clip:false, offset:8,
+          formatter:v => `${Number(v).toFixed(2)}%`,
+          backgroundColor:'rgba(8,16,29,.82)', borderRadius:4, padding:{left:6,right:6,top:2,bottom:2}
+        }
+      },
+      scales:{
+        x:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:v=>v+'%' }, grid:{ color:'rgba(255,255,255,.05)' } },
+        y:{ ticks:{ color:'#cfe0ff' }, grid:{ color:'rgba(255,255,255,.05)' } }
+      }
+    }
+  });
+}
+function renderPerformanceAnualView(){
+  const data = __perfAnualAggregate();
+  const rows = data.rows;
+  const totalDocs = rows.reduce((s,r)=>s+Number(r.baseDocs||0),0);
+  const totalErros = rows.reduce((s,r)=>s+Number(r.erros||0),0);
+  const impacto = rows.reduce((s,r)=>s+Number(r.impacto||0),0);
+  const usuariosAnalisados = rows.filter(r => !__perfAnualIsUsuarioTecnico(r.usuario)).length;
+
+  const kpi = document.getElementById('perfAnualKpis');
+  if(kpi){
+    kpi.innerHTML = `
+      <div class="kpi"><div class="label">Base anual CTRC+OST</div><div class="value">${Number(totalDocs||0).toLocaleString('pt-BR')}</div><div class="hint">Documentos de performance</div></div>
+      <div class="kpi"><div class="label">Docs incorretos</div><div class="value">${__perfAnualFmtQtd(totalErros)}</div><div class="hint">Refaturados + substitutos</div></div>
+      <div class="kpi"><div class="label">Impacto financeiro</div><div class="value">${fmtMoney(impacto)}</div><div class="hint">Refaturado + substituto</div></div>
+      <div class="kpi"><div class="label">Usuários analisados</div><div class="value">${usuariosAnalisados.toLocaleString('pt-BR')}</div><div class="hint">Desconsidera integrações automáticas</div></div>
+    `;
+  }
+
+  const select = document.getElementById('perfAnualUsuarioSelect');
+  if(select){
+    const cur = select.value || 'TODOS';
+    const sortedUsers = rows.slice().sort((a,b)=>a.usuario.localeCompare(b.usuario));
+    select.innerHTML = '<option value="TODOS">Todos</option>' + sortedUsers.map(r => `<option value="${esc(r.usuario)}">${esc(r.usuario)}</option>`).join('');
+    select.value = cur === 'TODOS' || rows.some(r => r.usuario === cur) ? cur : 'TODOS';
+  }
+  const selected = select?.value || 'TODOS';
+  const baseRows = selected === 'TODOS' ? rows : rows.filter(r => r.usuario === selected);
+  const perfRows = baseRows
+    .filter(r => r.performance !== null)
+    .filter(r => !__perfAnualIsUsuarioTecnico(r.usuario))
+    .sort((a,b)=>b.performance-a.performance || b.baseDocs-a.baseDocs);
+  const valorRows = baseRows.filter(r => !__perfAnualIsUsuarioTecnico(r.usuario)).slice().sort((a,b)=>b.impacto-a.impacto).slice(0,12);
+  const impactoDocRows = baseRows.filter(r => !__perfAnualIsUsuarioTecnico(r.usuario)).filter(r => Number(r.docsErro||0) > 0).sort((a,b)=>Number(b.docsErro||0)-Number(a.docsErro||0)).slice(0,12);
+
+  __renderPerfAnualRankingChart(perfRows);
+  makeBarChart('chartPerfAnualValor', valorRows.map(r=>r.usuario), valorRows.map(r=>Number(r.impacto||0)), true, 'Impacto');
+  makeBarChart('chartPerfAnualImpactoDoc', impactoDocRows.map(r=>r.usuario), impactoDocRows.map(r=>Number(r.docsErro||0)), true, 'Docs com erro');
+
+  const months = data.months;
+  let labels = months.map(monthLabel);
+  let datasets = [];
+  if(selected === 'TODOS'){
+    const top = rows.slice().sort((a,b)=>b.impacto-a.impacto).slice(0,5);
+    datasets = top.map(r => ({ label:r.usuario, data: months.map(k => r.meses[k]?.performance ?? null), tension:.35, fill:false }));
+  }else{
+    const r = rows.find(x => x.usuario === selected);
+    datasets = [{ label:selected, data: months.map(k => r?.meses[k]?.performance ?? null), tension:.35, fill:false }];
+  }
+  destroyChart('chartPerfAnualEvolucao');
+  const ctx = document.getElementById('chartPerfAnualEvolucao');
+  if(ctx){
+    state.charts.chartPerfAnualEvolucao = new Chart(ctx, {
+      type:'line', data:{ labels, datasets },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#fff' } }, datalabels:{ display:false }, tooltip:{ callbacks:{ label: c => `${c.dataset.label}: ${c.raw == null ? '-' : Number(c.raw).toFixed(2)+'%'}` } } }, scales:{ x:{ ticks:{ color:'#cfe0ff' }, grid:{ color:'rgba(255,255,255,.05)' } }, y:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:v=>v+'%' }, grid:{ color:'rgba(255,255,255,.05)' } } } }
+    });
+  }
+
+  const tbody = document.getElementById('tbodyPerfAnualUsuarios');
+  if(tbody){
+    const tableRows = rows.slice().sort((a,b)=>{
+      const pa = a.performance == null ? -1 : a.performance;
+      const pb = b.performance == null ? -1 : b.performance;
+      return pb-pa || b.impacto-a.impacto || b.baseDocs-a.baseDocs;
+    });
+    tbody.innerHTML = tableRows.length ? tableRows.map(r => `
+      <tr>
+        <td>${esc(r.usuario)}</td>
+        <td>${Number(r.ctrc||0).toLocaleString('pt-BR')}</td>
+        <td>${Number(r.ost||0).toLocaleString('pt-BR')}</td>
+        <td>${Number(r.baseDocs||0).toLocaleString('pt-BR')}</td>
+        <td>${__perfAnualFmtQtd(r.erros||0)}</td>
+        <td>${r.erroPerc == null ? '-' : r.erroPerc.toFixed(3)+'%'}</td>
+        <td><strong style="color:${r.performance == null ? '#cfe0ff' : __perfAnualPerfColor(r.performance)}">${r.performance == null ? '-' : r.performance.toFixed(2)+'%'}</strong></td>
+        <td>${fmtMoney(r.valorRef||0)}</td>
+        <td>${fmtMoney(r.valorSub||0)}</td>
+        <td>${fmtMoney(r.impacto||0)}</td>
+      </tr>`).join('') : `<tr><td colspan="10" class="center muted">Sem meses salvos com produtividade/erros para consolidar.</td></tr>`;
+  }
+}
+window.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('perfAnualUsuarioSelect')?.addEventListener('change', renderPerformanceAnualView);
+});
+
+/* ===== v29 - Performance Anual: quantidade usa a mesma base da Análise de Usuários ===== */
+function __perfAnualSnapshots(){
+  const keys = Array.from(new Set([
+    ...Object.keys(state.annual || {}),
+    ...Object.keys(state.annualProd || {})
+  ])).filter(k => /^\d{4}-\d{2}$/.test(k)).sort();
+
+  return keys.map(key => {
+    const entry = (state.annual || {})[key] || {};
+    const prodEntry = (state.annualProd || {})[key] || {};
+    const snap = entry.snapshot || {};
+    return {
+      key,
+      refaturados: snap.refaturados || [],
+      substitutos: snap.substitutos || [],
+      setores: snap.setores || [],
+      prodRows: prodEntry.rows || snap.prodRows || []
+    };
+  });
+}
+
+function __perfAnualUsuariosAggregateFromSnapshot(month){
+  const rowsMap = new Map();
+  const add = (row) => {
+    const usuario = prodNorm(row.usuario || '');
+    const tipo = String(row.tipo || '').toLowerCase().includes('sub') ? 'sub' : 'ref';
+    const cte = String(row.cte || '').trim();
+    if(!usuario || !cte) return;
+    const key = [usuario, tipo, cte].join('|');
+    if(!rowsMap.has(key)) rowsMap.set(key, { ...row, usuario, tipo });
+  };
+
+  (month.refaturados || []).forEach(r => {
+    const usuario = prodNorm(r.userSetor || r.operadorOriginal || '');
+    if(!usuario) return;
+    const setores = new Set([
+      upper(r.setorLancamento || ''),
+      ...parseReducedSectors(r.reduzido || '').map(x => upper(x))
+    ]);
+    if(!setores.has('FATURAMENTO')) return;
+    add({
+      tipo: 'ref',
+      cte: String(r.refaturado || '').trim(),
+      usuario,
+      valor: Number(r.debit || r.freteRefaturado || 0)
+    });
+  });
+
+  (month.substitutos || []).forEach(r => {
+    const usuario = prodNorm(r.userSetor || r.operadorOriginal || '');
+    if(!usuario) return;
+    const setores = parseReducedSectors(r.reduzido || r.setorLancamento || '').map(x => upper(x));
+    if(!setores.includes('FATURAMENTO')) return;
+    add({
+      tipo: 'sub',
+      cte: String(r.substituto || '').trim(),
+      usuario,
+      valor: Number(r.freteSubstituto || 0)
+    });
+  });
+
+  const map = new Map();
+  Array.from(rowsMap.values()).forEach(r => {
+    const user = prodNorm(r.usuario || '');
+    if(!user) return;
+    if(!map.has(user)){
+      map.set(user, { user, qtdRef:0, qtdSub:0, qty:0, refaturado:0, substituto:0, total:0 });
+    }
+    const item = map.get(user);
+    const valor = Number(r.valor || 0);
+    if(String(r.tipo).toLowerCase().includes('sub')){
+      item.qtdSub += 1;
+      item.substituto += valor;
+    }else{
+      item.qtdRef += 1;
+      item.refaturado += valor;
+    }
+    item.qty = item.qtdRef + item.qtdSub;
+    item.total = item.refaturado + item.substituto;
+  });
+  return Array.from(map.values()).sort((a,b)=>b.total-a.total);
+}
+
+function __perfAnualAggregate(){
+  const map = new Map();
+  const months = __perfAnualSnapshots();
+
+  months.forEach(month => {
+    (month.prodRows || []).forEach(r => {
+      const item = __perfAnualEnsureUser(map, r.usuario || r.operador || '');
+      if(!item) return;
+      const tipo = normalizeDocType(r.tipo || r.documento || '');
+      const qtd = Number(r.quantidade || r.qtd || 0);
+      if(!qtd) return;
+      const m = __perfAnualMonthItem(item, month.key);
+      if(tipo === 'ctrc') item.ctrc += qtd;
+      else if(tipo === 'ost') item.ost += qtd;
+      else if(tipo === 'manifesto') item.manifesto += qtd;
+      else if(tipo === 'nf.fat') item.nfFat += qtd;
+      item.totalDocs += qtd;
+      if(tipo === 'ctrc' || tipo === 'ost'){
+        item.baseDocs += qtd;
+        m.baseDocs += qtd;
+      }
+    });
+
+    // Mesma lógica da aba Análise de Usuários: soma Qtd Ref + Qtd Sub já consolidada por mês.
+    (__perfAnualUsuariosAggregateFromSnapshot(month) || []).forEach(u => {
+      const item = __perfAnualEnsureUser(map, u.user || '');
+      if(!item) return;
+      const m = __perfAnualMonthItem(item, month.key);
+      const qtdRef = Number(u.qtdRef || 0);
+      const qtdSub = Number(u.qtdSub || 0);
+      const valorRef = Number(u.refaturado || 0);
+      const valorSub = Number(u.substituto || 0);
+      const qtdTotal = qtdRef + qtdSub;
+      const impacto = valorRef + valorSub;
+
+      item.qtdRef += qtdRef;
+      item.qtdSub += qtdSub;
+      item.erros += qtdTotal;
+      item.valorRef += valorRef;
+      item.valorSub += valorSub;
+      item.impacto += impacto;
+      m.erros += qtdTotal;
+      m.impacto += impacto;
+    });
+  });
+
+  const rows = Array.from(map.values()).map(r => {
+    r.erroPerc = r.baseDocs ? (r.erros * 100 / r.baseDocs) : null;
+    r.performance = r.baseDocs ? Math.max(0, Math.min(100, 100 - r.erroPerc)) : null;
+    r.docsErro = Number(r.qtdRef || 0) + Number(r.qtdSub || 0);
+    Object.keys(r.meses).forEach(k => {
+      const m = r.meses[k];
+      m.performance = m.baseDocs ? Math.max(0, Math.min(100, 100 - ((m.erros * 100) / m.baseDocs))) : null;
+    });
+    return r;
+  }).filter(r => r.baseDocs > 0 || r.erros > 0 || r.impacto > 0);
+
+  return { months: months.map(m => m.key), rows };
 }

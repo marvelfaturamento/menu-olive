@@ -16,13 +16,6 @@
 <aside class="side">
 <div class="brand">
   <h1>Painel 902</h1>
-  <div class="sideUpdateBox" id="lastUpdateBox" title="Última atualização ainda não registrada">
-    <div class="sideUpdateMain">
-      <span class="sideUpdateDot" id="lastUpdateDot"></span>
-      <span id="lastUpdateAgo">Aguardando atualização</span>
-    </div>
-    <div class="sideUpdateDate" id="lastUpdateDate">Importe ou sincronize a base</div>
-  </div>
 </div>
 <button class="navbtn" data-tab="ativo" data-title="Painel Ativo" data-desc="PCs em operação">Painel Ativo</button>
 <button class="navbtn" data-tab="agNota" data-title="Ag nota" data-desc="Aguardando nota">Ag nota</button>
@@ -37,7 +30,17 @@
 <div class="topbar">
 <div>
 <div class="title" id="pageTitle">Aduana</div>
-<div class="supastatus" id="supabaseStatus">Supabase: carregado e auto save por PC ativo</div><span class="busyHint" id="busyHint"></span>
+<div class="statusLine902">
+  <div class="supastatus" id="supabaseStatus">Supabase: carregado e auto save por PC ativo</div>
+  <span class="busyHint" id="busyHint"></span>
+</div>
+<div class="sideUpdateBox topUpdateBox" id="lastUpdateBox" title="Última atualização ainda não registrada">
+  <div class="sideUpdateMain">
+    <span class="sideUpdateDot" id="lastUpdateDot"></span>
+    <span id="lastUpdateAgo">Aguardando atualização</span>
+  </div>
+  <div class="sideUpdateDate" id="lastUpdateDate">Importe ou sincronize a base</div>
+</div>
 </div>
 <div class="actions">
 <label class="filebtn">Importar Excel 902<input accept=".xls,.xlsx,.csv" hidden="" id="fileExcel" type="file"/></label>

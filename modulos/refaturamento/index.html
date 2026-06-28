@@ -19,17 +19,18 @@
 <p>Parser guiado pelos nomes dos blocos e cabeçalhos do Excel.</p>
 </div>
 <div class="menu">
-<button class="active" data-view="dashboard" data-title="Dashboard" data-desc="Visão geral">Dashboard</button>
-<button data-view="registros" data-title="Registros" data-desc="Refaturados e substitutos">Registros</button>
-<button data-view="conciliacao" data-title="Conciliação" data-desc="Conciliação de dados">Conciliação</button>
-<button data-view="motivos" data-title="Análise de Motivos" data-desc="Análise por motivos">Análise de Motivos</button>
-<button data-view="usuarios" data-title="Análise de Usuários" data-desc="Por usuário">Análise de Usuários</button>
-<button data-view="performance" data-title="Performance Usuários" data-desc="Performance">Performance Usuários</button>
-<button data-view="clientes" data-title="Análise de Clientes" data-desc="Por clientes">Análise de Clientes</button>
-<button data-view="setores" data-title="Análise por Setor" data-desc="Por setor">Análise por Setor</button>
-<button class="" data-view="anual" data-title="Análise Anual" data-desc="Análise anual">Análise Anual</button>
-<button class="" data-view="cadastro" data-title="Cadastro Manual" data-desc="Cadastro manual">Cadastro Manual</button>
-<button class="" data-view="config" data-title="Configuração" data-desc="Configurações">Configuração</button>
+<button class="active" data-view="dashboard" data-icon="🏠" data-label="Dashboard"><span>Dashboard</span></button>
+<button data-view="registros" data-icon="📋" data-label="Registros"><span>Registros</span></button>
+<button data-view="conciliacao" data-icon="🔎" data-label="Conciliação"><span>Conciliação</span></button>
+<button data-view="motivos" data-icon="🏷️" data-label="Análise de Motivos"><span>Análise de Motivos</span></button>
+<button data-view="usuarios" data-icon="👥" data-label="Análise de Usuários"><span>Análise de Usuários</span></button>
+<button data-view="performance" data-icon="📈" data-label="Performance Usuários"><span>Performance Usuários</span></button>
+<button data-view="performanceAnual" data-icon="📊" data-label="Performance Anual"><span>Performance Anual</span></button>
+<button data-view="clientes" data-icon="🏢" data-label="Análise de Clientes"><span>Análise de Clientes</span></button>
+<button data-view="setores" data-icon="🧩" data-label="Análise por Setor"><span>Análise por Setor</span></button>
+<button class="" data-view="anual" data-icon="📅" data-label="Análise Anual"><span>Análise Anual</span></button>
+<button class="" data-view="cadastro" data-icon="✍️" data-label="Cadastro Manual"><span>Cadastro Manual</span></button>
+<button class="" data-view="config" data-icon="⚙️" data-label="Configuração"><span>Configuração</span></button>
 </div>
 </aside>
 <main class="main">
@@ -242,6 +243,54 @@
 </div>
 </div>
 </section>
+
+<section class="view" id="performanceAnual">
+<div class="card" style="margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+    <div>
+      <h3>Performance Anual de Usuários</h3>
+      <div class="sub">Consolida todos os meses salvos/importados na base anual. Performance = 100 - ((erros × 100) / (CTRC + OST)).</div>
+    </div>
+    <div class="field" style="max-width:280px;min-width:220px;">
+      <label>Usuário na evolução mensal</label>
+      <select id="perfAnualUsuarioSelect"><option value="TODOS">Todos</option></select>
+    </div>
+  </div>
+</div>
+<div class="grid grid-4" id="perfAnualKpis"></div>
+<div class="grid grid-2" style="margin-top:16px;">
+  <div class="card">
+    <h3>Ranking anual de performance</h3>
+    <div class="sub">Ordenado pela melhor performance anual, considerando produção CTRC + OST e erros do faturamento.</div>
+    <div class="chart-box"><canvas id="chartPerfAnualRanking" height="300"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Impacto financeiro por usuário</h3>
+    <div class="sub">Refaturado + substituto vinculados ao faturamento no ano.</div>
+    <div class="chart-box"><canvas id="chartPerfAnualValor" height="300"></canvas></div>
+  </div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
+  <div class="card">
+    <h3>Evolução mensal</h3>
+    <div class="sub">Performance mensal do usuário selecionado.</div>
+    <div class="chart-box"><canvas id="chartPerfAnualEvolucao" height="300"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Quantidade de documentos com erro</h3>
+    <div class="sub">Soma de documentos refaturados + substitutos por usuário.</div>
+    <div class="chart-box"><canvas id="chartPerfAnualImpactoDoc" height="300"></canvas></div>
+  </div>
+</div>
+<div class="card" style="margin-top:16px;">
+  <h3>Tabela anual por usuário</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Usuário</th><th>CTRC</th><th>OST</th><th>Base CTRC+OST</th><th>Docs com erro</th><th>% Erro</th><th>Performance</th><th>Valor Ref.</th><th>Valor Sub.</th><th>Impacto</th></tr></thead>
+    <tbody id="tbodyPerfAnualUsuarios"></tbody>
+  </table></div>
+</div>
+</section>
+
 <section class="view" id="anual">
 <div class="grid grid-2">
 <div class="card">
@@ -382,23 +431,4 @@ create table if not exists manual (
 
 
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer="True" src="js/app.js"></script>
-<script>
-(function(){
-  function aplicarLabelsRefaturamento(){
-    document.querySelectorAll('.menu button').forEach(function(btn){
-      if(btn.querySelector('.hover-label')) return;
-      var label = btn.getAttribute('data-title') || btn.textContent.trim();
-      btn.setAttribute('aria-label', label);
-      var span = document.createElement('span');
-      span.className = 'hover-label';
-      span.textContent = label;
-      btn.appendChild(span);
-    });
-  }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicarLabelsRefaturamento);
-  else aplicarLabelsRefaturamento();
-})();
-</script>
-
-</body></html>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer="True" src="js/app.js"></script></body></html>
