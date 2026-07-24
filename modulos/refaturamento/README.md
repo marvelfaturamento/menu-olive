@@ -90,3 +90,9 @@ A pasta `modules` deixa o projeto pronto para mover as funções por etapas, com
 - Reconhece `NÃO IDENTIFICADO` como setor válido.
 - Exibe valores sem classificação na tabela/gráfico por setor.
 - Evita diferença entre Dashboard e Análise por Setor quando houver registro sem reduzido.
+
+## v48 - Motivo da Baixa automático
+- O texto da coluna Motivo da Baixa passou a ser a fonte principal da observação do CT-e.
+- O motivo padronizado é identificado automaticamente a partir desse texto.
+- O cadastro manual é usado somente quando a classificação automática não encontra correspondência.
+- O modal de detalhes mostra motivo identificado, origem da classificação e texto original do Motivo da Baixa.

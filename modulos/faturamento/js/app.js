@@ -263,27 +263,42 @@ function parseExcelToRows(file){
 }
 
 async function fetchRows(url, key, table, cols){
-  const endpoint =
-    `${url}/rest/v1/${table}` +
-    `?select=${encodeURIComponent(cols.join(','))}` +
-    `&limit=5000`;
+  // A API do Supabase/PostgREST normalmente limita cada resposta a 1.000
+  // registros. A paginação garante que o Faturamento leia a mesma base
+  // completa utilizada pelo módulo Refaturamento.
+  const pageSize = 1000;
+  const allRows = [];
 
-  const res = await fetch(endpoint, {
-    method: 'GET',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    },
-    cache: 'no-store'
-  });
+  for(let from = 0; ; from += pageSize){
+    const to = from + pageSize - 1;
+    const endpoint =
+      `${url}/rest/v1/${table}` +
+      `?select=${encodeURIComponent(cols.join(','))}`;
 
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Erro ${res.status} em ${table}: ${txt}`);
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Range: `${from}-${to}`,
+        Prefer: 'count=exact',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`Erro ${res.status} em ${table}: ${txt}`);
+    }
+
+    const page = await res.json();
+    allRows.push(...page);
+    if(page.length < pageSize) break;
   }
-  return await res.json();
+
+  return allRows;
 }
 
 async function loadBrutoFromSupabaseA(){
@@ -307,12 +322,24 @@ async function loadRefaturadoFromSupabaseB(){
   if(!SUPABASE_B.url || !SUPABASE_B.anonKey) throw new Error('Preencha SUPABASE_B no início do HTML.');
   const cols=[SUPABASE_B.mesCol, SUPABASE_B.anoCol, SUPABASE_B.tipoCol, SUPABASE_B.refCol, SUPABASE_B.substCol];
   const rows = await fetchRows(SUPABASE_B.url,SUPABASE_B.anonKey,SUPABASE_B.table,cols);
+
   state.refRows = rows.map(r => {
-    const tipo = String(r[SUPABASE_B.tipoCol] || '').toLowerCase();
+    const tipo = String(r[SUPABASE_B.tipoCol] || '')
+      .trim()
+      .toLowerCase();
+    const mes = Number(r[SUPABASE_B.mesCol]);
+    const ano = Number(r[SUPABASE_B.anoCol]);
+
     return {
-      monthKey: `${String(r[SUPABASE_B.anoCol]).padStart(4,'0')}-${String(r[SUPABASE_B.mesCol]).padStart(2,'0')}`,
-      setorValor: tipo.includes('setor') ? parseBR(r[SUPABASE_B.refCol]) : 0,
-      substValor: parseBR(r[SUPABASE_B.substCol])
+      monthKey: (ano > 0 && mes >= 1 && mes <= 12)
+        ? `${String(ano).padStart(4,'0')}-${String(mes).padStart(2,'0')}`
+        : '',
+      // Mesma regra do card Refaturado Total do Refaturamento:
+      // soma do débito exclusivamente dos registros de setor.
+      setorValor: tipo === 'setor' ? parseBR(r[SUPABASE_B.refCol]) : 0,
+      // Mesma regra do card Frete Substituto Total:
+      // soma exclusivamente dos registros substitutos.
+      substValor: tipo === 'substituto' ? parseBR(r[SUPABASE_B.substCol]) : 0
     };
   }).filter(r => r.monthKey);
 }

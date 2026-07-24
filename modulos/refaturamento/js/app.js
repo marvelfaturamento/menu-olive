@@ -75,10 +75,10 @@ const usuario = params.get("usuario") || "Tiago";
 const usuarioRef = params.get("usuarioRef") || "tiago.carniel";
 
 const DEFAULT_REASONS = [
-  'valor incorreto na tabela','valor incorreto','filial incorreta','CNPJ invertido','série incorreta','pagador incorreto',
+  'valor incorreto na tabela','valor incorreto','filial incorreta','CNPJ incorreto','CNPJ invertido','série incorreta','pagador incorreto',
   'observação incorreta','emissão indevida','imposto incorreto','remetente incorreto','destinatário incorreto',
   'nota fiscal indevida','nota fiscal de pallet','falta de nota fiscal','advalorem','pedágio incorreto','pis/cofins',
-  'rateio incorreto','carga de rechaço','carga cancelada','tipo de cte incorreto'
+  'rateio incorreto','carga de rechaço','carga cancelada','tipo de cte incorreto','CT-e base incorreto','valor incorreto e emissão indevida'
 ];
 
 const SUPABASE_URL = "https://bcchonskglushqbnwcni.supabase.co";
@@ -1011,18 +1011,85 @@ function clientGroup(name){
   return s || 'SEM CLIENTE';
 }
 function inferReasonFromText(text){
-  const t = normalizeText(text);
-  for(const item of state.reasons) if(t.includes(normalizeText(item))) return item;
-  if(t.includes('pallet')) return 'nota fiscal de pallet';
-  if(t.includes('pagador incorreto')) return 'pagador incorreto';
-  if(t.includes('valor incorreto')) return 'valor incorreto';
-  if(t.includes('pis/cofins') || t.includes('pis cofins')) return 'pis/cofins';
-  if(t.includes('advalorem')) return 'advalorem';
-  if(t.includes('pedagio')) return 'pedágio incorreto';
-  if(t.includes('filial')) return 'filial incorreta';
-  if(t.includes('tomador')) return 'pagador incorreto';
-  if(t.includes('nf') || t.includes('nota')) return 'nota fiscal indevida';
-  return '';
+  const original = String(text || '').trim();
+  const t = normalizeText(original);
+  if(!t) return '';
+
+  // O relatório costuma trazer primeiro a referência do documento e, no final,
+  // o erro efetivo. Ex.: "NF DE PALLET ... SUBSTITUÍDO DO CTE ... - SOMOU ICMS".
+  // Por isso, a justificativa final deve ter prioridade sobre palavras presentes
+  // apenas na descrição da nota relacionada.
+  const explicitParts = [];
+  const afterSubstituido = original.match(/substitu[ií]d[oa]\s+do\s+ct-?e[^-–—:]*[-–—:]\s*(.+)$/i);
+  if(afterSubstituido?.[1]) explicitParts.push(afterSubstituido[1]);
+
+  const separators = original.split(/\s[-–—:]\s/).map(v => v.trim()).filter(Boolean);
+  if(separators.length > 1) explicitParts.push(separators[separators.length - 1]);
+
+  function classify(value, allowDocumentContext = true){
+    const valueNorm = normalizeText(value);
+    if(!valueNorm) return '';
+
+    // Quando o texto informa dois erros, mantém a causa composta em vez de
+    // deixar a referência à NF capturar o registro como nota fiscal indevida.
+    const hasValorError = /\bvalor\b/.test(valueNorm) && /(incorret|errad|divergent)/.test(valueNorm);
+    const hasEmissionError = /emissao/.test(valueNorm) && /(incorret|errad|indevid)/.test(valueNorm);
+    if(hasValorError && hasEmissionError) return 'valor incorreto e emissão indevida';
+
+    // Regras mais específicas e conclusivas devem vir antes das referências
+    // documentais (pallet, NF etc.).
+    const priorityRules = [
+      { reason:'cliente cancelou a nota fiscal', terms:['cliente cancelou a nota','cliente cancelou nota','cliente cancelou a nf','cliente cancelou nf','cancelamento da nota pelo cliente','nota cancelada pelo cliente'] },
+      { reason:'alteração do CT-e base', terms:['alteracao do cte base','alteracao do ct-e base','alterar o cte base','alterar o ct-e base','motivo de alteracao do cte base','motivo de alteracao do ct-e base'] },
+      { reason:'falta de notas fiscais', terms:['faltou nota','faltou notas','faltaram notas','faltou 1 nota','falta de nota','falta de notas','notas faltantes','nf faltante','nfs faltantes'] },
+      { reason:'imposto incorreto', terms:['somou icms indevidamente','icms indevido','icms incorreto','icms errado','icms calculado indevidamente','imposto indevido','imposto incorreto'] },
+      { reason:'nota fiscal de pallet', terms:['nf pallet','nf de pallet','nota pallet','nota de pallet','nota fiscal de pallet','emitido com nf pallet','emitido com nf de pallet','emitido com nota de pallet','emitido com nota fiscal de pallet','nota fiscal de pallet incorreta','nf de pallet incorreta','erro nf pallet','erro nota pallet'] },
+      { reason:'nota fiscal indevida', terms:['nota incorreta','nf incorreta','nota fiscal incorreta','nota fiscal indevida','nf indevida','nota indevida','documento fiscal indevido'] },
+      { reason:'pagador incorreto', terms:['pagador incorreto','pagador errado','tomador incorreto','tomador errado','tomador divergente'] },
+      { reason:'valor incorreto na tabela', terms:['valor incorreto na tabela','valor de tabela incorreto','tabela incorreta','tarifa incorreta','valor tabela'] },
+      { reason:'peso incorreto', terms:['peso incorreto','peso divergente','peso errado'] },
+      { reason:'filial incorreta', terms:['filial incorreta','filial errada','filial divergente'] },
+      { reason:'CNPJ incorreto', terms:['cnpj incorreto','cnpj errado','cnpj divergente','cnpj invalido','cnpj inválido'] },
+      { reason:'pedágio incorreto', terms:['pedagio incorreto','pedagio errado','valor de pedagio'] },
+      { reason:'pis/cofins', terms:['pis/cofins','pis cofins','pis e cofins'] },
+      { reason:'advalorem', terms:['advalorem','ad valorem'] },
+      { reason:'CT-e base incorreto', terms:['cte base errado','ct-e base errado','cte base incorreto','ct-e base incorreto','vinculado ao cte base errado','vinculado ao ct-e base errado','vinculado ao cte errado'] },
+      { reason:'valor incorreto e emissão indevida', terms:['valor e emissao incorretos','valor e emissao incorreto','valor e emissao errados','valor e tipo de emissao incorretos'] },
+      { reason:'valor incorreto', terms:['valor incorreto','valor errado','valor divergente'] },
+      { reason:'sem preenchimento', terms:['sem preenchimento','nao preenchido','faltou preenchimento','campo em branco'] }
+    ];
+
+    for(const rule of priorityRules){
+      if(rule.terms.some(term => valueNorm.includes(normalizeText(term)))) return rule.reason;
+    }
+
+    // Só considera a palavra pallet isoladamente quando estamos analisando o
+    // texto completo e não existe uma justificativa final mais específica.
+    if(allowDocumentContext && (valueNorm.includes('pallet') || valueNorm.includes('palete'))){
+      return 'nota fiscal de pallet';
+    }
+
+    // Motivos cadastrados continuam sendo reconhecidos, mas somente após as
+    // regras conclusivas acima para não capturar uma referência incidental.
+    for(const item of (state.reasons || [])){
+      const n = normalizeText(item);
+      if(n && valueNorm.includes(n)) return item;
+    }
+
+    if(valueNorm.includes('tomador') || valueNorm.includes('pagador')) return 'pagador incorreto';
+    if(valueNorm.includes('icms') || valueNorm.includes('imposto')) return 'imposto incorreto';
+    if(valueNorm.includes('nf') || valueNorm.includes('nota fiscal')) return 'nota fiscal indevida';
+    return '';
+  }
+
+  // Primeiro lê apenas o trecho que descreve o erro efetivo.
+  for(const part of explicitParts){
+    const result = classify(part, false);
+    if(result) return result;
+  }
+
+  // Se não houver justificativa conclusiva no final, analisa o texto completo.
+  return classify(original, true);
 }
 function getManual(cte){ return state.manual[cte] || {}; }
 function saveManual(cte, payload){
@@ -1512,7 +1579,7 @@ function renderConciliationTables(){
 
 function motivoFinal(rec){
   const manual = getManual(rec.refaturado || rec.substituto);
-  return manual.reason || inferReasonFromText(rec.motivoBaixa) || 'Sem preenchimento';
+  return inferReasonFromText(rec.motivoBaixa) || manual.reason || 'Sem preenchimento';
 }
 
 function motivosAggregate(){
@@ -1756,7 +1823,7 @@ function renderManualTable(){
   const options = ['<option value="">Selecione</option>'].concat(state.reasons.map(item => `<option value="${esc(item)}">${esc(item)}</option>`)).join('');
   document.getElementById('tbodyCadastro').innerHTML = rows.length ? rows.map(r => {
     const manual = getManual(r.refaturado);
-    const motivo = manual.reason || inferReasonFromText(r.motivoBaixa);
+    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason;
     return `
       <tr>
         <td><strong>${esc(r.refaturado)}</strong></td>
@@ -1966,7 +2033,7 @@ function renderConciliationTables(){
 
 function motivoFinal(rec){
   const manual = getManual(rec.refaturado || rec.substituto);
-  return manual.reason || inferReasonFromText(rec.motivoBaixa) || 'Sem preenchimento';
+  return inferReasonFromText(rec.motivoBaixa) || manual.reason || 'Sem preenchimento';
 }
 
 function motivosAggregate(){
@@ -2217,7 +2284,7 @@ function renderManualTable(){
   const options = ['<option value="">Selecione</option>'].concat(state.reasons.map(item => `<option value="${esc(item)}">${esc(item)}</option>`)).join('');
   document.getElementById('tbodyCadastro').innerHTML = rows.length ? rows.map(r => {
     const manual = getManual(r.refaturado);
-    const motivo = manual.reason || inferReasonFromText(r.motivoBaixa);
+    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason;
     return `
       <tr>
         <td><strong>${esc(r.refaturado)}</strong></td>
@@ -2529,6 +2596,12 @@ function bindMenu(){
       if(target) target.classList.add('active');
       updateMonthConsultVisibility();
       renderCurrentView();
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const mainArea = document.querySelector('.main');
+      if(mainArea) mainArea.scrollTop = 0;
+      try { parent.postMessage({ type: 'marvel:reset-module-scroll' }, '*'); } catch (_) {}
     });
   });
 }
@@ -3376,18 +3449,26 @@ makeBarChart('chartAnnualSector', labels, totalSetorData, false, 'Valor');
 
 
 
+function getSingleResponsibleUser(record){
+  const setorUser = String(record?.userSetor || '').trim();
+  const originalUser = String(record?.operadorOriginal || '').trim();
+  const splitOne = value => String(value || '').split(/[,;|\/]+/).map(v=>v.trim()).filter(Boolean)[0] || '';
+  if(setorUser && !/[,;|\/]/.test(setorUser)) return prodNorm(setorUser);
+  if(originalUser && !/[,;|\/]/.test(originalUser)) return prodNorm(originalUser);
+  return prodNorm(splitOne(setorUser || originalUser));
+}
+
 function getUsuariosReasonDetailRows(selectedUser){
 
   const refRows = (state.refaturados || []).filter(r => {
-    const user = prodNorm(r.userSetor || r.operadorOriginal || '');
+    const user = getSingleResponsibleUser(r);
     if(!user) return false;
 
-    const setores = new Set([
-      upper(r.setorLancamento || ''),
-      ...parseReducedSectors(r.reduzido || '').map(x => upper(x))
-    ]);
+    const setores = parseReducedSectors(r.reduzido || '').map(x => upper(x));
 
-    if(!setores.has('FATURAMENTO')) return false;
+    // Regra operacional: erro de usuário só entra quando o campo REDUZIDO
+    // do próprio lançamento estiver classificado como FATURAMENTO.
+    if(!setores.includes('FATURAMENTO')) return false;
     if(selectedUser && selectedUser !== 'TODOS' && user !== selectedUser) return false;
 
     return true;
@@ -3395,17 +3476,19 @@ function getUsuariosReasonDetailRows(selectedUser){
     tipo: 'Refaturado',
     cte: String(r.refaturado || '').trim(),
     cliente: String(r.tomadorRefaturado || r.tomadorOriginal || '').trim(),
-    usuario: prodNorm(r.userSetor || r.operadorOriginal || ''),
+    usuario: getSingleResponsibleUser(r),
     motivo: motivoFinal(r) || 'Sem preenchimento',
+    observacao: String(r.motivoBaixa || '').trim(),
+    origemMotivo: inferReasonFromText(r.motivoBaixa) ? 'Identificado automaticamente' : (getManual(r.refaturado).reason ? 'Preenchimento manual' : 'Não identificado'),
     valor: Number(r.debit || r.freteRefaturado || 0),
     setor: String(r.setorLancamento || r.reduzido || '').trim() || 'FATURAMENTO'
   }));
 
   const subRows = (state.substitutos || []).filter(r => {
-    const user = prodNorm(r.userSetor || r.operadorOriginal || '');
+    const user = getSingleResponsibleUser(r);
     if(!user) return false;
 
-    const setores = parseReducedSectors(r.reduzido || r.setorLancamento || '').map(x => upper(x));
+    const setores = parseReducedSectors(r.reduzido || '').map(x => upper(x));
 
     if(!setores.includes('FATURAMENTO')) return false;
     if(selectedUser && selectedUser !== 'TODOS' && user !== selectedUser) return false;
@@ -3415,8 +3498,10 @@ function getUsuariosReasonDetailRows(selectedUser){
     tipo: 'Substituto',
     cte: String(r.substituto || '').trim(),
     cliente: String(r.tomadorSubstituto || r.tomadorOriginal || '').trim(),
-    usuario: prodNorm(r.userSetor || r.operadorOriginal || ''),
-    motivo: inferReasonFromText(r.motivoBaixa) || r.motivoBaixa || 'Sem preenchimento',
+    usuario: getSingleResponsibleUser(r),
+    motivo: motivoFinal(r) || 'Sem preenchimento',
+    observacao: String(r.motivoBaixa || '').trim(),
+    origemMotivo: inferReasonFromText(r.motivoBaixa) ? 'Identificado automaticamente' : (getManual(r.substituto).reason ? 'Preenchimento manual' : 'Não identificado'),
     valor: Number(r.freteSubstituto || 0),
     setor: String(r.reduzido || r.setorLancamento || '').trim() || 'FATURAMENTO'
   }));
@@ -3515,8 +3600,10 @@ function getSetorReasonDetailRows(selectedSetor){
         cliente: String(r.tomadorRefaturado || r.tomadorOriginal || '').trim(),
         setor,
         motivo,
+        observacao: String(r.motivoBaixa || '').trim(),
+        origemMotivo: inferReasonFromText(r.motivoBaixa) ? 'Identificado automaticamente' : (getManual(r.refaturado).reason ? 'Preenchimento manual' : 'Não identificado'),
         valor: valorPorSetor,
-        usuario: prodNorm(r.userSetor || r.operadorOriginal || '')
+        usuario: getSingleResponsibleUser(r)
       }));
   });
   rows.sort((a,b) => b.valor - a.valor || a.motivo.localeCompare(b.motivo) || a.cte.localeCompare(b.cte));
@@ -5455,3 +5542,138 @@ function __perfAnualAggregate(){
     return oldRenderPerfAnual ? oldRenderPerfAnual.apply(this, arguments) : undefined;
   };
 })();
+
+
+/* ===== DETALHES CT-ES - REVISÃO ESTÁVEL V43 ===== */
+(function(){
+  /* Mantém os cálculos e gráficos originais. Esta camada apenas acrescenta
+     detalhes, reorganiza o layout e evita que uma tela interfira na outra. */
+  const stableRenderMotivos = typeof renderMotivosView === 'function' ? renderMotivosView : null;
+  const stableRenderUsuarios = typeof renderUsuariosView === 'function' ? renderUsuariosView : null;
+  const stableRenderClientes = typeof renderClientesView === 'function' ? renderClientesView : null;
+  const stableRenderSetores = typeof renderSetoresView === 'function' ? renderSetoresView : null;
+
+  const detailStore = new Map();
+  const txt = v => String(v == null ? '' : v).trim();
+  const norm = v => txt(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+  const rowKey = r => [norm(r.cte),norm(r.motivo),norm(r.setor),Number(r.valor||0).toFixed(2)].join('|');
+
+  function singleOperator(value){
+    const parts = txt(value).split(/[,;|\/]+/).map(v=>v.trim()).filter(Boolean);
+    return parts[0] || '';
+  }
+  function resolveDetailOperator(row, original){
+    const setorUser = txt(original?.userSetor);
+    const originalUser = txt(original?.operadorOriginal);
+    // userSetor é o responsável pelo bloco de débito. Quando veio concatenado
+    // por dados antigos, usa o operador original individual em vez de exibir
+    // vários responsáveis no mesmo CT-e.
+    if(setorUser && !/[,;|\/]/.test(setorUser)) return setorUser;
+    if(originalUser && !/[,;|\/]/.test(originalUser)) return originalUser;
+    return singleOperator(row?.usuario || setorUser || originalUser);
+  }
+
+  function detailRows(){
+    let rows=[];
+    try { rows = getSetorReasonDetailRows('TODOS') || []; } catch(e) {}
+    if(!rows.length){ try { rows = getUsuariosReasonDetailRows('TODOS') || []; } catch(e) {} }
+    const seen=new Set();
+    return rows.map(r=>{
+      const cte = txt(r.cte || r.documento);
+      const original = (state.refaturados || []).find(x => txt(x.refaturado) === cte)
+        || (state.substitutos || []).find(x => txt(x.substituto) === cte);
+      const motivoBaixa = txt(r.observacao || r.motivoBaixa || original?.motivoBaixa || '');
+      const manual = getManual(cte);
+      const autoReason = inferReasonFromText(motivoBaixa);
+      return {
+        tipo: txt(r.tipo || 'CT-e'), cte, cliente:txt(r.cliente),
+        usuario:txt(resolveDetailOperator(r, original)), setor:txt(r.setor),
+        motivo:txt(autoReason || r.motivo || manual.reason || 'Sem preenchimento'),
+        origemMotivo:txt(r.origemMotivo || (autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado'))),
+        observacao:motivoBaixa,
+        valor:Number(r.valor||0)
+      };
+    }).filter(r=>{ const k=rowKey(r); if(seen.has(k)) return false; seen.add(k); return true; });
+  }
+  function setGroup(id, rows){ detailStore.set(id,(rows||[]).slice().sort((a,b)=>b.valor-a.valor)); return rows.length; }
+  function button(id,count){ return `<button type="button" class="details-btn" data-detail-id="${esc(id)}">🔎 Ver detalhes (${count})</button>`; }
+  function openDetails(id){
+    const rows=detailStore.get(id)||[], modal=document.getElementById('detailsModal'); if(!modal)return;
+    document.getElementById('detailsModalSubtitle').textContent=`${rows.length} ocorrência(s)`;
+    document.getElementById('detailsModalBody').innerHTML=rows.length?`<div class="details-list">${rows.map(r=>`<div class="detail-item"><div class="detail-top"><span class="detail-cte">${esc(r.tipo||'CT-e')} · ${esc(r.cte||'-')}</span><span class="detail-value">${fmtMoney(r.valor||0)}</span></div><div class="detail-grid"><div class="detail-field"><strong>Cliente</strong>${esc(r.cliente||'-')}</div><div class="detail-field"><strong>Usuário</strong>${esc(r.usuario||'-')}</div><div class="detail-field"><strong>Setor</strong>${esc(r.setor||'-')}</div><div class="detail-field"><strong>Motivo identificado</strong>${esc(r.motivo||'-')}</div><div class="detail-field"><strong>Origem do motivo</strong>${esc(r.origemMotivo||'-')}</div><div class="detail-field detail-observation"><strong>Motivo da baixa / observação do CT-e</strong>${esc(r.observacao||'Sem motivo da baixa informado')}</div></div></div>`).join('')}</div>`:'<div class="center muted">Sem detalhes disponíveis.</div>';
+    modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+  }
+  function closeDetails(){ const m=document.getElementById('detailsModal'); if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');} }
+
+  function addDetailsToAggregateTable(tbodyId, matcher, prefix){
+    const tbody=document.getElementById(tbodyId); if(!tbody)return;
+    const all=detailRows();
+    [...tbody.querySelectorAll('tr')].forEach((tr,i)=>{
+      const cells=tr.querySelectorAll('td'); if(!cells.length || tr.querySelector('.details-btn'))return;
+      const label=txt(cells[0].textContent); const rows=all.filter(r=>matcher(r,label));
+      const id=`${prefix}-${i}`; setGroup(id,rows);
+      const td=document.createElement('td'); td.innerHTML=button(id,rows.length); tr.appendChild(td);
+    });
+  }
+  function summarizeReasonList(tbodyId, rows, prefix){
+    const tbody=document.getElementById(tbodyId); if(!tbody)return;
+    const map=new Map();
+    rows.forEach(r=>{ const k=norm(r.motivo||'Sem preenchimento'); if(!map.has(k))map.set(k,{motivo:r.motivo||'Sem preenchimento',qty:0,value:0,rows:[]}); const x=map.get(k);x.qty++;x.value+=Number(r.valor||0);x.rows.push(r); });
+    const list=[...map.values()].sort((a,b)=>b.qty-a.qty||b.value-a.value);
+    tbody.innerHTML=list.length?list.map((x,i)=>{const id=`${prefix}-${i}`;setGroup(id,x.rows);return `<tr><td colspan="3"><strong>${esc(x.motivo)}</strong></td><td>${x.qty}</td><td>${fmtMoney(x.value)}</td><td>${button(id,x.rows.length)}</td></tr>`}).join(''):`<tr><td colspan="6" class="center muted">Sem dados</td></tr>`;
+  }
+
+  window.renderMotivosView=function(){
+    stableRenderMotivos && stableRenderMotivos.apply(this,arguments);
+    addDetailsToAggregateTable('tbodyMotivos',(r,label)=>norm(r.motivo)===norm(label),'motivo');
+  };
+  window.renderUsuariosView=function(){
+    stableRenderUsuarios && stableRenderUsuarios.apply(this,arguments);
+    addDetailsToAggregateTable('tbodyUsuarios',(r,label)=>norm(r.usuario)===norm(label),'usuario');
+    const selected=document.getElementById('usuariosReasonSelect')?.value||'TODOS';
+    let rows=detailRows().filter(r=>!r.setor||norm(r.setor)==='FATURAMENTO');
+    if(selected!=='TODOS')rows=rows.filter(r=>norm(r.usuario)===norm(selected));
+    summarizeReasonList('tbodyUsuariosMotivos',rows,'usuario-motivo');
+  };
+  window.renderClientesView=function(){
+    stableRenderClientes && stableRenderClientes.apply(this,arguments);
+    addDetailsToAggregateTable('tbodyClientes',(r,label)=>norm(clientGroup(r.cliente||''))===norm(label),'cliente');
+  };
+  window.renderSetoresView=function(){
+    stableRenderSetores && stableRenderSetores.apply(this,arguments);
+    addDetailsToAggregateTable('tbodySetores',(r,label)=>norm(r.setor)===norm(label),'setor');
+    const selected=document.getElementById('setorReasonSelect')?.value||'TODOS';
+    let rows=detailRows(); if(selected!=='TODOS')rows=rows.filter(r=>norm(r.setor)===norm(selected));
+    summarizeReasonList('tbodySetoresMotivos',rows,'setor-motivo');
+  };
+
+  function reorganizeLayouts(){
+    const users=document.getElementById('usuarios');
+    if(users){
+      const mainTable=document.getElementById('tbodyUsuarios')?.closest('.card');
+      const reasonTable=document.getElementById('tbodyUsuariosMotivos')?.closest('.table-wrap');
+      const reasonCard=document.getElementById('chartUsuarioMotivosQtd')?.closest('.card')?.parentElement?.closest('.card');
+      if(mainTable && reasonCard){ reasonCard.after(mainTable); if(reasonTable) mainTable.after(reasonTable); }
+    }
+    const sectors=document.getElementById('setores');
+    if(sectors){
+      const mainTable=document.getElementById('tbodySetores')?.closest('.card');
+      const reasonTable=document.getElementById('tbodySetoresMotivos')?.closest('.table-wrap');
+      const reasonCard=document.getElementById('chartSetorMotivosQtd')?.closest('.card')?.parentElement?.closest('.card');
+      if(mainTable && reasonCard){ reasonCard.after(mainTable); if(reasonTable) mainTable.after(reasonTable); }
+    }
+  }
+  function resetViewScroll(){
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+    document.documentElement.scrollTop=0; document.body.scrollTop=0;
+    const main=document.querySelector('.main'); if(main)main.scrollTop=0;
+    try { parent.postMessage({type:'marvel:reset-module-scroll'}, '*'); } catch (_) {}
+  }
+  document.addEventListener('click',e=>{ const b=e.target.closest('[data-detail-id]'); if(b)openDetails(b.dataset.detailId); if(e.target.closest('[data-close-details]'))closeDetails(); });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetails();});
+  document.addEventListener('DOMContentLoaded',()=>{
+    reorganizeLayouts();
+    document.querySelectorAll('.menu button[data-view]').forEach(btn=>btn.addEventListener('click',()=>requestAnimationFrame(resetViewScroll)));
+  });
+})();
+

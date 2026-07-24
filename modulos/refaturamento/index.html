@@ -102,8 +102,8 @@
 </div>
 <div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Motivos por valor</h3><div class="sub">Soma do débito vinculado ao motivo.</div><div class="chart-box"><canvas height="0" id="chartMotivosValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
-<div class="card"><h3>Tabela de motivos</h3><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>Qtd.</th><th>Valor original</th><th>Valor refaturado</th><th>Valor substituto</th><th>Débito</th></tr></thead><tbody id="tbodyMotivos"></tbody></table></div></div>
 </div>
+<div class="card" style="margin-top:16px;"><h3>Tabela de motivos</h3><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>Qtd.</th><th>Valor original</th><th>Valor refaturado</th><th>Valor substituto</th><th>Débito</th><th>Detalhes</th></tr></thead><tbody id="tbodyMotivos"></tbody></table></div></div>
 </section>
 <section class="view" id="usuarios"><div class="card" style="margin-bottom: 16px;">
 <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
@@ -122,7 +122,7 @@
 </div>
 <div class="card" style="margin-top:16px;">
 <h3>Tabela de usuários</h3>
-<div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Qtd Ref</th><th>Qtd Sub</th><th>Qtd Total</th><th>Valor Ref</th><th>Valor Sub</th><th>Impacto</th></tr></thead><tbody id="tbodyUsuarios"></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Qtd Ref</th><th>Qtd Sub</th><th>Qtd Total</th><th>Valor Ref</th><th>Valor Sub</th><th>Impacto</th><th>Detalhes</th></tr></thead><tbody id="tbodyUsuarios"></tbody></table></div>
 </div>
 <div class="card" style="margin-top:16px;">
 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
@@ -160,8 +160,8 @@
 </div>
 <div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Cliente x principal motivo</h3><div class="chart-box"><canvas height="0" id="chartClienteMotivo" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
-<div class="card"><h3>Tabela de clientes</h3><div class="table-wrap"><table><thead><tr><th>Cliente agrupado</th><th>Qtd.</th><th>Valor refaturado</th><th>Principal motivo</th></tr></thead><tbody id="tbodyClientes"></tbody></table></div></div>
 </div>
+<div class="card" style="margin-top:16px;"><h3>Tabela de clientes</h3><div class="table-wrap"><table><thead><tr><th>Cliente agrupado</th><th>Qtd.</th><th>Valor refaturado</th><th>Principal motivo</th><th>Detalhes</th></tr></thead><tbody id="tbodyClientes"></tbody></table></div></div>
 </section>
 <section class="view" id="setores">
 <div class="grid grid-2">
@@ -170,8 +170,8 @@
 </div>
 <div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Setor x valor total</h3><div class="sub">Refaturado + substituto por setor.</div><div class="chart-box"><canvas height="0" id="chartSetorTotal" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
-<div class="card"><h3>Tabela por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th></tr></thead><tbody id="tbodySetores"></tbody></table></div></div>
 </div>
+<div class="card" style="margin-top:16px;"><h3>Tabela por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th><th>Detalhes</th></tr></thead><tbody id="tbodySetores"></tbody></table></div></div>
 <div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Quantitativo refaturado por setor</h3><div class="sub">Total de linhas refaturadas por setor.</div><div class="chart-box"><canvas height="0" id="chartRefQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 <div class="card"><h3>Quantitativo substituto por setor</h3><div class="sub">Total de linhas substitutas por setor.</div><div class="chart-box"><canvas height="0" id="chartSubQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
@@ -431,4 +431,12 @@ create table if not exists manual (
 
 
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer="True" src="js/app.js"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer="True" src="js/app.js"></script>
+<div id="detailsModal" class="details-modal" aria-hidden="true">
+  <div class="details-modal-backdrop" data-close-details></div>
+  <div class="details-modal-panel" role="dialog" aria-modal="true" aria-labelledby="detailsModalTitle">
+    <div class="details-modal-head"><div><h3 id="detailsModalTitle">Detalhes dos CT-es</h3><div id="detailsModalSubtitle" class="sub"></div></div><button type="button" class="details-close" data-close-details>×</button></div>
+    <div id="detailsModalBody" class="details-modal-body"></div>
+  </div>
+</div>
+</body></html>

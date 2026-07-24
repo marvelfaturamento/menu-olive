@@ -59,3 +59,15 @@
     @media (max-width:1200px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media (max-width:860px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;width:auto;border-right:none;border-bottom:1px solid var(--stroke);overflow:auto}.sidebar:hover{width:auto}.brand h1,.menu button span{opacity:1;transform:none}.controls{grid-template-columns:1fr}.grid-4{grid-template-columns:1fr}}
   
+/* Detalhamento de CT-es */
+.details-btn{white-space:nowrap;padding:7px 11px;border:1px solid #3972c9;border-radius:8px;background:#102546;color:#fff;font-weight:700;cursor:pointer}.details-btn:hover{background:#17345e}.details-modal{position:fixed;inset:0;display:none;z-index:9999}.details-modal.open{display:block}.details-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.68);backdrop-filter:blur(3px)}.details-modal-panel{position:relative;width:min(1120px,94vw);max-height:88vh;margin:6vh auto;background:#0b172b;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.5);overflow:hidden}.details-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.09)}.details-close{border:0;background:transparent;color:#fff;font-size:30px;line-height:1;cursor:pointer}.details-modal-body{padding:16px 20px 22px;overflow:auto;max-height:72vh}.details-list{display:grid;gap:12px}.detail-item{border:1px solid rgba(255,255,255,.08);background:#0f1d34;border-radius:12px;padding:13px}.detail-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}.detail-cte{font-weight:800;color:#fff}.detail-value{font-weight:800;color:#79b4ff}.detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px}.detail-field{font-size:13px;color:#b9c9df}.detail-field strong{display:block;color:#7f96b8;font-size:11px;text-transform:uppercase;margin-bottom:3px}.detail-observation{grid-column:1/-1;background:rgba(255,255,255,.035);border-radius:8px;padding:9px}.full-width-card{width:100%}@media(max-width:800px){.detail-grid{grid-template-columns:1fr}.details-modal-panel{margin:3vh auto;max-height:94vh}.details-modal-body{max-height:80vh}}
+
+/* v43: gráficos primeiro, listas depois */
+#usuarios > .table-wrap, #setores > .table-wrap{margin-top:16px}
+#usuarios .table-wrap, #setores .table-wrap{width:100%}
+
+
+/* v44: evita salto vertical ao trocar de aba dentro do iframe */
+html, body { height:auto; min-height:100%; scroll-behavior:auto !important; overflow-anchor:none; }
+.main, .view, canvas { overflow-anchor:none; }
+.view.active { animation:none !important; }
