@@ -1584,37 +1584,69 @@ function motivoFinal(rec){
 
 function motivosAggregate(){
   const map = new Map();
-  for(const r of state.refaturados){
-    const motivo = motivoFinal(r);
-    if(!map.has(motivo)) map.set(motivo, { motivo, qtd:0, original:0, ref:0, sub:0, debito:0 });
-    const item = map.get(motivo);
-    item.qtd += 1;
-    item.original += Number(r.freteOriginal || 0);
+  const ensure = motivo => {
+    const key = String(motivo || 'Sem preenchimento').trim() || 'Sem preenchimento';
+    if(!map.has(key)) map.set(key, {
+      motivo:key,
+      qtdRef:0,
+      qtdSub:0,
+      qtd:0,
+      ref:0,
+      sub:0,
+      impacto:0
+    });
+    return map.get(key);
+  };
+
+  for(const r of (state.refaturados || [])){
+    const item = ensure(motivoFinal(r));
+    item.qtdRef += 1;
     item.ref += Number(r.freteRefaturado || 0);
-    item.debito += Number(r.debit || r.freteRefaturado || 0);
   }
-  for(const s of state.substitutos){
-    const motivo = inferReasonFromText(s.motivoBaixa) || 'Sem preenchimento';
-    if(!map.has(motivo)) map.set(motivo, { motivo, qtd:0, original:0, ref:0, sub:0, debito:0 });
-    map.get(motivo).sub += Number(s.freteSubstituto || 0);
+
+  for(const r of (state.substitutos || [])){
+    const manual = getManual(r.substituto || r.cte || r.documento);
+    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason || 'Sem preenchimento';
+    const item = ensure(motivo);
+    item.qtdSub += 1;
+    item.sub += Number(r.freteSubstituto || 0);
   }
-  return Array.from(map.values()).sort((a,b)=>b.debito-a.debito);
+
+  for(const item of map.values()){
+    item.qtd = item.qtdRef + item.qtdSub;
+    item.impacto = item.ref + item.sub;
+  }
+
+  return Array.from(map.values()).sort((a,b)=>
+    b.impacto-a.impacto || b.qtd-a.qtd || a.motivo.localeCompare(b.motivo,'pt-BR')
+  );
 }
 
 function renderMotivosView(){
   const motivos = motivosAggregate();
-  const totalRefaturado = state.setores.reduce((s,x)=>s+Number(x.debit||0),0);
+  const totalRefaturado = motivos.reduce((s,x)=>s+x.ref,0);
   const totalSubstituto = motivos.reduce((s,x)=>s+x.sub,0);
+
   makeBarChart('chartOriginalRefSubs',
     ['Total','Refaturado','Substituto'],
     [totalRefaturado + totalSubstituto, totalRefaturado, totalSubstituto]
   );
-  makeBarChart('chartMotivosQtd', motivos.slice(0,10).map(x=>x.motivo), motivos.slice(0,10).map(x=>x.qtd), true, 'Quantidade');
-  makeBarChart('chartMotivosValor', motivos.slice(0,10).map(x=>x.motivo), motivos.slice(0,10).map(x=>x.debito), true, 'Valor');
+
+  const porQtd = motivos.slice().sort((a,b)=>b.qtd-a.qtd || b.impacto-a.impacto);
+  const porValor = motivos.slice().sort((a,b)=>b.impacto-a.impacto || b.qtd-a.qtd);
+  makeBarChart('chartMotivosQtd', porQtd.slice(0,10).map(x=>x.motivo), porQtd.slice(0,10).map(x=>x.qtd), true, 'Quantidade');
+  makeBarChart('chartMotivosValor', porValor.slice(0,10).map(x=>x.motivo), porValor.slice(0,10).map(x=>x.impacto), true, 'Impacto total');
 
   document.getElementById('tbodyMotivos').innerHTML = motivos.length
-    ? motivos.map(x => `<tr><td>${esc(x.motivo)}</td><td>${x.qtd}</td><td>${fmtMoney(x.original)}</td><td>${fmtMoney(x.ref)}</td><td>${fmtMoney(x.sub)}</td><td>${fmtMoney(x.debito)}</td></tr>`).join('')
-    : `<tr><td colspan="6" class="center muted">Sem dados</td></tr>`;
+    ? motivos.map(x => `<tr>
+        <td>${esc(x.motivo)}</td>
+        <td>${x.qtdRef}</td>
+        <td>${fmtMoney(x.ref)}</td>
+        <td>${x.qtdSub}</td>
+        <td>${fmtMoney(x.sub)}</td>
+        <td>${fmtMoney(x.impacto)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="7" class="center muted">Sem dados</td></tr>`;
 }
 
 
@@ -2061,37 +2093,69 @@ function motivoFinal(rec){
 
 function motivosAggregate(){
   const map = new Map();
-  for(const r of state.refaturados){
-    const motivo = motivoFinal(r);
-    if(!map.has(motivo)) map.set(motivo, { motivo, qtd:0, original:0, ref:0, sub:0, debito:0 });
-    const item = map.get(motivo);
-    item.qtd += 1;
-    item.original += Number(r.freteOriginal || 0);
+  const ensure = motivo => {
+    const key = String(motivo || 'Sem preenchimento').trim() || 'Sem preenchimento';
+    if(!map.has(key)) map.set(key, {
+      motivo:key,
+      qtdRef:0,
+      qtdSub:0,
+      qtd:0,
+      ref:0,
+      sub:0,
+      impacto:0
+    });
+    return map.get(key);
+  };
+
+  for(const r of (state.refaturados || [])){
+    const item = ensure(motivoFinal(r));
+    item.qtdRef += 1;
     item.ref += Number(r.freteRefaturado || 0);
-    item.debito += Number(r.debit || r.freteRefaturado || 0);
   }
-  for(const s of state.substitutos){
-    const motivo = inferReasonFromText(s.motivoBaixa) || 'Sem preenchimento';
-    if(!map.has(motivo)) map.set(motivo, { motivo, qtd:0, original:0, ref:0, sub:0, debito:0 });
-    map.get(motivo).sub += Number(s.freteSubstituto || 0);
+
+  for(const r of (state.substitutos || [])){
+    const manual = getManual(r.substituto || r.cte || r.documento);
+    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason || 'Sem preenchimento';
+    const item = ensure(motivo);
+    item.qtdSub += 1;
+    item.sub += Number(r.freteSubstituto || 0);
   }
-  return Array.from(map.values()).sort((a,b)=>b.debito-a.debito);
+
+  for(const item of map.values()){
+    item.qtd = item.qtdRef + item.qtdSub;
+    item.impacto = item.ref + item.sub;
+  }
+
+  return Array.from(map.values()).sort((a,b)=>
+    b.impacto-a.impacto || b.qtd-a.qtd || a.motivo.localeCompare(b.motivo,'pt-BR')
+  );
 }
 
 function renderMotivosView(){
   const motivos = motivosAggregate();
-  const totalRefaturado = state.setores.reduce((s,x)=>s+Number(x.debit||0),0);
+  const totalRefaturado = motivos.reduce((s,x)=>s+x.ref,0);
   const totalSubstituto = motivos.reduce((s,x)=>s+x.sub,0);
+
   makeBarChart('chartOriginalRefSubs',
     ['Total','Refaturado','Substituto'],
     [totalRefaturado + totalSubstituto, totalRefaturado, totalSubstituto]
   );
-  makeBarChart('chartMotivosQtd', motivos.slice(0,10).map(x=>x.motivo), motivos.slice(0,10).map(x=>x.qtd), true, 'Quantidade');
-  makeBarChart('chartMotivosValor', motivos.slice(0,10).map(x=>x.motivo), motivos.slice(0,10).map(x=>x.debito), true, 'Valor');
+
+  const porQtd = motivos.slice().sort((a,b)=>b.qtd-a.qtd || b.impacto-a.impacto);
+  const porValor = motivos.slice().sort((a,b)=>b.impacto-a.impacto || b.qtd-a.qtd);
+  makeBarChart('chartMotivosQtd', porQtd.slice(0,10).map(x=>x.motivo), porQtd.slice(0,10).map(x=>x.qtd), true, 'Quantidade');
+  makeBarChart('chartMotivosValor', porValor.slice(0,10).map(x=>x.motivo), porValor.slice(0,10).map(x=>x.impacto), true, 'Impacto total');
 
   document.getElementById('tbodyMotivos').innerHTML = motivos.length
-    ? motivos.map(x => `<tr><td>${esc(x.motivo)}</td><td>${x.qtd}</td><td>${fmtMoney(x.original)}</td><td>${fmtMoney(x.ref)}</td><td>${fmtMoney(x.sub)}</td><td>${fmtMoney(x.debito)}</td></tr>`).join('')
-    : `<tr><td colspan="6" class="center muted">Sem dados</td></tr>`;
+    ? motivos.map(x => `<tr>
+        <td>${esc(x.motivo)}</td>
+        <td>${x.qtdRef}</td>
+        <td>${fmtMoney(x.ref)}</td>
+        <td>${x.qtdSub}</td>
+        <td>${fmtMoney(x.sub)}</td>
+        <td>${fmtMoney(x.impacto)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="7" class="center muted">Sem dados</td></tr>`;
 }
 
 
@@ -5669,9 +5733,73 @@ function __perfAnualAggregate(){
     tbody.innerHTML=list.length?list.map((x,i)=>{const id=`${prefix}-${i}`;setGroup(id,x.rows);return `<tr><td colspan="3"><strong>${esc(x.motivo)}</strong></td><td>${x.qty}</td><td>${fmtMoney(x.value)}</td><td>${button(id,x.rows.length)}</td></tr>`}).join(''):`<tr><td colspan="6" class="center muted">Sem dados</td></tr>`;
   }
 
+  function motivosDetailRowsExact(){
+    const rows = [];
+
+    (state.refaturados || []).forEach(r => {
+      const cte = txt(r.refaturado || r.cte || r.documento);
+      const motivoBaixa = txt(r.motivoBaixa || '');
+      const manual = getManual(cte);
+      const autoReason = inferReasonFromText(motivoBaixa);
+      rows.push({
+        tipo:'Refaturado',
+        cte,
+        cliente:txt(r.tomadorRefaturado || r.tomadorOriginal || r.cliente),
+        usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
+        setor:txt(r.reduzido || r.setorLancamento || '-'),
+        motivo:txt(autoReason || manual.reason || 'Sem preenchimento'),
+        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        observacao:motivoBaixa,
+        valor:Number(r.freteRefaturado || 0)
+      });
+    });
+
+    (state.substitutos || []).forEach(r => {
+      const cte = txt(r.substituto || r.cte || r.documento);
+      const motivoBaixa = txt(r.motivoBaixa || '');
+      const manual = getManual(cte);
+      const autoReason = inferReasonFromText(motivoBaixa);
+      rows.push({
+        tipo:'Substituto',
+        cte,
+        cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
+        usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
+        setor:txt(r.reduzido || r.setorLancamento || '-'),
+        motivo:txt(autoReason || manual.reason || 'Sem preenchimento'),
+        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        observacao:motivoBaixa,
+        valor:Number(r.freteSubstituto || 0)
+      });
+    });
+
+    return rows;
+  }
+
+  function addExactMotivoDetails(){
+    const tbody=document.getElementById('tbodyMotivos');
+    if(!tbody)return;
+    const allRows=motivosDetailRowsExact();
+    [...tbody.querySelectorAll('tr')].forEach((tr,i)=>{
+      const cells=tr.querySelectorAll('td');
+      if(cells.length < 6)return;
+      const motivo=txt(cells[0].textContent);
+      const rows=allRows.filter(r=>norm(r.motivo)===norm(motivo));
+      const refCount=rows.filter(r=>r.tipo==='Refaturado').length;
+      const subCount=rows.filter(r=>r.tipo==='Substituto').length;
+      // Quantidades e detalhes saem da mesma coleção.
+      cells[1].textContent=String(refCount);
+      cells[3].textContent=String(subCount);
+      const id=`motivo-exato-${i}`;
+      setGroup(id,rows);
+      const td=document.createElement('td');
+      td.innerHTML=`<button type="button" class="details-btn" data-detail-id="${esc(id)}">🔎 Ver detalhes (${refCount} ref. / ${subCount} sub.)</button>`;
+      tr.appendChild(td);
+    });
+  }
+
   window.renderMotivosView=function(){
     stableRenderMotivos && stableRenderMotivos.apply(this,arguments);
-    addDetailsToAggregateTable('tbodyMotivos',(r,label)=>norm(r.motivo)===norm(label),'motivo');
+    addExactMotivoDetails();
   };
   function usuariosDetailRowsExact(){
     // A tabela de usuários é calculada por getUsuariosReasonDetailRows().

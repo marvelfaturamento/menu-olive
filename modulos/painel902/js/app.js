@@ -1404,3 +1404,66 @@ async function initApp(){
   }
 }
 initApp();
+
+
+
+/* =========================================================
+   PATCH v56.3 - ACL estável do perfil consulta no Painel 902
+   Sem MutationObserver para evitar travamento por loop.
+   ========================================================= */
+(function aplicarAclEstavel902(){
+  const params = new URLSearchParams(window.location.search);
+  const perfilAcl = String(params.get('perfil') || '').trim().toLowerCase();
+  const proibidas = new Set();
+  if(perfilAcl === 'consulta' || params.get('bloquearConfig') === 'true') proibidas.add('config');
+  if(perfilAcl === 'consulta' || params.get('bloquearFinalizados') === 'true') proibidas.add('finalizados');
+  if(!proibidas.size) return;
+
+  const seletores = [];
+  proibidas.forEach(tab => {
+    seletores.push(`[data-tab="${tab}"]`, `[data-open="${tab}"]`, `#tab-${tab}`);
+  });
+  const style = document.createElement('style');
+  style.id = 'acl-consulta-902';
+  style.textContent = seletores.join(',') + '{display:none !important;}';
+  document.head.appendChild(style);
+
+  const proibida = tab => proibidas.has(String(tab || '').trim().toLowerCase());
+  function garantirAbaPermitida(){
+    const visivel = [...document.querySelectorAll('.tab')].find(el => !el.classList.contains('hidden'));
+    const atual = String(visivel?.id || '').replace(/^tab-/, '').toLowerCase();
+    if(!visivel || proibida(atual)){
+      const destino = document.getElementById('tab-ativo') ? 'ativo' : 'aduana';
+      originalOpenTab(destino);
+    }
+  }
+
+  const originalOpenTab = window.openTab || (typeof openTab === 'function' ? openTab : null);
+  if(typeof originalOpenTab === 'function'){
+    const seguro = function(tab){
+      if(proibida(tab)){
+        garantirAbaPermitida();
+        return false;
+      }
+      return originalOpenTab.apply(this, arguments);
+    };
+    window.openTab = seguro;
+    try{ openTab = seguro; }catch(_e){}
+  }
+
+  document.addEventListener('click', function(e){
+    const alvo = e.target.closest('[data-tab], [data-open]');
+    if(!alvo) return;
+    const tab = alvo.dataset.tab || alvo.dataset.open;
+    if(!proibida(tab)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    garantirAbaPermitida();
+  }, true);
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', garantirAbaPermitida, {once:true});
+  }else{
+    garantirAbaPermitida();
+  }
+})();

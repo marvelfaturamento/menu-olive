@@ -1397,3 +1397,60 @@ if(!window.__renderAllOriginalV12 && typeof renderAll === 'function'){
   renderValoresReaisV11?.();
   try{ renderAll(); }catch(e){}
 })();
+
+
+
+/* =========================================================
+   PATCH v56.3 - ACL estável do perfil consulta
+   Sem MutationObserver para evitar travamento por loop.
+   ========================================================= */
+(function aplicarAclEstavelFaturamento(){
+  const params = new URLSearchParams(window.location.search);
+  const perfilAcl = String(params.get('perfil') || '').trim().toLowerCase();
+  const bloquear = perfilAcl === 'consulta' || params.get('bloquearConfig') === 'true';
+  if(!bloquear) return;
+
+  const style = document.createElement('style');
+  style.id = 'acl-consulta-faturamento';
+  style.textContent = '[data-page="config"], #config { display:none !important; }';
+  document.head.appendChild(style);
+
+  function garantirPaginaPermitida(){
+    const config = document.getElementById('config');
+    if(config) config.classList.remove('active');
+    const ativa = document.querySelector('.page.active');
+    if(!ativa || ativa.id === 'config'){
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('[data-page]').forEach(b => b.classList.remove('active'));
+      document.getElementById('dashboard')?.classList.add('active');
+      document.querySelector('[data-page="dashboard"]')?.classList.add('active');
+    }
+  }
+
+  document.addEventListener('click', function(e){
+    const alvo = e.target.closest('[data-page="config"]');
+    if(!alvo) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    garantirPaginaPermitida();
+  }, true);
+
+  const original = window.openPage || (typeof openPage === 'function' ? openPage : null);
+  if(typeof original === 'function'){
+    const seguro = function(pageId){
+      if(String(pageId || '').toLowerCase() === 'config'){
+        garantirPaginaPermitida();
+        return false;
+      }
+      return original.apply(this, arguments);
+    };
+    window.openPage = seguro;
+    try{ openPage = seguro; }catch(_e){}
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', garantirPaginaPermitida, {once:true});
+  }else{
+    garantirPaginaPermitida();
+  }
+})();
