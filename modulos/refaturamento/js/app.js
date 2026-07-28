@@ -1819,19 +1819,42 @@ function renderSetoresView(){
 }
 
 function renderManualTable(){
-  const rows = state.refaturados;
-  const options = ['<option value="">Selecione</option>'].concat(state.reasons.map(item => `<option value="${esc(item)}">${esc(item)}</option>`)).join('');
+  // Casos que o robô não identificou ficam no topo. Os demais continuam visíveis
+  // já com motivo e texto de Motivo da Baixa espelhados para conferência.
+  const rows = [...state.refaturados].sort((a,b) => {
+    const aAuto = Boolean(inferReasonFromText(a.motivoBaixa));
+    const bAuto = Boolean(inferReasonFromText(b.motivoBaixa));
+    return Number(aAuto) - Number(bAuto);
+  });
+
   document.getElementById('tbodyCadastro').innerHTML = rows.length ? rows.map(r => {
     const manual = getManual(r.refaturado);
-    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason;
+    const motivoAutomatico = inferReasonFromText(r.motivoBaixa);
+    const motivo = manual.reason || motivoAutomatico || '';
+    const detalhamento = manual.detail || r.motivoBaixa || '';
+
+    // Garante que uma classificação automática nova apareça no select mesmo
+    // quando ainda não estiver cadastrada na lista fixa de motivos.
+    const motivosDisponiveis = Array.from(new Set([
+      ...state.reasons,
+      ...(motivo ? [motivo] : [])
+    ]));
+    const options = ['<option value="">Selecione</option>']
+      .concat(motivosDisponiveis.map(item => `<option value="${esc(item)}" ${item === motivo ? 'selected' : ''}>${esc(item)}</option>`))
+      .join('');
+
+    const statusLeitura = motivoAutomatico
+      ? '<span class="tag good">Robô identificou</span>'
+      : '<span class="tag warn">Preencher manualmente</span>';
+
     return `
       <tr>
-        <td><strong>${esc(r.refaturado)}</strong></td>
+        <td><strong>${esc(r.refaturado)}</strong><div style="margin-top:5px">${statusLeitura}</div></td>
         <td>${esc(r.tomadorRefaturado || '-')}</td>
         <td>${displayDate(r.dataRefaturado)}</td>
         <td><input type="date" class="manual-input" data-cte="${esc(r.refaturado)}" data-field="requestDate" value="${esc(toInputDate(manual.requestDate || ''))}"></td>
-        <td><select class="manual-input" data-cte="${esc(r.refaturado)}" data-field="reason">${options.replace(`value="${esc(motivo)}"`,`value="${esc(motivo)}" selected`)}</select></td>
-        <td><input class="manual-input" data-cte="${esc(r.refaturado)}" data-field="detail" value="${esc(manual.detail || '')}" placeholder="Detalhar"></td>
+        <td><select class="manual-input" data-cte="${esc(r.refaturado)}" data-field="reason">${options}</select></td>
+        <td><input class="manual-input" data-cte="${esc(r.refaturado)}" data-field="detail" value="${esc(detalhamento)}" placeholder="Motivo da Baixa / detalhamento"></td>
         <td><select class="manual-input" data-cte="${esc(r.refaturado)}" data-field="audit"><option value="nao" ${manual.audit === 'nao' || !manual.audit ? 'selected' : ''}>Não</option><option value="sim" ${manual.audit === 'sim' ? 'selected' : ''}>Sim</option></select></td>
         <td><button class="btn small btn-save-manual" data-cte="${esc(r.refaturado)}">Salvar</button></td>
       </tr>
@@ -2280,19 +2303,42 @@ function renderSetoresView(){
 }
 
 function renderManualTable(){
-  const rows = state.refaturados;
-  const options = ['<option value="">Selecione</option>'].concat(state.reasons.map(item => `<option value="${esc(item)}">${esc(item)}</option>`)).join('');
+  // Casos que o robô não identificou ficam no topo. Os demais continuam visíveis
+  // já com motivo e texto de Motivo da Baixa espelhados para conferência.
+  const rows = [...state.refaturados].sort((a,b) => {
+    const aAuto = Boolean(inferReasonFromText(a.motivoBaixa));
+    const bAuto = Boolean(inferReasonFromText(b.motivoBaixa));
+    return Number(aAuto) - Number(bAuto);
+  });
+
   document.getElementById('tbodyCadastro').innerHTML = rows.length ? rows.map(r => {
     const manual = getManual(r.refaturado);
-    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason;
+    const motivoAutomatico = inferReasonFromText(r.motivoBaixa);
+    const motivo = manual.reason || motivoAutomatico || '';
+    const detalhamento = manual.detail || r.motivoBaixa || '';
+
+    // Garante que uma classificação automática nova apareça no select mesmo
+    // quando ainda não estiver cadastrada na lista fixa de motivos.
+    const motivosDisponiveis = Array.from(new Set([
+      ...state.reasons,
+      ...(motivo ? [motivo] : [])
+    ]));
+    const options = ['<option value="">Selecione</option>']
+      .concat(motivosDisponiveis.map(item => `<option value="${esc(item)}" ${item === motivo ? 'selected' : ''}>${esc(item)}</option>`))
+      .join('');
+
+    const statusLeitura = motivoAutomatico
+      ? '<span class="tag good">Robô identificou</span>'
+      : '<span class="tag warn">Preencher manualmente</span>';
+
     return `
       <tr>
-        <td><strong>${esc(r.refaturado)}</strong></td>
+        <td><strong>${esc(r.refaturado)}</strong><div style="margin-top:5px">${statusLeitura}</div></td>
         <td>${esc(r.tomadorRefaturado || '-')}</td>
         <td>${displayDate(r.dataRefaturado)}</td>
         <td><input type="date" class="manual-input" data-cte="${esc(r.refaturado)}" data-field="requestDate" value="${esc(toInputDate(manual.requestDate || ''))}"></td>
-        <td><select class="manual-input" data-cte="${esc(r.refaturado)}" data-field="reason">${options.replace(`value="${esc(motivo)}"`,`value="${esc(motivo)}" selected`)}</select></td>
-        <td><input class="manual-input" data-cte="${esc(r.refaturado)}" data-field="detail" value="${esc(manual.detail || '')}" placeholder="Detalhar"></td>
+        <td><select class="manual-input" data-cte="${esc(r.refaturado)}" data-field="reason">${options}</select></td>
+        <td><input class="manual-input" data-cte="${esc(r.refaturado)}" data-field="detail" value="${esc(detalhamento)}" placeholder="Motivo da Baixa / detalhamento"></td>
         <td><select class="manual-input" data-cte="${esc(r.refaturado)}" data-field="audit"><option value="nao" ${manual.audit === 'nao' || !manual.audit ? 'selected' : ''}>Não</option><option value="sim" ${manual.audit === 'sim' ? 'selected' : ''}>Sim</option></select></td>
         <td><button class="btn small btn-save-manual" data-cte="${esc(r.refaturado)}">Salvar</button></td>
       </tr>
@@ -5627,11 +5673,47 @@ function __perfAnualAggregate(){
     stableRenderMotivos && stableRenderMotivos.apply(this,arguments);
     addDetailsToAggregateTable('tbodyMotivos',(r,label)=>norm(r.motivo)===norm(label),'motivo');
   };
+  function usuariosDetailRowsExact(){
+    // A tabela de usuários é calculada por getUsuariosReasonDetailRows().
+    // Os detalhes devem obrigatoriamente usar a mesma coleção para que
+    // refaturados e substitutos apareçam juntos e as quantidades coincidam.
+    return (getUsuariosReasonDetailRows('TODOS') || []).map(r => ({
+      tipo: txt(r.tipo || 'CT-e'),
+      cte: txt(r.cte || r.documento),
+      cliente: txt(r.cliente),
+      usuario: txt(r.usuario),
+      setor: txt(r.setor || 'FATURAMENTO'),
+      motivo: txt(r.motivo || 'Sem preenchimento'),
+      origemMotivo: txt(r.origemMotivo || 'Não identificado'),
+      observacao: txt(r.observacao || r.motivoBaixa),
+      valor: Number(r.valor || 0)
+    }));
+  }
+
+  function addExactUserDetails(rows){
+    const tbody=document.getElementById('tbodyUsuarios');
+    if(!tbody)return;
+    [...tbody.querySelectorAll('tr')].forEach((tr,i)=>{
+      const cells=tr.querySelectorAll('td');
+      if(!cells.length)return;
+      const usuario=txt(cells[0].textContent);
+      const userRows=rows.filter(r=>norm(r.usuario)===norm(usuario));
+      const refCount=userRows.filter(r=>norm(r.tipo).includes('REFATURADO')).length;
+      const subCount=userRows.filter(r=>norm(r.tipo).includes('SUBSTITUTO')).length;
+      const id=`usuario-exato-${i}`;
+      setGroup(id,userRows);
+      const td=document.createElement('td');
+      td.innerHTML=`<button type="button" class="details-btn" data-detail-id="${esc(id)}">🔎 Ver detalhes (${refCount} ref. / ${subCount} sub.)</button>`;
+      tr.appendChild(td);
+    });
+  }
+
   window.renderUsuariosView=function(){
     stableRenderUsuarios && stableRenderUsuarios.apply(this,arguments);
-    addDetailsToAggregateTable('tbodyUsuarios',(r,label)=>norm(r.usuario)===norm(label),'usuario');
+    const allRows=usuariosDetailRowsExact();
+    addExactUserDetails(allRows);
     const selected=document.getElementById('usuariosReasonSelect')?.value||'TODOS';
-    let rows=detailRows().filter(r=>!r.setor||norm(r.setor)==='FATURAMENTO');
+    let rows=allRows;
     if(selected!=='TODOS')rows=rows.filter(r=>norm(r.usuario)===norm(selected));
     summarizeReasonList('tbodyUsuariosMotivos',rows,'usuario-motivo');
   };
@@ -5639,9 +5721,85 @@ function __perfAnualAggregate(){
     stableRenderClientes && stableRenderClientes.apply(this,arguments);
     addDetailsToAggregateTable('tbodyClientes',(r,label)=>norm(clientGroup(r.cliente||''))===norm(label),'cliente');
   };
+  function sectorTableDetailRows(setorLabel){
+    const setorNorm = norm(setorLabel);
+    const result = [];
+
+    // Refaturados: usa exatamente as mesmas linhas de state.setores que formam
+    // Qtd. refaturados e Valor refaturado na tabela. Assim nenhuma linha some
+    // do modal por deduplicação ou por falta de vínculo perfeito com o CT-e.
+    (state.setores || []).filter(s => norm(s.setor) === setorNorm).forEach((s, idx) => {
+      const docs = Array.isArray(s.documentos) ? s.documentos.map(txt).filter(Boolean) : [];
+      const match = (state.refaturados || []).find(r => {
+        const tail = txt(r.originalTail).replace(/^0+/, '');
+        const cte = txt(r.refaturado).replace(/^0+/, '');
+        return docs.some(d => {
+          const dn = txt(d).replace(/^0+/, '');
+          return dn && (dn === tail || dn === cte || dn.endsWith(tail) || tail.endsWith(dn));
+        });
+      });
+      const cte = txt(match?.refaturado) || docs.join(', ') || txt(s.docto) || `Linha ${idx+1}`;
+      const motivoBaixa = txt(match?.motivoBaixa || '');
+      const manual = getManual(cte);
+      const autoReason = inferReasonFromText(motivoBaixa);
+      result.push({
+        tipo:'Refaturado', cte,
+        cliente:txt(match?.tomadorRefaturado || match?.tomadorOriginal || s.cliente),
+        usuario:txt(resolveDetailOperator({usuario:s.usuario}, match) || s.usuario),
+        setor:txt(s.setor),
+        motivo:txt(autoReason || motivoFinal(match || {}) || manual.reason || 'Sem preenchimento'),
+        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        observacao:motivoBaixa,
+        valor:Number(s.debit || 0)
+      });
+    });
+
+    // Substitutos: usa a mesma regra de setoresAggregate(), inclusive o rateio
+    // quando o reduzido contém mais de um setor.
+    (state.substitutos || []).forEach(r => {
+      const parts = parseReducedSectors(r.reduzido || '').map(norm).filter(Boolean);
+      if(!parts.includes(setorNorm)) return;
+      const divisor = parts.length || 1;
+      const cte = txt(r.substituto || r.cte || r.documento);
+      const motivoBaixa = txt(r.motivoBaixa || '');
+      const manual = getManual(cte);
+      const autoReason = inferReasonFromText(motivoBaixa);
+      result.push({
+        tipo:'Substituto', cte,
+        cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
+        usuario:txt(getSingleResponsibleUser(r)),
+        setor:txt(setorLabel),
+        motivo:txt(autoReason || motivoFinal(r) || manual.reason || 'Sem preenchimento'),
+        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        observacao:motivoBaixa,
+        valor:Number(r.freteSubstituto || 0) / divisor
+      });
+    });
+    return result;
+  }
+
+  function addExactSectorDetails(){
+    const tbody=document.getElementById('tbodySetores'); if(!tbody)return;
+    [...tbody.querySelectorAll('tr')].forEach((tr,i)=>{
+      const cells=tr.querySelectorAll('td'); if(cells.length < 6)return;
+      const setor=txt(cells[0].textContent);
+      const rows=sectorTableDetailRows(setor);
+      const refCount=rows.filter(r=>r.tipo==='Refaturado').length;
+      const subCount=rows.filter(r=>r.tipo==='Substituto').length;
+      // Mantém a quantidade exibida rigorosamente igual à fonte dos detalhes.
+      cells[1].textContent=String(refCount);
+      cells[3].textContent=String(subCount);
+      const id=`setor-exato-${i}`; setGroup(id,rows);
+      const label=`🔎 Ver detalhes (${refCount} ref. / ${subCount} sub.)`;
+      const td=document.createElement('td');
+      td.innerHTML=`<button type="button" class="details-btn" data-detail-id="${esc(id)}">${label}</button>`;
+      tr.appendChild(td);
+    });
+  }
+
   window.renderSetoresView=function(){
     stableRenderSetores && stableRenderSetores.apply(this,arguments);
-    addDetailsToAggregateTable('tbodySetores',(r,label)=>norm(r.setor)===norm(label),'setor');
+    addExactSectorDetails();
     const selected=document.getElementById('setorReasonSelect')?.value||'TODOS';
     let rows=detailRows(); if(selected!=='TODOS')rows=rows.filter(r=>norm(r.setor)===norm(selected));
     summarizeReasonList('tbodySetoresMotivos',rows,'setor-motivo');
