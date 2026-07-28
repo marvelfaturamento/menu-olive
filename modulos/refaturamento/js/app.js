@@ -2525,36 +2525,56 @@ function renderPerformanceView(){
   destroyChart('chartPerformance');
   const ctx = document.getElementById('chartPerformance');
   if(ctx){
+    // Mesmo padrão visual do Ranking anual de performance.
+    const chartBox = ctx.closest('.chart-box');
+    if(chartBox) chartBox.style.height = `${Math.max(300, sourceRows.length * 24 + 72)}px`;
+    const fullLabels = sourceRows.map(x => String(x.usuario || ''));
     state.charts.chartPerformance = new Chart(ctx, {
       type:'bar',
       data:{
-        labels: sourceRows.map(x => x.usuario),
+        labels: fullLabels.map(l => l.length > 18 ? l.slice(0,18)+'…' : l),
         datasets:[{
-          label:'Performance',
+          label:'Performance %',
           data: sourceRows.map(x => Number(x.performance || 0)),
-          backgroundColor: sourceRows.map(x => {
-            const p = Number(x.performance || 0);
-            if(p >= 99.51) return '#12c97a';
-            if(p >= 97) return '#f4c20d';
-            return '#ef4444';
-          })
+          backgroundColor: sourceRows.map(x => __perfAnualPerfColor(x.performance)),
+          borderColor: sourceRows.map(x => __perfAnualPerfColor(x.performance)),
+          borderWidth:1,
+          borderRadius:6,
+          barPercentage:0.78,
+          categoryPercentage:0.86,
+          maxBarThickness:18
         }]
       },
       options:{
-        indexAxis:'y', responsive:true, maintainAspectRatio:false,
-        layout:{ padding:{ right: 90 } },
+        indexAxis:'y',
+        responsive:true,
+        maintainAspectRatio:false,
+        layout:{ padding:{ left:6, right:72 } },
         plugins:{
           legend:{ labels:{ color:'#fff' } },
-          tooltip:{ callbacks:{ label:(ctx)=> `Performance: ${Number(ctx.raw).toFixed(2)}%` } },
+          tooltip:{
+            callbacks:{
+              title:(items)=> items.length ? String(fullLabels[items[0].dataIndex] || '') : '',
+              label:(item)=> `${Number(item.raw).toFixed(2)}% - ${__perfAnualPerfClass(item.raw)}`
+            }
+          },
           datalabels:{
-            color:'#ffffff', backgroundColor:'rgba(8,16,29,.88)', borderRadius:4,
-            padding:{top:2,right:4,bottom:2,left:4}, anchor:'end', align:'right', offset:8,
-            clamp:false, clip:false, formatter:v => `${Number(v).toFixed(2)}%`, display:true
+            color:'#fff',
+            anchor:'end',
+            align:'right',
+            clamp:false,
+            clip:false,
+            offset:8,
+            formatter:v => `${Number(v).toFixed(2)}%`,
+            backgroundColor:'rgba(8,16,29,.82)',
+            borderRadius:4,
+            padding:{left:6,right:6,top:2,bottom:2},
+            display:true
           }
         },
         scales:{
-          x:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:(v)=> `${v}%` }, grid:{ color:'rgba(255,255,255,.05)' } },
-          y:{ ticks:{ color:'#cfe0ff' }, grid:{ color:'rgba(255,255,255,.05)' } }
+          x:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:v=>v+'%' }, grid:{ color:'rgba(255,255,255,.05)' } },
+          y:{ ticks:{ color:'#cfe0ff', autoSkip:false, maxRotation:0, minRotation:0, font:{size:10}, padding:3 }, grid:{ color:'rgba(255,255,255,.05)' } }
         }
       }
     });
@@ -4472,21 +4492,37 @@ document.addEventListener('DOMContentLoaded', function(){
     destroyChart('chartPerformance');
     const ctxPerf = document.getElementById('chartPerformance');
     if(ctxPerf){
+      // Mesmo padrão visual e dimensional do Ranking anual de performance.
+      const chartBox = ctxPerf.closest('.chart-box');
+      if(chartBox) chartBox.style.height = `${Math.max(300, perfRows.length * 24 + 72)}px`;
       state.charts.chartPerformance = new Chart(ctxPerf, {
         type:'bar',
         data:{
           labels: perfLabels.map(l => String(l).length > 18 ? String(l).slice(0,18)+'…' : String(l)),
-          datasets:[{ label:'Performance', data: perfValues, backgroundColor: perfColors, borderColor: perfColors, borderWidth:1 }]
+          datasets:[{
+            label:'Performance %',
+            data: perfValues,
+            backgroundColor: perfColors,
+            borderColor: perfColors,
+            borderWidth:1,
+            borderRadius:6,
+            barPercentage:0.78,
+            categoryPercentage:0.86,
+            maxBarThickness:18
+          }]
         },
         options:{
           indexAxis:'y', responsive:true, maintainAspectRatio:false,
-          layout:{ padding:{ right:90 } },
+          layout:{ padding:{ left:6, right:72 } },
           plugins:{
             legend:{ labels:{ color:'#fff' } },
-            tooltip:{ callbacks:{ title:(items)=> items.length ? String(perfLabels[items[0].dataIndex] || '') : '', label:(ctx)=> `Performance: ${Number(ctx.raw || 0).toFixed(2)}%` } },
-            datalabels:{ color:'#fff', backgroundColor:'rgba(8,16,29,.88)', borderRadius:4, padding:{top:2,right:4,bottom:2,left:4}, anchor:'end', align:'right', offset:8, clamp:false, clip:false, formatter:v => `${Number(v || 0).toFixed(2)}%`, display:true }
+            tooltip:{ callbacks:{ title:(items)=> items.length ? String(perfLabels[items[0].dataIndex] || '') : '', label:(ctx)=> `${Number(ctx.raw || 0).toFixed(2)}% - ${__perfAnualPerfClass(ctx.raw)}` } },
+            datalabels:{ color:'#fff', backgroundColor:'rgba(8,16,29,.82)', borderRadius:4, padding:{left:6,right:6,top:2,bottom:2}, anchor:'end', align:'right', offset:8, clamp:false, clip:false, formatter:v => `${Number(v || 0).toFixed(2)}%`, display:true }
           },
-          scales:{ x:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:(v)=>`${v}%` }, grid:{ color:'rgba(255,255,255,.05)' } }, y:{ ticks:{ color:'#cfe0ff' }, grid:{ color:'rgba(255,255,255,.05)' } } }
+          scales:{
+            x:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:(v)=>`${v}%` }, grid:{ color:'rgba(255,255,255,.05)' } },
+            y:{ ticks:{ color:'#cfe0ff', autoSkip:false, maxRotation:0, minRotation:0, font:{size:10}, padding:3 }, grid:{ color:'rgba(255,255,255,.05)' } }
+          }
         }
       });
     }
@@ -5108,6 +5144,10 @@ function __renderPerfAnualRankingChart(rows){
   destroyChart('chartPerfAnualRanking');
   const ctx = document.getElementById('chartPerfAnualRanking');
   if(!ctx) return;
+  // A altura cresce conforme a quantidade de usuários para que nenhum nome
+  // seja ocultado no eixo vertical.
+  const chartBox = ctx.closest('.chart-box');
+  if(chartBox) chartBox.style.height = `${Math.max(300, rows.length * 24 + 72)}px`;
   const labels = rows.map(r => r.usuario);
   state.charts.chartPerfAnualRanking = new Chart(ctx, {
     type:'bar',
@@ -5119,7 +5159,8 @@ function __renderPerfAnualRankingChart(rows){
         backgroundColor: rows.map(r => __perfAnualPerfColor(r.performance)),
         borderColor: rows.map(r => __perfAnualPerfColor(r.performance)),
         borderWidth:1,
-        borderRadius:8
+        borderRadius:6,
+        barPercentage:0.78, categoryPercentage:0.86, maxBarThickness:18
       }]
     },
     options:{
@@ -5140,7 +5181,7 @@ function __renderPerfAnualRankingChart(rows){
       },
       scales:{
         x:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:v=>v+'%' }, grid:{ color:'rgba(255,255,255,.05)' } },
-        y:{ ticks:{ color:'#cfe0ff' }, grid:{ color:'rgba(255,255,255,.05)' } }
+        y:{ ticks:{ color:'#cfe0ff', autoSkip:false, maxRotation:0, minRotation:0, font:{size:10}, padding:3 }, grid:{ color:'rgba(255,255,255,.05)' } }
       }
     }
   });
@@ -5215,13 +5256,15 @@ function renderPerformanceAnualView(){
         <td>${Number(r.ctrc||0).toLocaleString('pt-BR')}</td>
         <td>${Number(r.ost||0).toLocaleString('pt-BR')}</td>
         <td>${Number(r.baseDocs||0).toLocaleString('pt-BR')}</td>
-        <td>${__perfAnualFmtQtd(r.erros||0)}</td>
+        <td>${__perfAnualFmtQtd(r.qtdRef||0)}</td>
+        <td>${__perfAnualFmtQtd(r.qtdSub||0)}</td>
+        <td>${__perfAnualFmtQtd((Number(r.qtdRef||0) + Number(r.qtdSub||0)))}</td>
         <td>${r.erroPerc == null ? '-' : r.erroPerc.toFixed(3)+'%'}</td>
         <td><strong style="color:${r.performance == null ? '#cfe0ff' : __perfAnualPerfColor(r.performance)}">${r.performance == null ? '-' : r.performance.toFixed(2)+'%'}</strong></td>
         <td>${fmtMoney(r.valorRef||0)}</td>
         <td>${fmtMoney(r.valorSub||0)}</td>
         <td>${fmtMoney(r.impacto||0)}</td>
-      </tr>`).join('') : `<tr><td colspan="10" class="center muted">Sem meses salvos com produtividade/erros para consolidar.</td></tr>`;
+      </tr>`).join('') : `<tr><td colspan="12" class="center muted">Sem meses salvos com produtividade/erros para consolidar.</td></tr>`;
   }
 }
 window.addEventListener('DOMContentLoaded', function(){
@@ -5410,7 +5453,9 @@ function __perfAnualUsuariosDoMesPelaAnalise(month){
       user: prodNorm(u.user || ''),
       qtdRef: Number(u.qtdRef || 0),
       qtdSub: Number(u.qtdSub || 0),
-      qty: Number(u.qty || 0),
+      // Performance Anual usa a mesma regra da Performance por Usuário:
+      // documentos com erro = refaturados + substitutos.
+      qty: Number(u.qtdRef || 0) + Number(u.qtdSub || 0),
       refaturado: Number(u.refaturado || 0),
       substituto: Number(u.substituto || 0),
       total: Number(u.total || 0)
@@ -5453,7 +5498,7 @@ function __perfAnualAggregate(){
       const m = __perfAnualMonthItem(item, month.key);
       const qtdRef = Number(u.qtdRef || 0);
       const qtdSub = Number(u.qtdSub || 0);
-      const qtdTotal = Number(u.qty || (qtdRef + qtdSub));
+      const qtdTotal = qtdRef + qtdSub;
       const valorRef = Number(u.refaturado || 0);
       const valorSub = Number(u.substituto || 0);
       const impacto = Number(u.total || (valorRef + valorSub));
