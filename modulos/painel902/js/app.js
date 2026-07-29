@@ -850,6 +850,11 @@ function detectHeaderRow(rows){ for(let i=0;i<Math.min(rows.length,15);i++){ con
 async function parseExcelRows(matrix){
   const header = detectHeaderRow(matrix);
   const rows = matrix.slice(header + 1);
+  const totalRows = rows.length;
+
+  setStatusText(`Importação 902: preparando ${totalRows.toLocaleString('pt-BR')} linha(s)...`);
+  setBusyOperation('Importando 902: carregando histórico...');
+  await new Promise(resolve => requestAnimationFrame(resolve));
 
   await carregarHistoricoFinalizadosSupabase();
   const oldActiveMap = new Map(state.rows.map(r => [r.id, r]));
@@ -858,8 +863,19 @@ async function parseExcelRows(matrix){
 
   const importedActiveMap = new Map();
   const importedFinalMap = new Map(oldFinalMap);
+  let lidas = 0;
+  let validas = 0;
+  let autoFinalizadas = 0;
 
   for(const r of rows){
+    lidas++;
+    if(lidas === 1 || lidas % 250 === 0 || lidas === totalRows){
+      const pct = totalRows ? Math.round((lidas / totalRows) * 100) : 100;
+      setBusyOperation(`Importando 902: processando ${lidas.toLocaleString('pt-BR')}/${totalRows.toLocaleString('pt-BR')} (${pct}%)`);
+      setStatusText(`Importação 902: analisando programações... ${pct}%`);
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }
+
     if(!r || r.length < 10) continue;
 
     const ref = String(r[0] || '').trim();
@@ -867,6 +883,7 @@ async function parseExcelRows(matrix){
     const filial = String(r[2] || '').trim();
     const pv = String(r[3] || '').trim();
     if(!ref || !pv) continue;
+    validas++;
 
     const id = [ref, filial, pv].join('|');
     const old = oldActiveMap.get(id) || oldFinalMap.get(id);
@@ -908,20 +925,32 @@ async function parseExcelRows(matrix){
         finalizadoEm: old?.finalizadoEm || new Date().toISOString()
       });
       remoteFinalizedIds.add(id);
+      autoFinalizadas++;
       continue;
     }
 
     importedActiveMap.set(id, {
-  ...baseRow,
-  status: old?.status || ''
-});
+      ...baseRow,
+      status: old?.status || ''
+    });
   }
+
+  setBusyOperation('Importando 902: classificando programações...');
+  setStatusText('Importação 902: aplicando regras e alertas...');
+  await new Promise(resolve => requestAnimationFrame(resolve));
 
   state.rows = uniqueRowsById([...importedActiveMap.values()]);
   state.finalizados = uniqueRowsById([...importedFinalMap.values()]);
   reclassify();
-  saveLocal();
-    renderAll(true);
+
+  setBusyOperation('Importando 902: salvando base local...');
+  setStatusText('Importação 902: salvando e atualizando o painel...');
+  await saveLocal();
+  renderAll(true);
+
+  const resumo = `${state.rows.length} ativa(s), ${state.finalizados.length} finalizada(s)`;
+  setStatusText(`Importação 902 concluída: ${resumo}`);
+  return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length };
 }
 
 function getHeaderIndex624(headers){
@@ -1050,18 +1079,41 @@ async function processarImportacao624(file){
 }
 
 
-fileExcel.addEventListener('change', e => {
+fileExcel.addEventListener('change', async e => {
   if(guardBusy('importar o Excel')){ e.target.value=''; return; }
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const data = new Uint8Array(ev.target.result);
-    const wb = XLSX.read(data, {type:'array'});
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+
+  setBusyOperation('Importando 902: lendo arquivo...');
+  setStatusText(`Importação 902: lendo ${file.name}...`);
+
+  try{
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    const buffer = await file.arrayBuffer();
+
+    setBusyOperation('Importando 902: abrindo planilha...');
+    setStatusText('Importação 902: interpretando o Excel...');
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    const wb = XLSX.read(new Uint8Array(buffer), {type:'array'});
     const ws = wb.Sheets[wb.SheetNames[0]];
+    if(!ws) throw new Error('A planilha não possui uma aba válida.');
+
     const matrix = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
-    parseExcelRows(matrix);
-  };
-  reader.readAsArrayBuffer(file); e.target.value = '';
+    const resultado = await parseExcelRows(matrix);
+
+    const extras = resultado.autoFinalizadas
+      ? ` • ${resultado.autoFinalizadas} finalizada(s) automaticamente`
+      : '';
+    setStatusText(`Importação 902 concluída: ${resultado.ativas} ativa(s) / ${resultado.finalizadas} finalizada(s)${extras}`);
+  }catch(err){
+    console.error('Erro na importação do 902:', err);
+    setStatusText('Importação 902: erro ao processar arquivo');
+    alert(err.message || 'Erro ao importar o Excel 902.');
+  }finally{
+    setBusyOperation('');
+  }
 });
 
 if(typeof file624 !== 'undefined' && file624){

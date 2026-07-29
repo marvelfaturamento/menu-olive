@@ -1089,7 +1089,7 @@
       { usuario: "elisangela", senha: "elisangela2026", perfil: "consulta", nome: "Elisangela", usuarioRef: "elisangela.vieira" },
       { usuario: "geovana", senha: "geo@2026", perfil: "consulta", nome: "Geovana", usuarioRef: "geovana.silva" },
       { usuario: "ghizzi", senha: "ghizzi@2026", perfil: "consulta", nome: "Jhonatan", usuarioRef: "jhonatan.ghizzi" },
-      { usuario: "balestrin", senha: "bale@800", perfil: "consulta", nome: "Jonathan", usuarioRef: "jonathan.balestrin" },
+      { usuario: "balestrin", senha: "bale@800", perfil: "consulta", nome: "Jonathan", usuarioRef: "jonatan.balestrin" },
       { usuario: "josete", senha: "josete@2026", perfil: "consulta", nome: "Josete", usuarioRef: "josete.gabriel" },
       { usuario: "karllin", senha: "karllin2026", perfil: "consulta", nome: "Karllin", usuarioRef: "karllin" },
       { usuario: "karoline", senha: "karol@165816", perfil: "consulta", nome: "Karoline", usuarioRef: "karoline.romanini" },
@@ -1187,8 +1187,8 @@
       refaturamento: "modulos/refaturamento/index.html",
       faturamento: "modulos/faturamento/index.html",
       painel902: "modulos/painel902/index.html",
-      agrupaPdf: "modulos/agrupaPdf/index.html",
-      leitor: "modulos/leitor/index.html"
+      agrupaPdf: "modulos/agrupaPdf/index.html?v=56.9.7",
+      leitor: "modulos/leitor/index.html?v=56.9.7"
     };
 
     const TITULOS_MODULOS = {
@@ -1318,8 +1318,8 @@
 
     const SUPABASES = {
       dados: {
-        url: "https://SUA-SUPABASE-DADOS.supabase.co",
-        key: "SUA-ANON-KEY-DADOS"
+        url: "https://ndpfmjetlvcujhgphqoi.supabase.co",
+        key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGZtamV0bHZjdWpoZ3BocW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDk2MTksImV4cCI6MjA5ODAyNTYxOX0.M1ypP2OOSGOojCGWfq-X1UNJzfYhD8a-J47QtR6Qw00"
       },
       instrutivo: {
         url: "https://zyuvmbosepzpigyidyco.supabase.co",
@@ -1350,7 +1350,7 @@
 
     const TABELAS = {
       dados: {
-        tabela: "dados",
+        tabela: "cache_rotas_km",
         campoId: "id"
       },
       instrutivo: {
@@ -1535,7 +1535,7 @@
       }
 
       try {
-        const { count, table } = await queryCountWithFallback(sbDados, TABELAS.dados.tabelas);
+        const { count, table } = await queryCountWithFallback(sbDados, TABELAS.dados.tabela);
         setTexto("dadosStatus", table ? "Conectado" : "Atalho");
         setTexto("dadosRegistros", table ? inteiro(count || 0) : "—");
       } catch (e) {
@@ -1855,8 +1855,8 @@
     popularAnos();
     definirMesAtual();
 
-    document.getElementById("filtroMes").addEventListener("change", carregarTudo);
-    document.getElementById("filtroAno").addEventListener("change", carregarTudo);
+    document.getElementById("filtroMes")?.addEventListener("change", carregarTudo);
+    document.getElementById("filtroAno")?.addEventListener("change", carregarTudo);
 
 
     document.getElementById("btnLogin")?.addEventListener("click", validarLoginMenu);

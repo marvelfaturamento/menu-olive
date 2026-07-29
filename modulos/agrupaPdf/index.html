@@ -509,6 +509,9 @@ button:hover{transform:translateY(-1px);}
     el.style.borderColor = type==='error' ? '#6a2b42' : type==='success' ? '#22593f' : '#2a395d';
   };
   function attachDrop(drop, input, onFiles){
+    // O módulo possui recursos opcionais. Se o card correspondente não existir
+    // no HTML desta versão, não tentamos registrar eventos em elementos nulos.
+    if (!drop || !input || typeof onFiles !== 'function') return;
     ['dragenter','dragover'].forEach(evt=>{
       drop.addEventListener(evt, e=>{
         e.preventDefault();
@@ -1215,58 +1218,67 @@ button:hover{transform:translateY(-1px);}
       };
     });
   }
-  attachDrop(editEls.drop, editEls.input, files=>{
-    EDIT.file = [...files][0] || null;
-    editEls.btnRead.disabled = !EDIT.file;
-    setStatus(editEls.status, EDIT.file ? `${EDIT.file.name} selecionado. Clique em “Ler PDF”.` : 'Aguardando PDF.');
-    updateEditStats();
-  });
-  editEls.input.onchange = e=>{
-    EDIT.file = [...e.target.files][0] || null;
-    editEls.btnRead.disabled = !EDIT.file;
-    setStatus(editEls.status, EDIT.file ? `${EDIT.file.name} selecionado. Clique em “Ler PDF”.` : 'Aguardando PDF.');
-    updateEditStats();
-  };
-  editEls.btnClear.onclick = ()=>{
-    EDIT.file=null; EDIT.bytes=null; EDIT.pages=0; EDIT.pagesArr=[]; EDIT.order=[]; EDIT.generated=null;
-    editEls.input.value=''; editEls.grid.innerHTML=''; renderEditLinks(); updateEditStats();
-    editEls.btnRead.disabled=true; editEls.btnGenerate.disabled=true;
-    setStatus(editEls.status, 'Aguardando PDF.');
-  };
-  editEls.btnRead.onclick = async ()=>{
-    const x = await readPdfTextAndBytes(EDIT.file);
-    EDIT.bytes = x.bytes; EDIT.pages = x.pages; EDIT.pagesArr=[]; EDIT.order=[]; EDIT.generated=null;
-    for(let p=1;p<=x.pages;p++){
-      let thumb=''; try{ thumb=await renderThumb(EDIT.bytes.slice(), p, 1.0);}catch(e){}
-      const id = `ed_${p}`;
-      EDIT.pagesArr.push({id, origPage:p, thumb, rotation:0, removed:false, boxes:[]});
-      EDIT.order.push(id);
-      renderEditPages();
-    }
-    editEls.btnGenerate.disabled = false;
-    renderEditLinks(); updateEditStats();
-    setStatus(editEls.status, 'PDF lido com sucesso. Agora você pode arrastar, girar e remover páginas.', 'success');
-  };
-  editEls.btnGenerate.onclick = async ()=>{
-    const out = await PDFLib.PDFDocument.create();
-    for(const id of EDIT.order){
-      const p = EDIT.pagesArr.find(x=>x.id===id);
-      if(p.removed) continue;
-      const baseCanvas = await renderCanvas(EDIT.bytes, p.origPage, 2.2);
-      const ops = (p.boxes || []).map(box => box.kind === 'whiteout'
-        ? {type:'whiteout', x:box.x, y:box.y, w:box.w, h:box.h}
-        : {type:'text', x:box.x, y:box.y, text:box.text || '', fontSize:box.fontSize || 16, color:'#000000'});
-      const editedCanvas = drawEditOperations(baseCanvas, ops);
-      const finalCanvas = rotateCanvas(editedCanvas, p.rotation || 0);
-      const dataUrl = finalCanvas.toDataURL('image/png');
-      const png = await out.embedPng(dataUrl);
-      const page = out.addPage([png.width, png.height]);
-      page.drawImage(png, {x:0, y:0, width:png.width, height:png.height});
-    }
-    EDIT.generated = {blob:new Blob([await out.save()], {type:'application/pdf'}), name:`${(editEls.name.value.trim()||'pdf_editado')}.pdf`};
-    renderEditLinks(); updateEditStats();
-    setStatus(editEls.status, 'PDF editado gerado com sucesso.', 'success');
-  };
+  const editTabReady = [
+    editEls.input, editEls.drop, editEls.name, editEls.btnRead,
+    editEls.btnGenerate, editEls.btnClear, editEls.status, editEls.grid,
+    editEls.links, editEls.statPages, editEls.statRemoved,
+    editEls.statRotated, editEls.statGenerated
+  ].every(Boolean);
+
+  if (editTabReady) {
+    attachDrop(editEls.drop, editEls.input, files=>{
+      EDIT.file = [...files][0] || null;
+      editEls.btnRead.disabled = !EDIT.file;
+      setStatus(editEls.status, EDIT.file ? `${EDIT.file.name} selecionado. Clique em “Ler PDF”.` : 'Aguardando PDF.');
+      updateEditStats();
+    });
+    editEls.input.onchange = e=>{
+      EDIT.file = [...e.target.files][0] || null;
+      editEls.btnRead.disabled = !EDIT.file;
+      setStatus(editEls.status, EDIT.file ? `${EDIT.file.name} selecionado. Clique em “Ler PDF”.` : 'Aguardando PDF.');
+      updateEditStats();
+    };
+    editEls.btnClear.onclick = ()=>{
+      EDIT.file=null; EDIT.bytes=null; EDIT.pages=0; EDIT.pagesArr=[]; EDIT.order=[]; EDIT.generated=null;
+      editEls.input.value=''; editEls.grid.innerHTML=''; renderEditLinks(); updateEditStats();
+      editEls.btnRead.disabled=true; editEls.btnGenerate.disabled=true;
+      setStatus(editEls.status, 'Aguardando PDF.');
+    };
+    editEls.btnRead.onclick = async ()=>{
+      const x = await readPdfTextAndBytes(EDIT.file);
+      EDIT.bytes = x.bytes; EDIT.pages = x.pages; EDIT.pagesArr=[]; EDIT.order=[]; EDIT.generated=null;
+      for(let p=1;p<=x.pages;p++){
+        let thumb=''; try{ thumb=await renderThumb(EDIT.bytes.slice(), p, 1.0);}catch(e){}
+        const id = `ed_${p}`;
+        EDIT.pagesArr.push({id, origPage:p, thumb, rotation:0, removed:false, boxes:[]});
+        EDIT.order.push(id);
+        renderEditPages();
+      }
+      editEls.btnGenerate.disabled = false;
+      renderEditLinks(); updateEditStats();
+      setStatus(editEls.status, 'PDF lido com sucesso. Agora você pode arrastar, girar e remover páginas.', 'success');
+    };
+    editEls.btnGenerate.onclick = async ()=>{
+      const out = await PDFLib.PDFDocument.create();
+      for(const id of EDIT.order){
+        const p = EDIT.pagesArr.find(x=>x.id===id);
+        if(p.removed) continue;
+        const baseCanvas = await renderCanvas(EDIT.bytes, p.origPage, 2.2);
+        const ops = (p.boxes || []).map(box => box.kind === 'whiteout'
+          ? {type:'whiteout', x:box.x, y:box.y, w:box.w, h:box.h}
+          : {type:'text', x:box.x, y:box.y, text:box.text || '', fontSize:box.fontSize || 16, color:'#000000'});
+        const editedCanvas = drawEditOperations(baseCanvas, ops);
+        const finalCanvas = rotateCanvas(editedCanvas, p.rotation || 0);
+        const dataUrl = finalCanvas.toDataURL('image/png');
+        const png = await out.embedPng(dataUrl);
+        const page = out.addPage([png.width, png.height]);
+        page.drawImage(png, {x:0, y:0, width:png.width, height:png.height});
+      }
+      EDIT.generated = {blob:new Blob([await out.save()], {type:'application/pdf'}), name:`${(editEls.name.value.trim()||'pdf_editado')}.pdf`};
+      renderEditLinks(); updateEditStats();
+      setStatus(editEls.status, 'PDF editado gerado com sucesso.', 'success');
+    };
+  }
 
   setStatus(setEls.status, 'Bibliotecas carregadas. Pode subir os PDFs.', 'success');
 })();

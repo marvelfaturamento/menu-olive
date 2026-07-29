@@ -37,6 +37,12 @@
     .opts{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:#475569;margin-top:13px;font-weight:700}
     .stats{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-top:16px}
     .stat{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+    .stat.freight-net{background:#ecfdf5;border-color:#86efac;box-shadow:0 4px 12px rgba(22,101,52,.08)}
+    .stat.freight-net b{color:#166534}
+    .stat.freight-net span{color:#3f6f52}
+    .stat.freight-total{background:#eff6ff;border-color:#93c5fd;box-shadow:0 4px 12px rgba(29,78,216,.08)}
+    .stat.freight-total b{color:#1d4ed8}
+    .stat.freight-total span{color:#516b91}
     .stat b{font-size:18px;display:block;margin-bottom:2px;line-height:1.15}.stat span{font-size:11px;color:#64748b}
     .progress{height:12px;background:#dbe4ef;border-radius:999px;overflow:hidden;margin-top:14px}
     .bar{height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e);transition:.2s}
@@ -433,7 +439,7 @@ button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18
             <option value="generico">Genérico por cabeçalho</option>
           </select>
           <input id="txtFiles" type="file" accept=".txt,.csv,text/plain" multiple>
-          <button class="primary" onclick="readTXTs()">Ler TXT</button>
+          <button id="btnReadTXT" class="primary" onclick="readTXTs()">Ler TXT</button>
           <button class="ok" onclick="copyTXTKeysOnly()">Copiar somente chaves</button>
           <button class="light" onclick="downloadTXTCSV()">Baixar CSV</button>
           <button class="danger" onclick="clearTXT()">Limpar</button>
@@ -1376,12 +1382,28 @@ function copyTXTKeysByPedido(pedido){
 async function readTXTs(){
   const files = [...document.getElementById('txtFiles').files];
   if(!files.length){ alert('Selecione pelo menos um TXT.'); return; }
-  txtRows=[];
-  for(const file of files){
-    const text = await file.text();
-    parseTXT(text, file.name);
+
+  const btn = document.getElementById('btnReadTXT');
+  const originalText = btn ? btn.textContent : 'Ler TXT';
+  if(btn){ btn.disabled = true; btn.textContent = 'Lendo...'; }
+
+  try{
+    txtRows=[];
+    // Entrega um frame ao navegador antes da leitura para a interface não parecer travada.
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    for(let i=0;i<files.length;i++){
+      const file = files[i];
+      if(btn) btn.textContent = `Lendo ${i+1}/${files.length}`;
+      const text = await file.text();
+      parseTXT(text, file.name);
+      // Mantém a tela responsiva quando vários arquivos são selecionados.
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    renderTXT();
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = originalText; }
   }
-  renderTXT();
 }
 
 
@@ -1689,8 +1711,8 @@ function renderTXT(){
       </div>
 
       <div class="stats" style="grid-template-columns:repeat(4,minmax(110px,1fr));margin:6px 0 8px">
-        <div class="stat"><b>${formatMoneyText(freteLiquido)}</b><span>frete líquido</span></div>
-        <div class="stat"><b>${formatMoneyText(freteBruto)}</b><span>total frete bruto</span></div>
+        <div class="stat freight-net"><b>💰 ${formatMoneyText(freteLiquido)}</b><span>Frete Líquido</span></div>
+        <div class="stat freight-total"><b>📄 ${formatMoneyText(freteBruto)}</b><span>Frete Total</span></div>
         <div class="stat"><b>${arr[0]?.transportador || '-'}</b><span>transportador</span></div>
         <div class="stat"><b>${viagens}</b><span>viagem</span></div>
       </div>

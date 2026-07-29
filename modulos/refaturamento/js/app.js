@@ -209,7 +209,7 @@ async function applyMonthViewSelection(){
 }
 
 const TRACKED_USERS = [
-  'ademir.fernandes','angelita.santos','carolina.pasquali','elisangela.vieira','geovana.silva','jhonatan.ghizzi','jonathan.balestrin','josete.gabriel','karllin','karoline.romanini','multisoft.service','tiago.carniel','matheus.devise','adenilson.filho','angelica.lucca','leia.mattos'
+  'ademir.fernandes','angelita.santos','carolina.pasquali','elisangela.vieira','geovana.silva','jhonatan.ghizzi','jonatan.balestrin','josete.gabriel','karllin','karoline.romanini','multisoft.service','tiago.carniel','matheus.devise','adenilson.filho','angelica.lucca','leia.mattos'
 ];
 const DOC_TYPES = ['ctrc','manifesto','nf.fat','ost'];
 function prodNorm(v){

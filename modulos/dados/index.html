@@ -509,6 +509,7 @@ let cidades={origem:null,aduana:null,destino:null};
 function auto(id,sug,key){
 let i=document.getElementById(id);
 let box=document.getElementById(sug);
+if (!i || !box) return;
 
 i.addEventListener("input",async()=>{
 cidades[key]=null;
@@ -1022,15 +1023,18 @@ document.getElementById("dolar").value = "5.2800";
 
 carregarDolarBCB();
 const dolarInput = document.getElementById("dolar");
-dolarInput.addEventListener("blur", () => {
-  if(dolarInput.value) dolarInput.value = parseFloat(dolarInput.value).toFixed(4);
-});
+if (dolarInput) {
+  dolarInput.addEventListener("blur", () => {
+    if (dolarInput.value) dolarInput.value = parseFloat(dolarInput.value).toFixed(4);
+  });
+}
 
 let cidades={origem:null,aduana:null,destino:null};
 
 function auto(id,sug,key){
 let i=document.getElementById(id);
 let box=document.getElementById(sug);
+if (!i || !box) return;
 
 i.addEventListener("input",async()=>{
 cidades[key]=null;
