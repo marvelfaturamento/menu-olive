@@ -329,6 +329,10 @@
       background: linear-gradient(90deg, #a855f7, #c084fc);
     }
 
+    .module-ciot::before {
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+    }
+
     .module-leitor::before {
       background: linear-gradient(90deg, #ef4444, #f97316);
     }
@@ -826,6 +830,7 @@
       <button data-menu="painel902" onclick="abrirSistema(&#39;painel902&#39;)">🚚 Painel 902</button>
       <button data-menu="agrupaPdf" onclick="abrirSistema(&#39;agrupaPdf&#39;)">🧩 Agrupa/remove PDF</button>
       <button data-menu="leitor" onclick="abrirSistema(&#39;leitor&#39;)">🔎 Leitor Scanner</button>
+      <button data-menu="assistenteCiot" onclick="abrirSistema(&#39;assistenteCiot&#39;)">🪪 Assistente CIOT</button>
     </div>
 
     <div class="user-box">
@@ -1043,6 +1048,25 @@
         <div class="card-hint">Clique para abrir o módulo</div>
       </div>
 
+      <div class="module-card module-ciot" onclick="abrirSistema(&#39;assistenteCiot&#39;)" role="button" tabindex="0" onkeydown="atalhoAbrir(event, &#39;assistenteCiot&#39;)">
+        <div class="module-header">
+          <div class="module-title">🪪 Assistente CIOT</div>
+          <div class="module-badge">Emissão</div>
+        </div>
+        <div class="module-desc">Leitura de CT-es e preparação dos dados para emissão do CIOT.</div>
+        <div class="module-metrics">
+          <div class="metric-box">
+            <div class="metric-label">Acesso</div>
+            <div class="metric-value">Integrado</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Ferramenta</div>
+            <div class="metric-value">CIOT</div>
+          </div>
+        </div>
+        <div class="card-hint">Clique para abrir dentro do menu</div>
+      </div>
+
     </section>
 
     <section class="status-row">
@@ -1188,7 +1212,8 @@
       faturamento: "modulos/faturamento/index.html",
       painel902: "modulos/painel902/index.html",
       agrupaPdf: "modulos/agrupaPdf/index.html?v=56.9.7",
-      leitor: "modulos/leitor/index.html?v=56.9.7"
+      leitor: "modulos/leitor/index.html?v=56.9.7",
+      assistenteCiot: "https://assistente-ciot.vercel.app"
     };
 
     const TITULOS_MODULOS = {
@@ -1198,7 +1223,8 @@
       faturamento: { titulo: "💰 Faturamento", subtitulo: "Faturamento bruto, líquido, metas e indicadores" },
       painel902: { titulo: "🚚 Painel 902", subtitulo: "Acompanhamento operacional, aduanas, alertas e finalizados" },
       agrupaPdf: { titulo: "🧩 Agrupa/remove PDF", subtitulo: "Ferramentas de organização e tratamento de PDFs" },
-      leitor: { titulo: "🔎 Leitor Scanner", subtitulo: "Leitura e conferência de documentos" }
+      leitor: { titulo: "🔎 Leitor Scanner", subtitulo: "Leitura e conferência de documentos" },
+      assistenteCiot: { titulo: "🪪 Assistente CIOT", subtitulo: "Leitura de CT-es e preparação para emissão do CIOT" }
     };
 
     let moduloAtualUrl = "";
