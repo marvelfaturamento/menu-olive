@@ -1042,7 +1042,7 @@ function inferReasonFromText(text){
       { reason:'cliente cancelou a nota fiscal', terms:['cliente cancelou a nota','cliente cancelou nota','cliente cancelou a nf','cliente cancelou nf','cancelamento da nota pelo cliente','nota cancelada pelo cliente'] },
       { reason:'alteração do CT-e base', terms:['alteracao do cte base','alteracao do ct-e base','alterar o cte base','alterar o ct-e base','motivo de alteracao do cte base','motivo de alteracao do ct-e base'] },
       { reason:'falta de notas fiscais', terms:['faltou nota','faltou notas','faltaram notas','faltou 1 nota','falta de nota','falta de notas','notas faltantes','nf faltante','nfs faltantes'] },
-      { reason:'imposto incorreto', terms:['somou icms indevidamente','icms indevido','icms incorreto','icms errado','icms calculado indevidamente','imposto indevido','imposto incorreto'] },
+      { reason:'imposto incorreto', terms:['somou icms indevidamente','icms indevido','icms incorreto','icms errado','icms calculado indevidamente','imposto indevido','imposto incorreto','cst incorreto','cst incorreta','cst errado','cst errada','cst divergente'] },
       { reason:'nota fiscal de pallet', terms:['nf pallet','nf de pallet','nota pallet','nota de pallet','nota fiscal de pallet','emitido com nf pallet','emitido com nf de pallet','emitido com nota de pallet','emitido com nota fiscal de pallet','nota fiscal de pallet incorreta','nf de pallet incorreta','erro nf pallet','erro nota pallet'] },
       { reason:'nota fiscal indevida', terms:['nota incorreta','nf incorreta','nota fiscal incorreta','nota fiscal indevida','nf indevida','nota indevida','documento fiscal indevido'] },
       { reason:'pagador incorreto', terms:['pagador incorreto','pagador errado','tomador incorreto','tomador errado','tomador divergente'] },
@@ -1050,8 +1050,8 @@ function inferReasonFromText(text){
       { reason:'peso incorreto', terms:['peso incorreto','peso divergente','peso errado'] },
       { reason:'filial incorreta', terms:['filial incorreta','filial errada','filial divergente'] },
       { reason:'CNPJ incorreto', terms:['cnpj incorreto','cnpj errado','cnpj divergente','cnpj invalido','cnpj inválido'] },
-      { reason:'pedágio incorreto', terms:['pedagio incorreto','pedagio errado','valor de pedagio'] },
-      { reason:'pis/cofins', terms:['pis/cofins','pis cofins','pis e cofins'] },
+      { reason:'pedágio incorreto', terms:['pedagio incorreto','pedagio errado','valor de pedagio','referente a pedagio','referente ao pedagio','pedagio','pedágio'] },
+      { reason:'pis/cofins', terms:['pis/cofins','pis / cofins','pis /cofins','pis/ cofins','pis cofins','pis e cofins','cofins'] },
       { reason:'advalorem', terms:['advalorem','ad valorem'] },
       { reason:'CT-e base incorreto', terms:['cte base errado','ct-e base errado','cte base incorreto','ct-e base incorreto','vinculado ao cte base errado','vinculado ao ct-e base errado','vinculado ao cte errado'] },
       { reason:'valor incorreto e emissão indevida', terms:['valor e emissao incorretos','valor e emissao incorreto','valor e emissao errados','valor e tipo de emissao incorretos'] },
@@ -1076,6 +1076,8 @@ function inferReasonFromText(text){
       if(n && valueNorm.includes(n)) return item;
     }
 
+    if(/\bpis\b/.test(valueNorm) || /\bcofins\b/.test(valueNorm)) return 'pis/cofins';
+    if(/\bcst\b/.test(valueNorm) && /(incorret|errad|divergent)/.test(valueNorm)) return 'imposto incorreto';
     if(valueNorm.includes('tomador') || valueNorm.includes('pagador')) return 'pagador incorreto';
     if(valueNorm.includes('icms') || valueNorm.includes('imposto')) return 'imposto incorreto';
     if(valueNorm.includes('nf') || valueNorm.includes('nota fiscal')) return 'nota fiscal indevida';
@@ -1090,6 +1092,17 @@ function inferReasonFromText(text){
 
   // Se não houver justificativa conclusiva no final, analisa o texto completo.
   return classify(original, true);
+}
+
+// Diferencia ausência real de observação de texto preenchido ainda não reconhecido.
+function resolveReason(text, manualReason = ''){
+  const automaticReason = inferReasonFromText(text);
+  if(automaticReason) return automaticReason;
+
+  const manual = String(manualReason || '').trim();
+  if(manual) return manual;
+
+  return String(text || '').trim() ? 'Não identificado' : 'Sem preenchimento';
 }
 function getManual(cte){ return state.manual[cte] || {}; }
 function saveManual(cte, payload){
@@ -1579,7 +1592,7 @@ function renderConciliationTables(){
 
 function motivoFinal(rec){
   const manual = getManual(rec.refaturado || rec.substituto);
-  return inferReasonFromText(rec.motivoBaixa) || manual.reason || 'Sem preenchimento';
+  return resolveReason(rec.motivoBaixa, manual.reason);
 }
 
 function motivosAggregate(){
@@ -1606,7 +1619,7 @@ function motivosAggregate(){
 
   for(const r of (state.substitutos || [])){
     const manual = getManual(r.substituto || r.cte || r.documento);
-    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason || 'Sem preenchimento';
+    const motivo = resolveReason(r.motivoBaixa, manual.reason);
     const item = ensure(motivo);
     item.qtdSub += 1;
     item.sub += Number(r.freteSubstituto || 0);
@@ -2088,7 +2101,7 @@ function renderConciliationTables(){
 
 function motivoFinal(rec){
   const manual = getManual(rec.refaturado || rec.substituto);
-  return inferReasonFromText(rec.motivoBaixa) || manual.reason || 'Sem preenchimento';
+  return resolveReason(rec.motivoBaixa, manual.reason);
 }
 
 function motivosAggregate(){
@@ -2115,7 +2128,7 @@ function motivosAggregate(){
 
   for(const r of (state.substitutos || [])){
     const manual = getManual(r.substituto || r.cte || r.documento);
-    const motivo = inferReasonFromText(r.motivoBaixa) || manual.reason || 'Sem preenchimento';
+    const motivo = resolveReason(r.motivoBaixa, manual.reason);
     const item = ensure(motivo);
     item.qtdSub += 1;
     item.sub += Number(r.freteSubstituto || 0);
@@ -5743,7 +5756,7 @@ function __perfAnualAggregate(){
       return {
         tipo: txt(r.tipo || 'CT-e'), cte, cliente:txt(r.cliente),
         usuario:txt(resolveDetailOperator(r, original)), setor:txt(r.setor),
-        motivo:txt(autoReason || r.motivo || manual.reason || 'Sem preenchimento'),
+        motivo:txt(autoReason || r.motivo || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
         origemMotivo:txt(r.origemMotivo || (autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado'))),
         observacao:motivoBaixa,
         valor:Number(r.valor||0)
@@ -5792,7 +5805,7 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorRefaturado || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(autoReason || manual.reason || 'Sem preenchimento'),
+        motivo:txt(autoReason || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
         origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteRefaturado || 0)
@@ -5810,7 +5823,7 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(autoReason || manual.reason || 'Sem preenchimento'),
+        motivo:txt(autoReason || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
         origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteSubstituto || 0)
@@ -5898,19 +5911,44 @@ function __perfAnualAggregate(){
     const setorNorm = norm(setorLabel);
     const result = [];
 
-    // Refaturados: usa exatamente as mesmas linhas de state.setores que formam
-    // Qtd. refaturados e Valor refaturado na tabela. Assim nenhuma linha some
-    // do modal por deduplicação ou por falta de vínculo perfeito com o CT-e.
+    // Cada linha contábil de state.setores deve consumir no máximo um registro
+    // de refaturado. Antes era usado find(), que podia vincular o mesmo CT-e a
+    // várias linhas contábeis e fazê-lo aparecer repetido com débitos diferentes.
+    const refaturados = (state.refaturados || []).map((r, index) => ({ r, index }));
+    const usados = new Set();
+    const docNorm = value => txt(value).replace(/\D/g, '').replace(/^0+/, '');
+
+    function localizarRefaturado(docs){
+      const tokens = (docs || []).map(docNorm).filter(Boolean);
+      if(!tokens.length) return null;
+
+      // Primeiro tenta correspondência exata e ainda não utilizada.
+      let found = refaturados.find(({r,index}) => {
+        if(usados.has(index)) return false;
+        const original = docNorm(r.originalTail || r.original);
+        const cte = docNorm(r.refaturado);
+        return tokens.some(d => d === original || d === cte);
+      });
+
+      // Compatibilidade com relatórios que trazem apenas parte do documento.
+      if(!found){
+        found = refaturados.find(({r,index}) => {
+          if(usados.has(index)) return false;
+          const original = docNorm(r.originalTail || r.original);
+          if(!original) return false;
+          return tokens.some(d => d.length >= 5 && original.length >= 5 && (d.endsWith(original) || original.endsWith(d)));
+        });
+      }
+
+      if(found) usados.add(found.index);
+      return found?.r || null;
+    }
+
+    // Os valores permanecem exatamente os débitos das linhas contábeis; apenas
+    // o vínculo visual com o CT-e deixa de reutilizar o mesmo documento.
     (state.setores || []).filter(s => norm(s.setor) === setorNorm).forEach((s, idx) => {
       const docs = Array.isArray(s.documentos) ? s.documentos.map(txt).filter(Boolean) : [];
-      const match = (state.refaturados || []).find(r => {
-        const tail = txt(r.originalTail).replace(/^0+/, '');
-        const cte = txt(r.refaturado).replace(/^0+/, '');
-        return docs.some(d => {
-          const dn = txt(d).replace(/^0+/, '');
-          return dn && (dn === tail || dn === cte || dn.endsWith(tail) || tail.endsWith(dn));
-        });
-      });
+      const match = localizarRefaturado(docs);
       const cte = txt(match?.refaturado) || docs.join(', ') || txt(s.docto) || `Linha ${idx+1}`;
       const motivoBaixa = txt(match?.motivoBaixa || '');
       const manual = getManual(cte);
@@ -5920,7 +5958,7 @@ function __perfAnualAggregate(){
         cliente:txt(match?.tomadorRefaturado || match?.tomadorOriginal || s.cliente),
         usuario:txt(resolveDetailOperator({usuario:s.usuario}, match) || s.usuario),
         setor:txt(s.setor),
-        motivo:txt(autoReason || motivoFinal(match || {}) || manual.reason || 'Sem preenchimento'),
+        motivo:txt(autoReason || motivoFinal(match || {}) || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
         origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(s.debit || 0)
@@ -5942,7 +5980,7 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r)),
         setor:txt(setorLabel),
-        motivo:txt(autoReason || motivoFinal(r) || manual.reason || 'Sem preenchimento'),
+        motivo:txt(autoReason || motivoFinal(r) || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
         origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteSubstituto || 0) / divisor
