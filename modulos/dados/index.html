@@ -430,41 +430,69 @@ async function salvarKmSupabase(chave,a,b,km,origemTela){
 async function getKmComCache(a,b,origemTela){
   const chave = chaveRota(a,b);
   const localKey = `km_cache_${chave}`;
+  window.__fontesKm = window.__fontesKm || {};
 
-  // 1) Busca primeiro no cache local do navegador
+  // 1) Supabase é a fonte prioritária
+  const cacheSupabase = await buscarKmSupabase(chave);
+  if(cacheSupabase){
+    localStorage.setItem(localKey, String(cacheSupabase));
+    window.__fontesKm[chave] = "Supabase";
+    console.info(`[KM] ${Number(cacheSupabase).toFixed(2)} km | Fonte: Supabase | ${chave}`);
+    return Number(cacheSupabase);
+  }
+
+  // 2) Cache local como segunda opção
   const cacheLocal = localStorage.getItem(localKey);
   if(cacheLocal && Number(cacheLocal) > 0){
-    // Se o navegador já tinha a rota salva antes de configurar o Supabase,
-    // sincroniza também com a base para outros usuários aproveitarem.
+    window.__fontesKm[chave] = "Cache local";
+    console.info(`[KM] ${Number(cacheLocal).toFixed(2)} km | Fonte: Cache local | ${chave}`);
+    // sincroniza um valor real já conhecido com o Supabase
     await salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
     return Number(cacheLocal);
   }
 
-  // 2) Busca no Supabase
-  const cacheSupabase = await buscarKmSupabase(chave);
-  if(cacheSupabase){
-    localStorage.setItem(localKey, String(cacheSupabase));
-    return cacheSupabase;
+  const fetchComTimeout = async (url, ms=4500) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      const r = await fetch(url, { signal: controller.signal });
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      if(!d.routes || !d.routes[0] || !d.routes[0].distance) throw new Error("Rota sem distância");
+      return d.routes[0].distance/1000;
+    } finally { clearTimeout(timer); }
+  };
+
+  const coords = `${a[0]},${a[1]};${b[0]},${b[1]}`;
+  const servidores = [
+    `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`,
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`
+  ];
+
+  let km = null;
+  let estimado = false;
+  try {
+    km = await Promise.any(servidores.map(url => fetchComTimeout(url)));
+    window.__fontesKm[chave] = "API de rota";
+    console.info(`[KM] ${Number(km).toFixed(2)} km | Fonte: API de rota | ${chave}`);
+  } catch(e) {
+    const toRad = v => v * Math.PI / 180;
+    const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
+    const dLat = toRad(b[1]-a[1]), dLon = toRad(b[0]-a[0]);
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+    const linhaReta = 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+    km = linhaReta * 1.22;
+    estimado = true;
+    window.__kmEstimadoDados = true;
+    window.__fontesKm[chave] = "Estimativa";
+    console.warn(`[KM] ${Number(km).toFixed(2)} km | Fonte: Estimativa | ${chave}`, e);
   }
 
-  // 3) Se não achou, consulta API de rota
-  const r = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car`,{
-    method:"POST",
-    headers:{"Authorization":API_KEY,"Content-Type":"application/json"},
-    body:JSON.stringify({coordinates:[a,b], radiuses:[10000,10000]})
-  });
-  const d = await r.json();
-  if(!r.ok || !d.routes || !d.routes[0]){
-    console.warn("OpenRouteService retornou erro:", d);
-    const msg = (d && d.error && d.error.message) ? d.error.message : "Não foi possível calcular esta rota pela API.";
-    throw new Error(msg);
+  // Somente distâncias obtidas de roteador são persistidas. Estimativas nunca contaminam o cache/Supabase.
+  if(!estimado){
+    localStorage.setItem(localKey, String(km));
+    await salvarKmSupabase(chave,a,b,km,origemTela);
   }
-  const km = d.routes[0].summary.distance/1000;
-
-  // 4) Salva para próximas consultas
-  localStorage.setItem(localKey, String(km));
-  await salvarKmSupabase(chave,a,b,km,origemTela);
-
   return km;
 }
 </script>
@@ -507,29 +535,48 @@ document.getElementById("manualFields").style.display=m==="manual"?"block":"none
 let cidades={origem:null,aduana:null,destino:null};
 
 function auto(id,sug,key){
-let i=document.getElementById(id);
-let box=document.getElementById(sug);
-if (!i || !box) return;
+  const i=document.getElementById(id);
+  const box=document.getElementById(sug);
+  if (!i || !box) return;
+  let timer=null;
+  let seq=0;
 
-i.addEventListener("input",async()=>{
-cidades[key]=null;
-if(i.value.length<3){box.innerHTML="";return;}
+  i.addEventListener("input",()=>{
+    cidades[key]=null;
+    clearTimeout(timer);
+    const texto=i.value.trim();
+    if(texto.length<3){ box.innerHTML=""; return; }
 
-let r=await fetch(`https://api.openrouteservice.org/geocode/autocomplete?api_key=${API_KEY}&text=${i.value}`);
-let d=await r.json();
-
-box.innerHTML="";
-(d.features||[]).slice(0,5).forEach(c=>{
-let div=document.createElement("div");
-div.innerText=c.properties.label;
-div.onclick=()=>{
-i.value=c.properties.label;
-cidades[key]=c.geometry.coordinates;
-box.innerHTML="";
-};
-box.appendChild(div);
-});
-});
+    timer=setTimeout(async()=>{
+      const minhaSeq=++seq;
+      try{
+        // Photon não depende da chave do ORS e serve como contingência para o autocomplete. O parâmetro lang=pt foi removido porque a API Photon retorna HTTP 400 para esse idioma.
+        const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(texto)}&limit=5`;
+        const r=await fetch(url);
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d=await r.json();
+        if(minhaSeq!==seq) return;
+        box.innerHTML="";
+        (d.features||[]).forEach(c=>{
+          const p=c.properties||{};
+          const partes=[p.name,p.city,p.state,p.country].filter((v,idx,arr)=>v && arr.indexOf(v)===idx);
+          const label=partes.join(", ") || p.name || texto;
+          const div=document.createElement("div");
+          div.innerText=label;
+          div.onclick=()=>{
+            i.value=label;
+            cidades[key]=c.geometry.coordinates;
+            box.innerHTML="";
+          };
+          box.appendChild(div);
+        });
+      }catch(e){
+        if(minhaSeq!==seq) return;
+        console.warn("Autocomplete indisponível:",e);
+        box.innerHTML='<div style="opacity:.7;cursor:default">Não foi possível consultar cidades agora.</div>';
+      }
+    },450);
+  });
 }
 
 auto("origem","sugOrigem","origem");
@@ -583,6 +630,8 @@ Paraguai:{crt:"PY21300",mic:"PY21300"}
 }
 
 async function calcular(){
+window.__kmEstimadoDados = false;
+window.__fontesKm = {};
 let res=document.getElementById("resultado");
 res.style.opacity = "1";
 res.innerHTML="Processando rotas e valores...";
@@ -661,7 +710,13 @@ res.innerHTML=`
 </div>
 
 Valor Mercadoria: $ ${mercadoria.toFixed(2)}<br>
-Aduana Selecionada: ${aduanaDesc}
+Aduana Selecionada: ${aduanaDesc}<br>
+<span style="display:inline-block;margin-top:10px;font-size:12px;line-height:1.6;opacity:.9;">
+KM Externo: <b>${km1.toFixed(2)} km</b> — Fonte: <b>${window.__fontesKm[chaveRota(cidades.origem,cidades.aduana)] || "Não identificada"}</b><br>
+KM Interno: <b>${km2.toFixed(2)} km</b> — Fonte: <b>${window.__fontesKm[chaveRota(cidades.aduana,cidades.destino)] || "Não identificada"}</b><br>
+KM Total: <b>${total.toFixed(2)} km</b>
+</span>
+${window.__kmEstimadoDados ? `<br><span style="display:inline-block;margin-top:8px;color:#fbbf24;font-size:12px;">⚠ Há trecho com KM estimado; esse valor não foi salvo no Supabase.</span>` : ``}
 </div>
 `;
 }catch(e){
@@ -713,6 +768,51 @@ function montarResultadoHtmlParaCopiar(){
   `;
 }
 
+function copiarComFallback(texto, html, onSuccess){
+  const sucesso = () => { if(typeof onSuccess === "function") onSuccess(); };
+
+  // Funciona também quando o painel é aberto por file:// ou dentro de srcdoc.
+  try{
+    if(html){
+      const area = document.createElement("div");
+      area.contentEditable = "true";
+      area.style.position = "fixed";
+      area.style.left = "-99999px";
+      area.style.top = "0";
+      area.innerHTML = html;
+      document.body.appendChild(area);
+
+      const range = document.createRange();
+      range.selectNodeContents(area);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const ok = document.execCommand("copy");
+      sel.removeAllRanges();
+      area.remove();
+      if(ok){ sucesso(); return true; }
+    }
+  }catch(e){ console.warn("Fallback HTML de cópia indisponível:", e); }
+
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = texto || "";
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-99999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand("copy");
+    ta.remove();
+    if(ok){ sucesso(); return true; }
+  }catch(e){ console.warn("Fallback texto de cópia indisponível:", e); }
+
+  return false;
+}
+
 function copiarResultadoFormatado(){
   const html = montarResultadoHtmlParaCopiar();
   const texto = montarResultadoTextoParaCopiar();
@@ -729,14 +829,24 @@ function copiarResultadoFormatado(){
       const btn = document.querySelector(".btn-success");
       btn.innerHTML = "✅ Copiado!";
       setTimeout(()=>{ btn.innerHTML = "📋 Copiar"; }, 2000);
-    }).catch(()=>copiarTextoSimples(texto));
+    }).catch(()=>{
+      const confirmar = () => {
+        const btn = document.querySelector(".btn-success");
+        if(btn){ btn.innerHTML = "✅ Copiado!"; setTimeout(()=>{ btn.innerHTML = "📋 Copiar"; }, 2000); }
+      };
+      if(!copiarComFallback(texto, html, confirmar)) copiarTextoSimples(texto);
+    });
   }else{
-    copiarTextoSimples(texto);
+    const confirmar = () => {
+      const btn = document.querySelector(".btn-success");
+      if(btn){ btn.innerHTML = "✅ Copiado!"; setTimeout(()=>{ btn.innerHTML = "📋 Copiar"; }, 2000); }
+    };
+    if(!copiarComFallback(texto, html, confirmar)) copiarTextoSimples(texto);
   }
 }
 
 function copiarTextoSimples(texto){
-  navigator.clipboard.writeText(texto).then(()=>{
+  const confirmar = () => {
     const btn = document.querySelector(".btn-success");
     if(btn){
       btn.innerHTML = "✅ Copiado!";
@@ -744,7 +854,15 @@ function copiarTextoSimples(texto){
     }else{
       alert("Copiado.");
     }
-  }).catch(()=>alert("Não foi possível copiar."));
+  };
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(confirmar).catch(()=>{
+      if(!copiarComFallback(texto, null, confirmar)) alert("Não foi possível copiar.");
+    });
+  }else if(!copiarComFallback(texto, null, confirmar)){
+    alert("Não foi possível copiar.");
+  }
 }
 
 </script>
@@ -956,41 +1074,69 @@ async function salvarKmSupabase(chave,a,b,km,origemTela){
 async function getKmComCache(a,b,origemTela){
   const chave = chaveRota(a,b);
   const localKey = `km_cache_${chave}`;
+  window.__fontesKm = window.__fontesKm || {};
 
-  // 1) Busca primeiro no cache local do navegador
+  // 1) Supabase é a fonte prioritária
+  const cacheSupabase = await buscarKmSupabase(chave);
+  if(cacheSupabase){
+    localStorage.setItem(localKey, String(cacheSupabase));
+    window.__fontesKm[chave] = "Supabase";
+    console.info(`[KM] ${Number(cacheSupabase).toFixed(2)} km | Fonte: Supabase | ${chave}`);
+    return Number(cacheSupabase);
+  }
+
+  // 2) Cache local como segunda opção
   const cacheLocal = localStorage.getItem(localKey);
   if(cacheLocal && Number(cacheLocal) > 0){
-    // Se o navegador já tinha a rota salva antes de configurar o Supabase,
-    // sincroniza também com a base para outros usuários aproveitarem.
+    window.__fontesKm[chave] = "Cache local";
+    console.info(`[KM] ${Number(cacheLocal).toFixed(2)} km | Fonte: Cache local | ${chave}`);
+    // sincroniza um valor real já conhecido com o Supabase
     await salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
     return Number(cacheLocal);
   }
 
-  // 2) Busca no Supabase
-  const cacheSupabase = await buscarKmSupabase(chave);
-  if(cacheSupabase){
-    localStorage.setItem(localKey, String(cacheSupabase));
-    return cacheSupabase;
+  const fetchComTimeout = async (url, ms=4500) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      const r = await fetch(url, { signal: controller.signal });
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      if(!d.routes || !d.routes[0] || !d.routes[0].distance) throw new Error("Rota sem distância");
+      return d.routes[0].distance/1000;
+    } finally { clearTimeout(timer); }
+  };
+
+  const coords = `${a[0]},${a[1]};${b[0]},${b[1]}`;
+  const servidores = [
+    `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`,
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`
+  ];
+
+  let km = null;
+  let estimado = false;
+  try {
+    km = await Promise.any(servidores.map(url => fetchComTimeout(url)));
+    window.__fontesKm[chave] = "API de rota";
+    console.info(`[KM] ${Number(km).toFixed(2)} km | Fonte: API de rota | ${chave}`);
+  } catch(e) {
+    const toRad = v => v * Math.PI / 180;
+    const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
+    const dLat = toRad(b[1]-a[1]), dLon = toRad(b[0]-a[0]);
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+    const linhaReta = 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+    km = linhaReta * 1.22;
+    estimado = true;
+    window.__kmEstimadoDados = true;
+    window.__fontesKm[chave] = "Estimativa";
+    console.warn(`[KM] ${Number(km).toFixed(2)} km | Fonte: Estimativa | ${chave}`, e);
   }
 
-  // 3) Se não achou, consulta API de rota
-  const r = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car`,{
-    method:"POST",
-    headers:{"Authorization":API_KEY,"Content-Type":"application/json"},
-    body:JSON.stringify({coordinates:[a,b], radiuses:[10000,10000]})
-  });
-  const d = await r.json();
-  if(!r.ok || !d.routes || !d.routes[0]){
-    console.warn("OpenRouteService retornou erro:", d);
-    const msg = (d && d.error && d.error.message) ? d.error.message : "Não foi possível calcular esta rota pela API.";
-    throw new Error(msg);
+  // Somente distâncias obtidas de roteador são persistidas. Estimativas nunca contaminam o cache/Supabase.
+  if(!estimado){
+    localStorage.setItem(localKey, String(km));
+    await salvarKmSupabase(chave,a,b,km,origemTela);
   }
-  const km = d.routes[0].summary.distance/1000;
-
-  // 4) Salva para próximas consultas
-  localStorage.setItem(localKey, String(km));
-  await salvarKmSupabase(chave,a,b,km,origemTela);
-
   return km;
 }
 </script>
@@ -1032,23 +1178,48 @@ if (dolarInput) {
 let cidades={origem:null,aduana:null,destino:null};
 
 function auto(id,sug,key){
-let i=document.getElementById(id);
-let box=document.getElementById(sug);
-if (!i || !box) return;
+  const i=document.getElementById(id);
+  const box=document.getElementById(sug);
+  if (!i || !box) return;
+  let timer=null;
+  let seq=0;
 
-i.addEventListener("input",async()=>{
-cidades[key]=null;
-if(i.value.length<3){box.innerHTML="";return;}
-let r=await fetch(`https://api.openrouteservice.org/geocode/autocomplete?api_key=${API_KEY}&text=${i.value}`);
-let d=await r.json();
-box.innerHTML="";
-(d.features||[]).slice(0,5).forEach(c=>{
-let div=document.createElement("div");
-div.innerText=c.properties.label;
-div.onclick=()=>{ i.value=c.properties.label; cidades[key]=c.geometry.coordinates; box.innerHTML=""; };
-box.appendChild(div);
-});
-});
+  i.addEventListener("input",()=>{
+    cidades[key]=null;
+    clearTimeout(timer);
+    const texto=i.value.trim();
+    if(texto.length<3){ box.innerHTML=""; return; }
+
+    timer=setTimeout(async()=>{
+      const minhaSeq=++seq;
+      try{
+        // Photon não depende da chave do ORS e serve como contingência para o autocomplete. O parâmetro lang=pt foi removido porque a API Photon retorna HTTP 400 para esse idioma.
+        const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(texto)}&limit=5`;
+        const r=await fetch(url);
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d=await r.json();
+        if(minhaSeq!==seq) return;
+        box.innerHTML="";
+        (d.features||[]).forEach(c=>{
+          const p=c.properties||{};
+          const partes=[p.name,p.city,p.state,p.country].filter((v,idx,arr)=>v && arr.indexOf(v)===idx);
+          const label=partes.join(", ") || p.name || texto;
+          const div=document.createElement("div");
+          div.innerText=label;
+          div.onclick=()=>{
+            i.value=label;
+            cidades[key]=c.geometry.coordinates;
+            box.innerHTML="";
+          };
+          box.appendChild(div);
+        });
+      }catch(e){
+        if(minhaSeq!==seq) return;
+        console.warn("Autocomplete indisponível:",e);
+        box.innerHTML='<div style="opacity:.7;cursor:default">Não foi possível consultar cidades agora.</div>';
+      }
+    },450);
+  });
 }
 
 auto("origem","sugOrigem","origem");
@@ -1276,11 +1447,21 @@ function copiarFaturamento(){
     return;
   }
 
-  navigator.clipboard.writeText(texto).then(() => {
-      let btn = document.querySelector('.btn-copy-faturamento');
+  const confirmar = () => {
+    let btn = document.querySelector('.btn-copy-faturamento');
+    if(btn){
       btn.innerHTML = "✅ Copiado!";
       setTimeout(() => { btn.innerHTML = "📋 Copiar p/ Faturamento"; }, 2000);
-  }).catch(err => alert("Erro ao copiar."));
+    }
+  };
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(confirmar).catch(() => {
+      if(!copiarComFallback(texto, null, confirmar)) alert("Erro ao copiar.");
+    });
+  }else if(!copiarComFallback(texto, null, confirmar)){
+    alert("Erro ao copiar.");
+  }
 }
 
 function montarResultadoRateioHtmlParaCopiar(){
@@ -1322,16 +1503,38 @@ function copiarResultadoRateioFormatado(){
       const btn = document.querySelector(".btn-copy-resultado");
       btn.innerHTML = "✅ Copiado!";
       setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000);
-    }).catch(()=>copiarTextoSimplesRateio(texto));
+    }).catch(()=>{
+      const confirmar = () => {
+        const btn = document.querySelector(".btn-copy-resultado");
+        if(btn){ btn.innerHTML = "✅ Copiado!"; setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000); }
+      };
+      if(!copiarComFallback(texto, html, confirmar)) copiarTextoSimplesRateio(texto);
+    });
   }else{
-    copiarTextoSimplesRateio(texto);
+    const confirmar = () => {
+      const btn = document.querySelector(".btn-copy-resultado");
+      if(btn){ btn.innerHTML = "✅ Copiado!"; setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000); }
+    };
+    if(!copiarComFallback(texto, html, confirmar)) copiarTextoSimplesRateio(texto);
   }
 }
 
 function copiarTextoSimplesRateio(texto){
-  navigator.clipboard.writeText(texto).then(()=>{
-    alert("Copiado como texto simples. Para manter o quadrado formatado, cole em e-mail, Word, Google Docs ou sistema que aceite HTML.");
-  }).catch(()=>alert("Não foi possível copiar."));
+  const confirmar = () => {
+    const btn = document.querySelector(".btn-copy-resultado");
+    if(btn){
+      btn.innerHTML = "✅ Copiado!";
+      setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000);
+    }
+  };
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(confirmar).catch(()=>{
+      if(!copiarComFallback(texto, null, confirmar)) alert("Não foi possível copiar.");
+    });
+  }else if(!copiarComFallback(texto, null, confirmar)){
+    alert("Não foi possível copiar.");
+  }
 }
 
 </script>
