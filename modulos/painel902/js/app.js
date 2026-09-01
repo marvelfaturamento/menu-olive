@@ -19,7 +19,8 @@ const state = {
   },
   supabase: null,
   remoteFinalizedIds: new Set(),
-  lastUpdateAt: null
+  lastUpdateAt: null,
+  tratativas: {}
 };
 
 function norm(v){ return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
@@ -27,6 +28,183 @@ function dedupeList(arr){ const seen = new Set(); return (arr || []).map(v => St
 function dedupeFretes(arr){ const seen = new Set(); return (arr || []).filter(Boolean).filter(f => { const k = [norm(f.pagador), norm(f.remetente), norm(f.ufOrigem), norm(f.ufDestino), Number(f.frete||0)].join('|'); if(seen.has(k)) return false; seen.add(k); return true; }).map(f => ({pagador:f.pagador||'', remetente:f.remetente||'', ufOrigem:f.ufOrigem||'', ufDestino:f.ufDestino||'', frete:Number(f.frete||0)})); }
 function dedupeCheckpoints(arr){ const seen = new Set(); return (arr || []).filter(Boolean).filter(c => { const k = [norm(c.cliente), norm(c.cidade), norm(c.ufOrigem || c.ufDestino || 'EX'), norm(c.destinoBucket || 'alertaInt')].join('|'); if(seen.has(k)) return false; seen.add(k); return true; }).map(c => ({cliente:c.cliente||'', cidade:c.cidade||'', ufOrigem:c.ufOrigem || c.ufDestino || 'EX', destinoBucket:c.destinoBucket || 'alertaInt'})); }
 function money(v){ return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+
+function escHtml(v){
+  return String(v ?? '').replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
+}
+function copyable(value, label='Campo'){
+  const txt = String(value ?? '').trim();
+  if(!txt || txt === '-') return '<span>-</span>';
+  return `<span class="copyField" data-copy="${encodeURIComponent(txt)}" title="Clique para copiar ${escHtml(label)}">${escHtml(txt)}</span>`;
+}
+function showCopyToast(msg='Copiado'){
+  let el = document.getElementById('copyToast902');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'copyToast902';
+    el.className = 'copyToast902';
+    document.body.appendChild(el);
+  }
+  el.textContent = `✓ ${msg}`;
+  el.classList.add('show');
+  clearTimeout(showCopyToast._t);
+  showCopyToast._t = setTimeout(() => el.classList.remove('show'), 900);
+}
+async function copyText902(text){
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){}
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed'; ta.style.opacity='0'; ta.style.pointerEvents='none';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return !!ok;
+  }catch(e){ return false; }
+}
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('.copyField');
+  if(!el) return;
+  e.preventDefault(); e.stopPropagation();
+  const text = decodeURIComponent(el.dataset.copy || '');
+  if(!text) return;
+  const ok = await copyText902(text);
+  showCopyToast(ok ? 'Copiado' : 'Não foi possível copiar');
+});
+
+function usuarioAtual902(){
+  const params = new URLSearchParams(window.location.search);
+  return String(params.get('usuario') || params.get('usuarioRef') || 'Usuário').trim() || 'Usuário';
+}
+function tratativaAtual(row){
+  const t = state.tratativas?.[row.id];
+  return t && t.status === 'contatado' ? t : null;
+}
+function formatTratativaData(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',', ' •');
+}
+async function carregarTratativasSupabase(){
+  if(!state.supabase) return false;
+  try{
+    const rows = await fetchAllRows('configuracoes_902', 'chave,valor', 'chave', true, 1000);
+    const out = {};
+    (rows || []).forEach(r => {
+      if(!String(r.chave || '').startsWith('tratativa:')) return;
+      const id = String(r.chave).slice('tratativa:'.length);
+      try{
+        const obj = typeof r.valor === 'string' ? JSON.parse(r.valor) : r.valor;
+        if(obj && obj.status === 'contatado') out[id] = obj;
+      }catch(e){}
+    });
+    const antes = JSON.stringify(state.tratativas || {});
+    const depois = JSON.stringify(out);
+    state.tratativas = out;
+    return antes !== depois;
+  }catch(e){ console.warn('Não foi possível carregar tratativas:', e); return false; }
+}
+
+// Atualização leve das tratativas entre máquinas, sem Realtime e sem recarregar a base 902.
+let tratativaPollEmAndamento = false;
+let tratativaMutacaoEmAndamento = false;
+async function atualizarTratativasAutomaticamente(){
+  // Não consulta enquanto um usuário está alterando Contatar/Contatado.
+  // Isso evita que uma resposta antiga do polling de 30 s sobrescreva a alteração recém-feita.
+  if(!state.supabase || tratativaPollEmAndamento || tratativaMutacaoEmAndamento || document.hidden) return;
+  tratativaPollEmAndamento = true;
+  try{
+    const mudou = await carregarTratativasSupabase();
+    if(mudou){
+      renderAll(false);
+      console.info('[902] Tratativas atualizadas automaticamente do Supabase.');
+    }
+  } finally {
+    tratativaPollEmAndamento = false;
+  }
+}
+function iniciarAtualizacaoAutomaticaTratativas(){
+  if(iniciarAtualizacaoAutomaticaTratativas._timer) return;
+  iniciarAtualizacaoAutomaticaTratativas._timer = setInterval(atualizarTratativasAutomaticamente, 30000);
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden) atualizarTratativasAutomaticamente();
+  });
+  window.addEventListener('focus', atualizarTratativasAutomaticamente);
+}
+async function salvarTratativaSupabase(row, tratativa){
+  if(!state.supabase || !row?.id) return;
+  const chave = `tratativa:${row.id}`;
+  if(!tratativa){
+    // Não usamos DELETE para voltar a Contatar. Em alguns ambientes a política RLS
+    // permite UPDATE/UPSERT, mas bloqueia DELETE; nesse caso o registro antigo
+    // continuava como Contatado e reaparecia no próximo polling.
+    const { error } = await state.supabase.from('configuracoes_902').upsert({
+      chave,
+      valor: JSON.stringify({status:'contatar', usuario:'', em:'', bucket:row.bucket || ''}),
+      updated_at: new Date().toISOString()
+    }, {onConflict:'chave'});
+    if(error) throw error;
+    return;
+  }
+  const { error } = await state.supabase.from('configuracoes_902').upsert({
+    chave,
+    valor: JSON.stringify(tratativa),
+    updated_at: new Date().toISOString()
+  }, {onConflict:'chave'});
+  if(error) throw error;
+}
+function tratativaButton(row){
+  const t = tratativaAtual(row);
+  if(!t){
+    return `<button class="tratBtn tratPendente" onclick="alternarTratativa('${encodeURIComponent(row.id)}')" title="Clique após realizar o contato">Contatar</button>`;
+  }
+  const meta = [t.usuario, formatTratativaData(t.em)].filter(Boolean).join(' • ');
+  return `<div class="tratWrap"><button class="tratBtn tratFeita" onclick="alternarTratativa('${encodeURIComponent(row.id)}')" title="Clique para voltar a Contatar">Contatado</button>${meta ? `<div class="tratMeta">${escHtml(meta)}</div>` : ''}</div>`;
+}
+window.alternarTratativa = async function(id){
+  id = decodeURIComponent(id);
+  const row = state.rows.find(r => r.id === id);
+  if(!row || tratativaMutacaoEmAndamento) return;
+  const anterior = state.tratativas?.[id] || null;
+  tratativaMutacaoEmAndamento = true;
+  try{
+    if(anterior){
+      // Grava primeiro no Supabase e só depois altera a tela.
+      // Assim um polling iniciado pouco antes do clique não consegue restaurar "Contatado".
+      await salvarTratativaSupabase(row, null);
+      delete state.tratativas[id];
+      renderAll(false);
+      setStatusText('Supabase: tratativa voltou para Contatar');
+    }else{
+      const t = {status:'contatado', usuario:usuarioAtual902(), em:new Date().toISOString(), bucket:row.bucket || ''};
+      await salvarTratativaSupabase(row, t);
+      state.tratativas[id] = t;
+      renderAll(false);
+      setStatusText('Supabase: contato registrado');
+    }
+  }catch(err){
+    console.error('Erro ao salvar tratativa:', err);
+    if(anterior) state.tratativas[id] = anterior; else delete state.tratativas[id];
+    renderAll(false);
+    alert('Não foi possível salvar a tratativa no Supabase.');
+  }finally{
+    tratativaMutacaoEmAndamento = false;
+    // Confere o estado final no servidor sem esperar os próximos 30 s.
+    setTimeout(atualizarTratativasAutomaticamente, 300);
+  }
+};
+function filtrarTratativa(rows, value){
+  if(!value) return rows;
+  return rows.filter(r => value === 'contatado' ? !!tratativaAtual(r) : !tratativaAtual(r));
+}
 
 function formatDateTimeBR(iso){
   if(!iso) return 'Importe ou sincronize a base';
@@ -619,16 +797,26 @@ function fillSelect(el, items, current=''){ const keep = current || el.value || 
 function filterRows(rows, {q='', client='', status='', ufOrigem='', ufDestino=''}={}){ const text = norm(q); return rows.filter(r => { if(client && norm(r.pagador) !== norm(client)) return false; if(status && r.status !== status) return false; if(ufOrigem && norm(r.ufRem) !== norm(ufOrigem)) return false; if(ufDestino && norm(r.ufDest) !== norm(ufDestino)) return false; const hay = norm([r.cavalo,r.pagador,r.posicao,r.motorista,r.referencia,r.talhao,r.destinatario,r.remetente].join(' ')); return !text || hay.includes(text); }); }
 function statusSelect(row, fromFinalizados=false){ const opts = ['Coleta','AG Nota','Aduana','Faturar','Finalizado']; return `<select onchange="alterarStatus('${encodeURIComponent(row.id)}', this.value, ${fromFinalizados ? 'true' : 'false'})">${opts.map(s => `<option value="${s}" ${row.status===s?'selected':''}>${s}</option>`).join('')}</select>`; }
 function rowButtons(row, fromFinalizados=false){ if(fromFinalizados){ return `<div class="rowActions"><button class="mini btn-green" onclick="reabrirRegistro('${encodeURIComponent(row.id)}')">Reabrir</button></div>`; } return `<div class="rowActions"><button class="mini btn-fat" onclick="marcarFaturar('${encodeURIComponent(row.id)}')">Faturar</button><button class="mini btn-fin" onclick="marcarFinalizado('${encodeURIComponent(row.id)}')">Finalizado</button></div>`; }
-function columns(includeFrete=false, fromFinalizados=false){
-  const cols = [['Cavalo', r => r.cavalo || '-'], ['Data PC', r => `${r.dataPC || '-'}<div class="small">Filial ${r.filial || '-'} | PV ${r.pv || '-'}</div>`], ['Posição', r => r.posicao || '-'], ['Pagador', r => `${r.pagador || '-'}${r.alerta ? '<div class="clientTag">cliente alerta</div>' : ''}`], ['Remetente / UF', r => `${r.remetente || '-'}<div class="small">UF ${r.ufRem || '-'}</div>`], ['Destinatário / UF', r => `${r.destinatario || '-'}<div class="small">UF ${r.ufDest || '-'}</div>`], ['Motorista', r => r.motorista || '-'], ['Talhão', r => r.talhao || '-'], ['Referência', r => r.referencia || '-']];
-  if(includeFrete) cols.push(['Frete', r => money(r.frete || 0)]);
-  cols.push(['Status', r => statusSelect(r, fromFinalizados)]);
+function columns(includeFrete=false, fromFinalizados=false, alertMode=false){
+  const cols = [
+    ['Cavalo', r => copyable(r.cavalo || '-', 'cavalo/frota')],
+    ['Data PC', r => `${copyable(r.dataPC || '-', 'data PC')}<div class="small">Filial ${copyable(r.filial || '-', 'filial')} | PV ${copyable(r.pv || '-', 'PV')}</div>`],
+    ['Posição', r => copyable(r.posicao || '-', 'posição')],
+    ['Pagador', r => `${copyable(r.pagador || '-', 'pagador')}${r.alerta ? '<div class="clientTag">cliente alerta</div>' : ''}`],
+    ['Remetente / UF', r => `${copyable(r.remetente || '-', 'remetente')}<div class="small">UF ${copyable(r.ufRem || '-', 'UF origem')}</div>`],
+    ['Destinatário / UF', r => `${copyable(r.destinatario || '-', 'destinatário')}<div class="small">UF ${copyable(r.ufDest || '-', 'UF destino')}</div>`],
+    ['Motorista', r => copyable(r.motorista || '-', 'motorista')],
+    ['Talhão', r => copyable(r.talhao || '-', 'talhão')],
+    ['Referência', r => copyable(r.referencia || '-', 'referência')]
+  ];
+  if(includeFrete) cols.push(['Frete', r => copyable(money(r.frete || 0), 'frete')]);
+  cols.push(fromFinalizados ? ['Status', r => statusSelect(r, true)] : ['Tratativa', r => tratativaButton(r)]);
   cols.push(['Ações', r => rowButtons(r, fromFinalizados)]);
   return cols;
 }
 const PAGE_SIZE_902 = 50;
-function renderTable(el, rows, includeFrete=false, fromFinalizados=false){
-  const cols = columns(includeFrete, fromFinalizados);
+function renderTable(el, rows, includeFrete=false, fromFinalizados=false, alertMode=false){
+  const cols = columns(includeFrete, fromFinalizados, alertMode);
   const total = rows.length;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE_902));
   let page = Number(el.dataset.page || 1);
@@ -801,6 +989,7 @@ function renderAll(full=false){
   if(cAduanaFrete) cAduanaFrete.textContent = `${money(sets.aduana.reduce((a,b)=>a+Number(b.frete||0),0))} em fretes`;
   cNac.textContent = sets.alertaNac.length;
   cInt.textContent = sets.alertaInt.length;
+  if(typeof cIntFrete !== 'undefined' && cIntFrete) cIntFrete.textContent = `${money(sets.alertaInt.reduce((a,b)=>a+Number(b.frete||0),0))} em fretes`;
   cExpo.textContent = sets.alertaExpo.length;
   renderLastUpdate();
 
@@ -816,15 +1005,12 @@ function renderAll(full=false){
     fillSelect(ufDestinoAduana, unique(sets.aduana, 'ufDest'), ufDestinoAduana.value);
 
     fillSelect(clienteNac, unique(sets.alertaNac, 'pagador'), clienteNac.value);
-    fillSelect(statusNac, unique(sets.alertaNac, 'status'), statusNac.value);
     fillSelect(ufDestinoNac, unique(sets.alertaNac, 'ufDest'), ufDestinoNac.value);
 
     fillSelect(clienteInt, unique(sets.alertaInt, 'pagador'), clienteInt.value);
-    fillSelect(statusInt, unique(sets.alertaInt, 'status'), statusInt.value);
     fillSelect(ufDestinoInt, unique(sets.alertaInt, 'ufDest'), ufDestinoInt.value);
 
     fillSelect(clienteExpo, unique(sets.alertaExpo, 'pagador'), clienteExpo.value);
-    fillSelect(statusExpo, unique(sets.alertaExpo, 'status'), statusExpo.value);
     fillSelect(ufDestinoExpo, unique(sets.alertaExpo, 'ufDest'), ufDestinoExpo.value);
   }
 
@@ -833,9 +1019,12 @@ function renderAll(full=false){
   renderTable(tbAg, agRows, true);
   const adRows = filterRows(sets.aduana, {q: buscaAduana.value, client: clienteAduana.value, ufDestino: ufDestinoAduana.value});
   renderTable(tbAduana, adRows, true);
-  renderTable(tbNac, filterRows(sets.alertaNac, {q: buscaNac.value, client: clienteNac.value, status: statusNac.value, ufDestino: ufDestinoNac.value}));
-  renderTable(tbInt, filterRows(sets.alertaInt, {q: buscaInt.value, client: clienteInt.value, status: statusInt.value, ufDestino: ufDestinoInt.value}));
-  renderTable(tbExpo, filterRows(sets.alertaExpo, {q: buscaExpo.value, client: clienteExpo.value, status: statusExpo.value, ufDestino: ufDestinoExpo.value}));
+  const nacRows = filtrarTratativa(filterRows(sets.alertaNac, {q: buscaNac.value, client: clienteNac.value, ufDestino: ufDestinoNac.value}), statusNac.value);
+  const intRows = filtrarTratativa(filterRows(sets.alertaInt, {q: buscaInt.value, client: clienteInt.value, ufDestino: ufDestinoInt.value}), statusInt.value);
+  const expoRows = filtrarTratativa(filterRows(sets.alertaExpo, {q: buscaExpo.value, client: clienteExpo.value, ufDestino: ufDestinoExpo.value}), statusExpo.value);
+  renderTable(tbNac, nacRows, false, false, true);
+  renderTable(tbInt, intRows, true, false, true);
+  renderTable(tbExpo, expoRows, false, false, true);
   renderTable(tbFim, state.finalizados, false, true);
 
   sumAgQtd.textContent = agRows.length;
@@ -1157,6 +1346,10 @@ reclassify();
       row.finalizadoEm = new Date().toISOString();
       state.finalizados.unshift(row);
       state.rows.splice(idx, 1);
+      if(state.tratativas?.[id]){
+        delete state.tratativas[id];
+        try{ await salvarTratativaSupabase(row, null); }catch(e){ console.warn('Não foi possível limpar tratativa ao finalizar:', e); }
+      }
       renderAll(true);
       await autoSaveSingleRow(row, 'finalização da PC');
       return;
@@ -1444,13 +1637,15 @@ async function initApp(){
   initSupabase();
   renderLastUpdate();
   await carregarUltimaAtualizacaoSupabase();
+  await carregarTratativasSupabase();
   renderConfigEditors();
   reclassify();
   renderAll(true);
 
   if(state.supabase){
     await carregarDaSupabase(true);
-    setStatusText('Supabase: carregado e auto save por PC ativo');
+    iniciarAtualizacaoAutomaticaTratativas();
+    setStatusText('Supabase: carregado • tratativas atualizam a cada 30 s');
   } else {
     setStatusText('Supabase: modo local');
   }

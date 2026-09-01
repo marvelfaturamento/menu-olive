@@ -56,7 +56,7 @@
 <button class="cardBtn" data-open="agNota"><div class="k">Ag nota</div><div class="v" id="cAg">30</div><div class="k" id="cAgFrete">R$ 1.015.010,00 em fretes</div></button>
 <button class="cardBtn" data-open="aduana"><div class="k">Em aduana</div><div class="v" id="cAduana">13</div><div class="k" id="cAduanaFrete">R$ 0,00 em fretes</div></button>
 <button class="cardBtn" data-open="alertaNac"><div class="k">Alerta nacional</div><div class="v" id="cNac">24</div><div class="k">UF destino diferente de EX</div></button>
-<button class="cardBtn" data-open="alertaInt"><div class="k">Alerta internacional impo</div><div class="v" id="cInt">10</div><div class="k">UF EX ou saída de aduana</div></button>
+<button class="cardBtn" data-open="alertaInt"><div class="k">Alerta internacional impo</div><div class="v" id="cInt">10</div><div class="k" id="cIntFrete">R$ 0,00 em fretes</div><div class="k">UF EX ou saída de aduana</div></button>
 <button class="cardBtn" data-open="alertaExpo"><div class="k">Alerta internacional expo</div><div class="v" id="cExpo">5</div><div class="k">Clientes exportação com UF destino EX</div></button>
 </div>
 <section class="panel tab hidden" id="tab-ativo">
@@ -67,7 +67,7 @@
 <div class="field"><small>UF destino</small><select id="ufDestinoAtivo"><option value="">Todos</option><option value="AL">AL</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="EX">EX</option><option value="GO">GO</option><option value="MA">MA</option><option value="MG">MG</option><option value="MS">MS</option><option value="MT">MT</option><option value="PE">PE</option><option value="PR">PR</option><option value="RJ">RJ</option><option value="RO">RO</option><option value="RS">RS</option><option value="SC">SC</option><option value="SE">SE</option><option value="SP">SP</option></select></div>
 </div>
 <h3 class="sectionTitle">PCs ativas</h3>
-<div class="tableWrap"><table id="tbAtivo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+<div class="tableWrap"><table id="tbAtivo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab hidden" id="tab-agNota">
 <div class="filters" style="grid-template-columns:1.5fr 1fr 1fr">
@@ -80,7 +80,7 @@
 <div>Total de casos: <strong id="sumAgQtd">30</strong></div>
 <div>Total de frete padrão: <strong id="sumAgFrete">R$ 1.015.010,00</strong></div>
 </div>
-<div class="tableWrap"><table id="tbAg"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Frete</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+<div class="tableWrap"><table id="tbAg"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Frete</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab" id="tab-aduana">
 <div class="filters" style="grid-template-columns:1.5fr 1fr 1fr">
@@ -93,37 +93,37 @@
 <div>Total de casos: <strong id="sumAduanaQtd">13</strong></div>
 <div>Total de frete padrão: <strong id="sumAduanaFrete">R$ 458.800,00</strong></div>
 </div>
-<div class="tableWrap"><table id="tbAduana"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Frete</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+<div class="tableWrap"><table id="tbAduana"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Frete</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab hidden" id="tab-alertaNac">
 <div class="filters">
 <div class="field"><small>Busca</small><input id="buscaNac" placeholder="Cavalo, cliente, posição..."/></div>
 <div class="field"><small>Cliente</small><select id="clienteNac"><option value="">Todos</option><option value="BRF S.A.">BRF S.A.</option><option value="COLGATE-PALMOLIVE COMERCIAL LTDA">COLGATE-PALMOLIVE COMERCIAL LTDA</option><option value="COMERCIO IMPORTAÇÃO E EXPORTAÇÃO DE FRUTAS CRISFRUT LTDA">COMERCIO IMPORTAÇÃO E EXPORTAÇÃO DE FRUTAS CRISFRUT LTDA</option><option value="MARS - MASTERFOODS BRASIL ALIMENTOS LTDA">MARS - MASTERFOODS BRASIL ALIMENTOS LTDA</option><option value="MARTINS &amp; MARTINS LTDA">MARTINS &amp; MARTINS LTDA</option><option value="NISSIN FOODS DO BRASIL LTDA">NISSIN FOODS DO BRASIL LTDA</option><option value="VALLE D`ORO AGROINDUSTRIAL LTDA.">VALLE D`ORO AGROINDUSTRIAL LTDA.</option></select></div>
-<div class="field"><small>Status</small><select id="statusNac"><option value="">Todos</option><option value="Coleta">Coleta</option><option value="Faturar">Faturar</option></select></div>
+<div class="field"><small>Tratativa</small><select id="statusNac"><option value="">Todos</option><option value="contatar">Contatar</option><option value="contatado">Contatado</option></select></div>
 <div class="field"><small>UF destino</small><select id="ufDestinoNac"><option value="">Todos</option><option value="AL">AL</option><option value="BA">BA</option><option value="CE">CE</option><option value="MS">MS</option><option value="MT">MT</option><option value="PI">PI</option><option value="PR">PR</option><option value="SC">SC</option><option value="SP">SP</option></select></div>
 </div>
 <h3 class="sectionTitle">Clientes alerta nacional</h3>
-<div class="tableWrap"><table id="tbNac"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+<div class="tableWrap"><table id="tbNac"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab hidden" id="tab-alertaInt">
 <div class="filters">
 <div class="field"><small>Busca</small><input id="buscaInt" placeholder="Cavalo, cliente, posição..."/></div>
 <div class="field"><small>Cliente</small><select id="clienteInt"><option value="">Todos</option><option value="BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA">BENASSI SÃO PAULO - IMPORTAÇÃO E EXPORTAÇÃO LTDA</option><option value="BUZARAM COMPANY S.A.">BUZARAM COMPANY S.A.</option><option value="CENCOSUD BRASIL COMERCIAL LTDA">CENCOSUD BRASIL COMERCIAL LTDA</option><option value="GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA">GARDEN FRUIT COMERCIO IMPORTACAO E EXPORTACAO DE FRUTAS LTDA</option><option value="MCCAIN DO BRASIL ALIMENTOS LTDA">MCCAIN DO BRASIL ALIMENTOS LTDA</option><option value="MINERVA S/A">MINERVA S/A</option><option value="TENDA ATACADO LTDA">TENDA ATACADO LTDA</option></select></div>
-<div class="field"><small>Status</small><select id="statusInt"><option value="">Todos</option><option value="Faturar">Faturar</option></select></div>
+<div class="field"><small>Tratativa</small><select id="statusInt"><option value="">Todos</option><option value="contatar">Contatar</option><option value="contatado">Contatado</option></select></div>
 <div class="field"><small>UF destino</small><select id="ufDestinoInt"><option value="">Todos</option><option value="MG">MG</option><option value="SE">SE</option><option value="SP">SP</option></select></div>
 </div>
 <h3 class="sectionTitle">Clientes alerta internacional</h3>
-<div class="tableWrap"><table id="tbInt"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+<div class="tableWrap"><table id="tbInt"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Frete</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab hidden" id="tab-alertaExpo">
 <div class="filters">
 <div class="field"><small>Busca</small><input id="buscaExpo" placeholder="Cavalo, cliente, posição..."/></div>
 <div class="field"><small>Cliente</small><select id="clienteExpo"><option value="">Todos</option><option value="BARRY CALLEBAUT BRASIL S/A">BARRY CALLEBAUT BRASIL S/A</option><option value="KENVUE ARGENTINA S.A">KENVUE ARGENTINA S.A</option><option value="MINERVA S/A">MINERVA S/A</option></select></div>
-<div class="field"><small>Status</small><select id="statusExpo"><option value="">Todos</option><option value="Coleta">Coleta</option><option value="Faturar">Faturar</option></select></div>
+<div class="field"><small>Tratativa</small><select id="statusExpo"><option value="">Todos</option><option value="contatar">Contatar</option><option value="contatado">Contatado</option></select></div>
 <div class="field"><small>UF destino</small><select id="ufDestinoExpo"><option value="">Todos</option><option value="EX">EX</option></select></div>
 </div>
 <h3 class="sectionTitle">Clientes alerta internacional expo</h3>
-<div class="tableWrap"><table id="tbExpo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+<div class="tableWrap"><table id="tbExpo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab hidden" id="tab-finalizados">
 <div class="summaryLine"><button class="btn-red" id="btnLimparFinalizados">Excluir lote local</button></div>
