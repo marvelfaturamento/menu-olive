@@ -447,34 +447,34 @@ async function getKmComCache(a,b,origemTela){
     window.__fontesKm[chave] = "Cache local";
     console.info(`[KM] ${Number(cacheLocal).toFixed(2)} km | Fonte: Cache local | ${chave}`);
     // sincroniza um valor real já conhecido com o Supabase
-    await salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
+    salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
     return Number(cacheLocal);
   }
 
-  const fetchComTimeout = async (url, ms=4500) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), ms);
-    try {
-      const r = await fetch(url, { signal: controller.signal });
-      if(!r.ok) throw new Error(`HTTP ${r.status}`);
-      const d = await r.json();
-      if(!d.routes || !d.routes[0] || !d.routes[0].distance) throw new Error("Rota sem distância");
-      return d.routes[0].distance/1000;
-    } finally { clearTimeout(timer); }
-  };
-
-  const coords = `${a[0]},${a[1]};${b[0]},${b[1]}`;
-  const servidores = [
-    `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`,
-    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`
-  ];
-
+  // 3) Rota real via função serverless da Vercel.
+  // A chamada parte do nosso próprio domínio, evitando bloqueios CORS do Valhalla/OSRM no navegador.
   let km = null;
   let estimado = false;
   try {
-    km = await Promise.any(servidores.map(url => fetchComTimeout(url)));
-    window.__fontesKm[chave] = "API de rota";
-    console.info(`[KM] ${Number(km).toFixed(2)} km | Fonte: API de rota | ${chave}`);
+    if(location.protocol === "file:") throw new Error("API de rota requer o painel publicado na Vercel");
+    const controllerRota = new AbortController();
+    const timerRota = setTimeout(() => controllerRota.abort(), 20000);
+    let r;
+    try {
+      r = await fetch(`/api/rota?aLng=${encodeURIComponent(a[0])}&aLat=${encodeURIComponent(a[1])}&bLng=${encodeURIComponent(b[0])}&bLat=${encodeURIComponent(b[1])}`, { signal: controllerRota.signal });
+    } finally {
+      clearTimeout(timerRota);
+    }
+    if(!r.ok){
+      let detalhe = "";
+      try { detalhe = (await r.json())?.error || ""; } catch(_){}
+      throw new Error(`API rota HTTP ${r.status}${detalhe ? ` - ${detalhe}` : ""}`);
+    }
+    const resultadoRota = await r.json();
+    if(!Number.isFinite(Number(resultadoRota.km)) || Number(resultadoRota.km) <= 0) throw new Error("API rota sem distância válida");
+    km = Number(resultadoRota.km);
+    window.__fontesKm[chave] = resultadoRota.fonte || "API de rota";
+    console.info(`[KM] ${Number(km).toFixed(2)} km | Fonte: ${window.__fontesKm[chave]} | ${chave}`);
   } catch(e) {
     const toRad = v => v * Math.PI / 180;
     const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
@@ -491,7 +491,7 @@ async function getKmComCache(a,b,origemTela){
   // Somente distâncias obtidas de roteador são persistidas. Estimativas nunca contaminam o cache/Supabase.
   if(!estimado){
     localStorage.setItem(localKey, String(km));
-    await salvarKmSupabase(chave,a,b,km,origemTela);
+    salvarKmSupabase(chave,a,b,km,origemTela);
   }
   return km;
 }
@@ -642,8 +642,10 @@ res.innerHTML="<span style='color:#fca5a5;'>Selecione cidades válidas sugeridas
 return;
 }
 
-let km1=await getKm(cidades.origem,cidades.aduana);
-let km2=await getKm(cidades.aduana,cidades.destino);
+let [km1, km2] = await Promise.all([
+  getKm(cidades.origem,cidades.aduana),
+  getKm(cidades.aduana,cidades.destino)
+]);
 let total=km1+km2;
 
 let mercadoria=parseFloat(document.getElementById("mercadoria").value)||0;
@@ -1091,34 +1093,34 @@ async function getKmComCache(a,b,origemTela){
     window.__fontesKm[chave] = "Cache local";
     console.info(`[KM] ${Number(cacheLocal).toFixed(2)} km | Fonte: Cache local | ${chave}`);
     // sincroniza um valor real já conhecido com o Supabase
-    await salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
+    salvarKmSupabase(chave,a,b,Number(cacheLocal),origemTela);
     return Number(cacheLocal);
   }
 
-  const fetchComTimeout = async (url, ms=4500) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), ms);
-    try {
-      const r = await fetch(url, { signal: controller.signal });
-      if(!r.ok) throw new Error(`HTTP ${r.status}`);
-      const d = await r.json();
-      if(!d.routes || !d.routes[0] || !d.routes[0].distance) throw new Error("Rota sem distância");
-      return d.routes[0].distance/1000;
-    } finally { clearTimeout(timer); }
-  };
-
-  const coords = `${a[0]},${a[1]};${b[0]},${b[1]}`;
-  const servidores = [
-    `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`,
-    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}?overview=false&alternatives=false&steps=false`
-  ];
-
+  // 3) Rota real via função serverless da Vercel.
+  // A chamada parte do nosso próprio domínio, evitando bloqueios CORS do Valhalla/OSRM no navegador.
   let km = null;
   let estimado = false;
   try {
-    km = await Promise.any(servidores.map(url => fetchComTimeout(url)));
-    window.__fontesKm[chave] = "API de rota";
-    console.info(`[KM] ${Number(km).toFixed(2)} km | Fonte: API de rota | ${chave}`);
+    if(location.protocol === "file:") throw new Error("API de rota requer o painel publicado na Vercel");
+    const controllerRota = new AbortController();
+    const timerRota = setTimeout(() => controllerRota.abort(), 20000);
+    let r;
+    try {
+      r = await fetch(`/api/rota?aLng=${encodeURIComponent(a[0])}&aLat=${encodeURIComponent(a[1])}&bLng=${encodeURIComponent(b[0])}&bLat=${encodeURIComponent(b[1])}`, { signal: controllerRota.signal });
+    } finally {
+      clearTimeout(timerRota);
+    }
+    if(!r.ok){
+      let detalhe = "";
+      try { detalhe = (await r.json())?.error || ""; } catch(_){}
+      throw new Error(`API rota HTTP ${r.status}${detalhe ? ` - ${detalhe}` : ""}`);
+    }
+    const resultadoRota = await r.json();
+    if(!Number.isFinite(Number(resultadoRota.km)) || Number(resultadoRota.km) <= 0) throw new Error("API rota sem distância válida");
+    km = Number(resultadoRota.km);
+    window.__fontesKm[chave] = resultadoRota.fonte || "API de rota";
+    console.info(`[KM] ${Number(km).toFixed(2)} km | Fonte: ${window.__fontesKm[chave]} | ${chave}`);
   } catch(e) {
     const toRad = v => v * Math.PI / 180;
     const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
@@ -1135,7 +1137,7 @@ async function getKmComCache(a,b,origemTela){
   // Somente distâncias obtidas de roteador são persistidas. Estimativas nunca contaminam o cache/Supabase.
   if(!estimado){
     localStorage.setItem(localKey, String(km));
-    await salvarKmSupabase(chave,a,b,km,origemTela);
+    salvarKmSupabase(chave,a,b,km,origemTela);
   }
   return km;
 }
@@ -1291,8 +1293,10 @@ if(!cidades.origem || !cidades.aduana || !cidades.destino){
 }
 if(!selecionado){ res.innerHTML="<span style='color:#fca5a5;'>Selecione um país.</span>"; return; }
 
-let km1=await getKm(cidades.origem,cidades.aduana);
-let km2=await getKm(cidades.aduana,cidades.destino);
+let [km1, km2] = await Promise.all([
+  getKm(cidades.origem,cidades.aduana),
+  getKm(cidades.aduana,cidades.destino)
+]);
 let total=km1+km2;
 
 let freteBRL=parseFloat(document.getElementById("freteBRL").value)||0;

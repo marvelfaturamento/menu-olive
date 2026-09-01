@@ -1369,7 +1369,8 @@
       return supabase.createClient(cfg.url, cfg.key);
     }
 
-    const sbDados = criarCliente(SUPABASES.dados);
+    // DADOS usa REST direto para evitar abrir canal Realtime/WebSocket desnecessário.
+    const sbDados = null;
     const sbInstrutivo = criarCliente(SUPABASES.instrutivo);
     const sbRefaturamento = criarCliente(SUPABASES.refaturamento);
     const sbFaturamento = criarCliente(SUPABASES.faturamento);
@@ -1555,16 +1556,29 @@
     }
 
     async function carregarDados() {
-      if (!sbDados) {
+      const cfg = SUPABASES.dados;
+      const tabela = TABELAS.dados.tabela;
+      if (!cfg?.url || !cfg?.key || !tabela) {
         setTexto("dadosStatus", "Atalho");
         setTexto("dadosRegistros", "—");
         return;
       }
 
       try {
-        const { count, table } = await queryCountWithFallback(sbDados, TABELAS.dados.tabela);
-        setTexto("dadosStatus", table ? "Conectado" : "Atalho");
-        setTexto("dadosRegistros", table ? inteiro(count || 0) : "—");
+        const url = `${cfg.url}/rest/v1/${encodeURIComponent(tabela)}?select=${encodeURIComponent(TABELAS.dados.campoId || 'id')}`;
+        const r = await fetch(url, {
+          method: "HEAD",
+          headers: {
+            apikey: cfg.key,
+            Authorization: `Bearer ${cfg.key}`,
+            Prefer: "count=exact"
+          }
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const range = r.headers.get("content-range") || "";
+        const total = range.includes("/") ? Number(range.split("/").pop()) : NaN;
+        setTexto("dadosStatus", "Conectado");
+        setTexto("dadosRegistros", Number.isFinite(total) ? inteiro(total) : "—");
       } catch (e) {
         console.error("Erro dados:", e);
         setTexto("dadosStatus", "Atalho");
