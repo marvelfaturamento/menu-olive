@@ -584,6 +584,22 @@ function rowInCheckpointCity(row, cp){
   return !!cp && norm(row.posicao).includes(norm(cp.cidade));
 }
 
+// Checkpoint geral pela cidade de origem (902 com município do remetente).
+// Enquanto o veículo ainda estiver na cidade de coleta, a PC permanece ativa.
+// Ao mudar de cidade, o fluxo normal decide o destino (Nacional / IMPO / EXPO).
+// Regras específicas de aduana/checkpoint continuam tendo prioridade e são
+// processadas antes desta regra. Se a cidade não vier no relatório, mantém-se
+// o comportamento anterior para não travar a operação.
+function rowInOriginCity(row){
+  const cidade = norm(row?.cidadeOrigem);
+  const posicao = norm(row?.posicao);
+  if(!cidade || !posicao) return false;
+  return posicao.includes(cidade);
+}
+function temCheckpointCidadeOrigem(row){
+  return !!norm(row?.cidadeOrigem);
+}
+
 function fretePadrao(row){
   const p = norm(row.pagador), r = norm(row.remetente), o = norm(row.ufRem), d = norm(row.ufDest);
   const found = state.config.fretes.find(f => (!f.pagador || p.includes(norm(f.pagador))) && (!f.remetente || r.includes(norm(f.remetente))) && norm(f.ufOrigem) === o && norm(f.ufDestino) === d);
@@ -731,6 +747,18 @@ function reclassify(){
     if(elegivelAgNotaAduana && !row.foiAduana){
       row.bucket = 'agNota';
       row.status = 'AG Nota';
+      return;
+    }
+
+    /* CHECKPOINT GERAL POR CIDADE DE ORIGEM
+       Agora que o 902 informa o município do remetente, a PC não sobe para
+       os alertas automáticos enquanto a posição ainda estiver na cidade de
+       coleta. Assim que a posição mudar de cidade, as regras já existentes
+       abaixo voltam a decidir o fluxo. As regras específicas acima (aduana,
+       Minerva/Varginha e checkpoints cadastrados) permanecem inalteradas. */
+    if(temCheckpointCidadeOrigem(row) && rowInOriginCity(row)){
+      row.bucket = 'ativo';
+      row.status = 'Coleta';
       return;
     }
 
