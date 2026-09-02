@@ -803,8 +803,8 @@ function columns(includeFrete=false, fromFinalizados=false, alertMode=false){
     ['Data PC', r => `${copyable(r.dataPC || '-', 'data PC')}<div class="small">Filial ${copyable(r.filial || '-', 'filial')} | PV ${copyable(r.pv || '-', 'PV')}</div>`],
     ['Posição', r => copyable(r.posicao || '-', 'posição')],
     ['Pagador', r => `${copyable(r.pagador || '-', 'pagador')}${r.alerta ? '<div class="clientTag">cliente alerta</div>' : ''}`],
-    ['Remetente / UF', r => `${copyable(r.remetente || '-', 'remetente')}<div class="small">UF ${copyable(r.ufRem || '-', 'UF origem')}</div>`],
-    ['Destinatário / UF', r => `${copyable(r.destinatario || '-', 'destinatário')}<div class="small">UF ${copyable(r.ufDest || '-', 'UF destino')}</div>`],
+    ['Remetente / Origem', r => `${copyable(r.remetente || '-', 'remetente')}<div class="small">${r.cidadeOrigem ? copyable(r.cidadeOrigem, 'cidade de origem') + ' / ' : ''}UF ${copyable(r.ufRem || '-', 'UF origem')}</div>`],
+    ['Destinatário / Destino', r => `${copyable(r.destinatario || '-', 'destinatário')}<div class="small">${r.cidadeDestino ? copyable(r.cidadeDestino, 'cidade de destino') + ' / ' : ''}UF ${copyable(r.ufDest || '-', 'UF destino')}</div>`],
     ['Motorista', r => copyable(r.motorista || '-', 'motorista')],
     ['Talhão', r => copyable(r.talhao || '-', 'talhão')],
     ['Referência', r => copyable(r.referencia || '-', 'referência')]
@@ -1038,8 +1038,22 @@ function renderAll(full=false){
 function detectHeaderRow(rows){ for(let i=0;i<Math.min(rows.length,15);i++){ const t = (rows[i]||[]).map(x => norm(x)).join('|'); if(t.includes('REF') && t.includes('DATA PC') && t.includes('MOTORISTA')) return i; } return 0; }
 async function parseExcelRows(matrix){
   const header = detectHeaderRow(matrix);
+  const headers = (matrix[header] || []).map(h => norm(h));
   const rows = matrix.slice(header + 1);
   const totalRows = rows.length;
+
+  // Leitura por nome do cabeçalho: evita quebrar quando novas colunas forem inseridas no relatório 902.
+  const idx = (...names) => {
+    for(const name of names){
+      const i = headers.indexOf(norm(name));
+      if(i >= 0) return i;
+    }
+    return -1;
+  };
+  const col = (r, ...names) => {
+    const i = idx(...names);
+    return i >= 0 ? String(r[i] ?? '').trim() : '';
+  };
 
   setStatusText(`Importação 902: preparando ${totalRows.toLocaleString('pt-BR')} linha(s)...`);
   setBusyOperation('Importando 902: carregando histórico...');
@@ -1067,31 +1081,33 @@ async function parseExcelRows(matrix){
 
     if(!r || r.length < 10) continue;
 
-    const ref = String(r[0] || '').trim();
-    const dataPC = String(r[1] || '').trim();
-    const filial = String(r[2] || '').trim();
-    const pv = String(r[3] || '').trim();
+    const ref = col(r, 'REF');
+    const dataPC = col(r, 'DATA PC');
+    const filial = col(r, 'FILIAL_PC', 'FILIAL PC');
+    const pv = col(r, 'PV');
     if(!ref || !pv) continue;
     validas++;
 
     const id = [ref, filial, pv].join('|');
     const old = oldActiveMap.get(id) || oldFinalMap.get(id);
 
-    const numeroDocumentoCol21 = String(r[20] ?? '').trim();
-    const autoFinalizar = numeroDocumentoCol21 !== '';
+    const numeroDocumento = col(r, 'NUMERO_DOCUMENTO', 'NUMERO DOCUMENTO');
+    const autoFinalizar = numeroDocumento !== '';
 
     const baseRow = {
       id, ref, dataPC, filial, pv,
-      cavalo: String(r[6] ?? r[5] ?? '').trim(),
-      posicao: String(r[8] ?? '').trim(),
-      motorista: String(r[9] ?? '').trim(),
-      remetente: String(r[10] ?? '').trim(),
-      ufRem: String(r[11] ?? '').trim(),
-      destinatario: String(r[12] ?? '').trim(),
-      ufDest: String(r[13] ?? '').trim(),
-      pagador: String(r[14] ?? '').trim(),
-      talhao: String(r[15] ?? '').trim(),
-      referencia: String(r[16] ?? r[15] ?? '').trim(),
+      cavalo: col(r, 'CAVALO'),
+      posicao: col(r, 'ULTIMA POSIÇÃO', 'ULTIMA POSICAO', 'POSICAO', 'POSIÇÃO'),
+      motorista: col(r, 'MOTORISTA'),
+      remetente: col(r, 'REMETENTE_PC', 'REMETENTE PC'),
+      cidadeOrigem: col(r, 'MUNICIPIO_REMETENTE', 'MUNICÍPIO_REMETENTE', 'MUNICIPIO REMETENTE', 'CIDADE_ORIGEM', 'CIDADE ORIGEM'),
+      ufRem: col(r, 'UF_REMETENTE', 'UF REMETENTE', 'UF_ORIGEM', 'UF ORIGEM'),
+      destinatario: col(r, 'DESTINATARIO_PC', 'DESTINATÁRIO_PC', 'DESTINATARIO PC'),
+      cidadeDestino: col(r, 'MUNICIPIO_DESTINATARIO', 'MUNICÍPIO_DESTINATARIO', 'MUNICIPIO DESTINATARIO', 'CIDADE_DESTINO', 'CIDADE DESTINO'),
+      ufDest: col(r, 'UF_DESTINATARIO', 'UF DESTINATARIO', 'UF_DESTINO', 'UF DESTINO'),
+      pagador: col(r, 'PAGADOR_PC', 'PAGADOR PC', 'PAGADOR'),
+      talhao: col(r, 'TALHAO', 'TALHÃO'),
+      referencia: col(r, 'REFERENCIA', 'REFERÊNCIA'),
       foiAduana: old?.foiAduana || false,
       passouCheckpoint: old?.passouCheckpoint || false,
       finalizadoEm: old?.finalizadoEm || null
