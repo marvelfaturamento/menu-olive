@@ -1506,7 +1506,7 @@ fileBase.addEventListener('change', e => {
 });
 
 function mapRowToDb(row){
-  return {id: row.id, pv: row.pv, ref: row.ref, filial: row.filial, data_pc: row.dataPC || null, cavalo: row.cavalo || null, posicao_atual: row.posicao || null, motorista: row.motorista || null, pagador: row.pagador || null, remetente: row.remetente || null, uf_origem: row.ufRem || null, destinatario: row.destinatario || null, uf_destino: row.ufDest || null, talhao: row.talhao || null, referencia: row.referencia || null, status: row.status || 'Coleta', bucket_atual: row.bucket || 'ativo', foi_aduana: !!row.foiAduana, passou_checkpoint: !!row.passouCheckpoint, frete_padrao: Number(row.frete || 0), competencia_mes: row.competencia ? `${row.competencia}-01` : null};
+  return {id: row.id, pv: row.pv, ref: row.ref, filial: row.filial, data_pc: row.dataPC || null, cavalo: row.cavalo || null, posicao_atual: row.posicao || null, motorista: row.motorista || null, pagador: row.pagador || null, remetente: row.remetente || null, municipio_origem: row.cidadeOrigem || null, uf_origem: row.ufRem || null, destinatario: row.destinatario || null, municipio_destino: row.cidadeDestino || null, uf_destino: row.ufDest || null, talhao: row.talhao || null, referencia: row.referencia || null, status: row.status || 'Coleta', bucket_atual: row.bucket || 'ativo', foi_aduana: !!row.foiAduana, passou_checkpoint: !!row.passouCheckpoint, frete_padrao: Number(row.frete || 0), competencia_mes: row.competencia ? `${row.competencia}-01` : null};
 }
 
 async function autoSaveSingleRow(row, actionLabel='salvar a PC'){
@@ -1659,8 +1659,10 @@ async function carregarDaSupabase(silent=false){
     motorista: d.motorista || '',
     pagador: d.pagador || '',
     remetente: d.remetente || '',
+    cidadeOrigem: d.municipio_origem || '',
     ufRem: d.uf_origem || '',
     destinatario: d.destinatario || '',
+    cidadeDestino: d.municipio_destino || '',
     ufDest: d.uf_destino || '',
     talhao: d.talhao || '',
     referencia: d.referencia || '',
