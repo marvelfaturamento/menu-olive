@@ -569,7 +569,13 @@ function startsWithCfg(value, cfgList){
     return c && (v === c || v.startsWith(c + ' '));
   });
 }
-function hasAlert(row){ return startsWithCfg(row.pagador, state.config.alerta); }
+function hasAlert(row){
+  // O cadastro de "Clientes alerta nacional" representa o cliente da operação.
+  // Ele pode aparecer como pagador/tomador ou como remetente no 902 (ex.: PTS).
+  // Por isso, a regra deve reconhecer ambos os campos, sem usar posição/outros textos.
+  return startsWithCfg(row.pagador, state.config.alerta) ||
+         startsWithCfg(row.remetente, state.config.alerta);
+}
 function hasExpo(row){ return startsWithCfg(row.pagador, state.config.expo); }
 function hasPaga(row){ return startsWithCfg(row.pagador, state.config.paga); }
 function hasCheckpointRule(row){
@@ -750,12 +756,22 @@ function reclassify(){
       return;
     }
 
+    /* CLIENTES COM REGRA DE ALERTA NACIONAL
+       Esta regra tem prioridade sobre o checkpoint geral por cidade.
+       Se o cliente está cadastrado em "Clientes alerta nacional", ele não
+       deve permanecer em PCs ativas apenas por ainda estar na cidade de origem. */
+    if(row.alerta && !isUFEx(row.ufRem) && !isUFEx(row.ufDest)){
+      row.bucket = 'alertaNac';
+      row.status = 'Faturar';
+      return;
+    }
+
     /* CHECKPOINT GERAL POR CIDADE DE ORIGEM
-       Agora que o 902 informa o município do remetente, a PC não sobe para
-       os alertas automáticos enquanto a posição ainda estiver na cidade de
-       coleta. Assim que a posição mudar de cidade, as regras já existentes
-       abaixo voltam a decidir o fluxo. As regras específicas acima (aduana,
-       Minerva/Varginha e checkpoints cadastrados) permanecem inalteradas. */
+       Aplica-se aos fluxos automáticos e às exportações, mas não bloqueia
+       clientes que possuem regra explícita de alerta nacional. Assim, uma
+       exportação continua em PC ativa enquanto estiver na cidade de coleta e
+       sobe ao Alerta EXPO ao sair; já um cliente de alerta nacional entra
+       diretamente no respectivo alerta. */
     if(temCheckpointCidadeOrigem(row) && rowInOriginCity(row)){
       row.bucket = 'ativo';
       row.status = 'Coleta';
@@ -764,11 +780,7 @@ function reclassify(){
 
     if(hasExpo(row) && isUFEx(row.ufDest)){
       row.bucket = 'alertaExpo';
-      return;
-    }
-
-    if(row.alerta && !isUFEx(row.ufRem) && !isUFEx(row.ufDest)){
-      row.bucket = 'alertaNac';
+      row.status = 'Faturar';
       return;
     }
 
