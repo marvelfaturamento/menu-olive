@@ -802,3 +802,15 @@ button:hover,.btn:hover,.navbtn:hover,.menu button:hover{transform:translateY(-1
 .tratFeita{background:#9a6a05;border-color:#d7a323;color:#fff7d5}
 .tratFeita:hover{background:#ad7808}
 .tratMeta{font-size:9px;line-height:1.25;color:#d8bd73;max-width:120px}
+
+/* ===== Central de Configurações v2 - segura ===== */
+.configHubIntro{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(135deg,#0d1838,#101f49)}
+.configHubIntro h3{margin:0;font-size:18px}.configHubIntro p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.configHubGrid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}
+.configHubCard{position:relative!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;text-align:left!important;width:100%!important;min-height:126px;padding:16px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:#0d1838!important;color:var(--text)!important;cursor:pointer;transition:.18s ease;overflow:hidden}
+.configHubCard:hover{transform:translateY(-2px);border-color:#4d74d8!important;background:#10204a!important;box-shadow:0 10px 24px rgba(0,0,0,.18)}
+.configHubCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.configHubIcon{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#172b5f;font-size:20px;border:1px solid #2d4f9c}.configHubArrow{font-size:19px;color:#8fb0ff}
+.configHubTitle{margin-top:12px;font-size:14px;font-weight:900}.configHubDesc{margin-top:4px;color:var(--muted);font-size:11px;line-height:1.35}.configHubCount{margin-top:auto;padding-top:10px;font-size:11px;color:#a9c2ff;font-weight:800}
+.configManagerHeader{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#0d1838}.configBackBtn{width:auto!important;min-width:112px;background:#172b5f!important}.configManagerHeading{min-width:0}.configManagerHeading h3{margin:0;font-size:17px}.configManagerHeading p{margin:3px 0 0;color:var(--muted);font-size:11px}.configManagerSearch{margin-left:auto;min-width:260px}.configManagerSearch input{width:100%}
+#tab-config > .grid2.configSingleView{grid-template-columns:1fr!important}.configSingleView>.cfgStack{width:100%}.configSingleView [data-config-section]{width:100%}.configSingleView .cfgHistory,.configSingleView .cfgFreteHistory{max-height:58vh;overflow:auto;padding-right:4px}.configSingleView .cfgGroupCompact{max-width:none}.configSingleView .checkpointCompactLine{max-width:760px}
+@media (max-width:1200px){.configHubGrid{grid-template-columns:repeat(2,minmax(220px,1fr))}}@media (max-width:760px){.configHubGrid{grid-template-columns:1fr}.configManagerHeader{flex-wrap:wrap}.configManagerSearch{margin-left:0;min-width:100%;width:100%}}

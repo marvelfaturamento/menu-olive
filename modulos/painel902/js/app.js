@@ -1799,3 +1799,147 @@ initApp();
     garantirAbaPermitida();
   }
 })();
+
+/* =========================================================
+   CENTRAL DE CONFIGURAÇÕES v2 - navegação segura por cards
+   Não remove, move ou recria campos existentes. Apenas oculta/exibe.
+   ========================================================= */
+(function(){
+  const META = [
+    {key:'mensal', title:'Controle mensal', icon:'📅', desc:'Competências, exportação e limpeza mensal.', heading:'Controle mensal'},
+    {key:'fretes', title:'Frete padrão', icon:'💰', desc:'Tarifas cadastradas por tomador, remetente e rota.', heading:'Frete padrão'},
+    {key:'paga', title:'Clientes com regra de aduana', icon:'🏭', desc:'Clientes que seguem regras específicas de aduana.', heading:'Clientes com regra de aduana'},
+    {key:'aduanas', title:'Aduanas monitoradas', icon:'📍', desc:'Pontos de aduana usados na classificação operacional.', heading:'Aduanas monitoradas'},
+    {key:'alerta', title:'Clientes alerta nacional', icon:'⚠️', desc:'Clientes acompanhados pelas regras de alerta nacional.', heading:'Clientes alerta nacional'},
+    {key:'expo', title:'Clientes exportação EX', icon:'🌎', desc:'Clientes cadastrados para regras de exportação.', heading:'Clientes exportação EX'},
+    {key:'checkpoints', title:'Checkpoints especiais', icon:'🎯', desc:'Exceções específicas por cliente, cidade e origem.', heading:'Checkpoints especiais'}
+  ];
+
+  let sections = {};
+  let activeKey = null;
+
+  function countText(key){
+    try{
+      if(key==='fretes') return `${(state.config.fretes||[]).length} tarifas cadastradas`;
+      if(key==='paga') return `${(state.config.paga||[]).length} clientes cadastrados`;
+      if(key==='aduanas') return `${(state.config.aduanas||[]).length} aduanas cadastradas`;
+      if(key==='alerta') return `${(state.config.alerta||[]).length} clientes cadastrados`;
+      if(key==='expo') return `${(state.config.expo||[]).length} clientes cadastrados`;
+      if(key==='checkpoints') return `${(state.config.checkpoints||[]).length} regras cadastradas`;
+      if(key==='mensal'){
+        const n=document.querySelectorAll('#mesesBox .monthCard').length;
+        return n ? `${n} competências disponíveis` : 'Gerenciar competências';
+      }
+    }catch(_e){}
+    return 'Gerenciar';
+  }
+
+  function updateCounts(){
+    document.querySelectorAll('#configHubSafe [data-config-count]').forEach(el=>{
+      el.textContent = countText(el.dataset.configCount);
+    });
+  }
+  window.updateConfigHubCounts = updateCounts;
+
+  function filterActive(term){
+    const section = sections[activeKey];
+    if(!section) return;
+    const q = norm(term||'');
+    section.querySelectorAll('.cfgItem,.cfgItem5,.checkpointTag,.monthCard').forEach(el=>{
+      el.style.display = !q || norm(el.textContent).includes(q) ? '' : 'none';
+    });
+  }
+
+  function showHub(){
+    const tab=document.getElementById('tab-config');
+    const hub=document.getElementById('configHubSafe');
+    const header=document.getElementById('configManagerHeaderSafe');
+    const grid=tab && tab.querySelector(':scope > .grid2');
+    const summary=tab && tab.querySelector(':scope > .summaryLine');
+    activeKey=null;
+    Object.values(sections).forEach(sec=>{ sec.style.display=''; });
+    if(hub) hub.style.display='';
+    if(header) header.style.display='none';
+    if(grid) grid.style.display='none';
+    if(summary) summary.style.display='none';
+    updateCounts();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function openManager(key){
+    const tab=document.getElementById('tab-config');
+    const hub=document.getElementById('configHubSafe');
+    const header=document.getElementById('configManagerHeaderSafe');
+    const grid=tab && tab.querySelector(':scope > .grid2');
+    const summary=tab && tab.querySelector(':scope > .summaryLine');
+    const meta=META.find(x=>x.key===key);
+    if(!tab || !grid || !meta || !sections[key]) return;
+    activeKey=key;
+    Object.entries(sections).forEach(([k,sec])=>{ sec.style.display = k===key ? '' : 'none'; });
+    // Oculta a coluna que ficou sem conteúdo para o cadastro ocupar a largura útil.
+    grid.querySelectorAll(':scope > .cfgStack').forEach(stack=>{
+      const visible=[...stack.children].some(ch=>ch.style.display!=='none');
+      stack.style.display = visible ? '' : 'none';
+    });
+    grid.classList.add('configSingleView');
+    grid.style.display='grid';
+    if(hub) hub.style.display='none';
+    if(header){
+      header.style.display='flex';
+      const title=header.querySelector('#configManagerTitleSafe');
+      const desc=header.querySelector('#configManagerDescSafe');
+      const search=header.querySelector('#configManagerSearchSafe');
+      if(title) title.textContent=`${meta.icon} ${meta.title}`;
+      if(desc) desc.textContent=meta.desc;
+      if(search){ search.value=''; search.style.display = key==='mensal' ? 'none' : ''; }
+    }
+    if(summary) summary.style.display='flex';
+    filterActive('');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function init(){
+    const tab=document.getElementById('tab-config');
+    if(!tab || document.getElementById('configHubSafe')) return;
+    const grid=tab.querySelector(':scope > .grid2');
+    if(!grid) return;
+
+    META.forEach(meta=>{
+      const h=[...tab.querySelectorAll('h3.sectionTitle')].find(x=>norm(x.textContent)===norm(meta.heading));
+      if(h && h.parentElement){
+        sections[meta.key]=h.parentElement;
+        h.parentElement.dataset.configSection=meta.key;
+      }
+    });
+
+    const hub=document.createElement('div');
+    hub.id='configHubSafe';
+    hub.className='configHubSafe';
+    hub.innerHTML='<div class="configHubIntro"><div><h3>Central de configurações</h3><p>Escolha uma categoria para consultar ou alterar os cadastros do Painel 902.</p></div><div class="small">Cadastros organizados por categoria</div></div><div class="configHubGrid" id="configHubGridSafe"></div>';
+    const cards=hub.querySelector('#configHubGridSafe');
+    META.forEach(meta=>{
+      if(!sections[meta.key]) return;
+      const card=document.createElement('button');
+      card.type='button';
+      card.className='configHubCard';
+      card.innerHTML=`<div class="configHubCardTop"><div class="configHubIcon">${meta.icon}</div><div class="configHubArrow">›</div></div><div class="configHubTitle">${meta.title}</div><div class="configHubDesc">${meta.desc}</div><div class="configHubCount" data-config-count="${meta.key}"></div>`;
+      card.addEventListener('click',()=>openManager(meta.key));
+      cards.appendChild(card);
+    });
+
+    const header=document.createElement('div');
+    header.id='configManagerHeaderSafe';
+    header.className='configManagerHeader';
+    header.style.display='none';
+    header.innerHTML='<button type="button" id="configBackBtnSafe" class="configBackBtn">← Configurações</button><div class="configManagerHeading"><h3 id="configManagerTitleSafe">Configuração</h3><p id="configManagerDescSafe"></p></div><div class="configManagerSearch"><input id="configManagerSearchSafe" placeholder="Buscar neste cadastro..." /></div>';
+
+    tab.insertBefore(header, grid);
+    tab.insertBefore(hub, header);
+    header.querySelector('#configBackBtnSafe').addEventListener('click', showHub);
+    header.querySelector('#configManagerSearchSafe').addEventListener('input',e=>filterActive(e.target.value));
+    showHub();
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+})();
