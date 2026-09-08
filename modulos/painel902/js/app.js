@@ -499,6 +499,7 @@ function openTab(tab){
   document.querySelectorAll('.tab').forEach(el => el.classList.add('hidden'));
   document.getElementById('tab-'+tab).classList.remove('hidden');
   document.querySelectorAll('.navbtn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+  document.querySelectorAll('.cardBtn').forEach(btn => btn.classList.toggle('card-active', btn.dataset.open === tab));
   const labels = {ativo:'Painel Ativo', agNota:'Ag nota', aduana:'Aduana', alertaNac:'Clientes alerta nacional', alertaInt:'Clientes alerta internacional impo', alertaExpo:'Clientes alerta internacional expo', finalizados:'Finalizados', config:'Configurações'};
   pageTitle.textContent = labels[tab];
   renderAll(true);

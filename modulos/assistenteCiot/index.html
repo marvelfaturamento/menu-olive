@@ -129,12 +129,12 @@ main{max-width:1800px;margin:auto;padding:10px}.summaryCards{display:grid;grid-t
 <main>
   <input id="files" type="file" accept="application/pdf,.pdf" multiple hidden>
   <section class="summaryCards">
-    <div class="summaryCard importCard" onclick="$('files').click()"><div class="summaryIcon">⇧</div><div><span>Importar</span><strong id="pdfCount">PDFs</strong><small>Selecionar arquivos</small></div></div>
-    <div class="summaryCard"><div class="summaryIcon blueI">▧</div><div><span>CT-es lidos</span><strong id="cteCount">0</strong><small>documentos</small></div></div>
-    <div class="summaryCard"><div class="summaryIcon purpleI">▤</div><div><span>Adicionar (CIOT)</span><strong id="groupCount">0</strong><small>blocos</small></div></div>
-    <div class="summaryCard"><div class="summaryIcon orangeI">▦</div><div><span>Notas fiscais</span><strong id="nfCount">0</strong><small>notas</small></div></div>
-    <div class="summaryCard"><div class="summaryIcon greenI">R$</div><div><span>Frete bruto</span><strong id="sumFreteBruto">R$ 0,00</strong></div></div>
-    <div class="summaryCard"><div class="summaryIcon greenI">R$</div><div><span>Frete líquido</span><strong id="sumFreteLiquido">R$ 0,00</strong></div></div>
+    <div class="summaryCard importCard" onclick="copy('83084301000178','CNPJ da Marvel copiado.')" title="Clique para copiar"><div class="summaryIcon">🏢</div><div><span>Proprietário do veículo</span><strong>83.084.301/0001-78</strong><small>Clique para copiar o CNPJ</small></div></div>
+    <div class="summaryCard importCard" onclick="copy($('sumPeso').dataset.copy||'0,000','Peso total copiado.')" title="Clique para copiar"><div class="summaryIcon blueI">⚖</div><div><span>Peso total</span><strong id="sumPeso">0,000 kg</strong><small>Soma de todos os CT-es</small></div></div>
+    <div class="summaryCard importCard" onclick="copy($('sumMercadoria').dataset.copy||'0,00','Mercadoria total copiada.')" title="Clique para copiar"><div class="summaryIcon purpleI">▤</div><div><span>Mercadoria total</span><strong id="sumMercadoria">R$ 0,00</strong><small>Soma de todos os CT-es</small></div></div>
+    <div class="summaryCard importCard" onclick="copy($('sumIcms').dataset.copy||'0,00','ICMS total copiado.')" title="Clique para copiar"><div class="summaryIcon orangeI">%</div><div><span>ICMS total</span><strong id="sumIcms">R$ 0,00</strong><small>Soma de todos os CT-es</small></div></div>
+    <div class="summaryCard importCard" onclick="copy($('sumFreteLiquido').dataset.copy||'0,00','Frete líquido copiado.')" title="Clique para copiar"><div class="summaryIcon greenI">R$</div><div><span>Frete líquido</span><strong id="sumFreteLiquido">R$ 0,00</strong><small>Soma de todos os CT-es</small></div></div>
+    <div class="summaryCard importCard" onclick="copy($('sumFreteBruto').dataset.copy||'0,00','Frete bruto copiado.')" title="Clique para copiar"><div class="summaryIcon greenI">R$</div><div><span>Frete bruto</span><strong id="sumFreteBruto">R$ 0,00</strong><small>Soma de todos os CT-es</small></div></div>
   </section>
   <section class="workspace">
     <aside class="sidePanel">
@@ -257,12 +257,17 @@ function scrollGrupo(i){
 }
 function renderCiot(){
  const gs=gruposCiot();
- $('groupCount').textContent=gs.length;
- $('cteCount').textContent=resultados.filter(x=>!x.erro).length;
- $('pdfCount').textContent=resultados.length?resultados.length+' PDFs':'PDFs';
- $('nfCount').textContent=uniq(resultados.flatMap(r=>(r.nfes||[]).map(n=>n.numero))).length;
- $('sumFreteBruto').textContent=fmt(gs.reduce((s,g)=>s+g.freteBruto,0));
- $('sumFreteLiquido').textContent=fmt(gs.reduce((s,g)=>s+g.freteLiquido,0));
+ const validos=resultados.filter(x=>!x.erro);
+ const totalPeso=validos.reduce((s,r)=>s+(Number(r.peso)||0),0);
+ const totalMercadoria=validos.reduce((s,r)=>s+(Number(r.mercadoria)||0),0);
+ const totalIcms=validos.reduce((s,r)=>s+(Number(r.icms)||0),0);
+ const totalBruto=validos.reduce((s,r)=>s+(Number(r.freteBruto??r.frete)||0),0);
+ const totalLiquido=validos.reduce((s,r)=>s+(Number(r.freteLiquido??r.frete)||0),0);
+ $('sumPeso').textContent=brNum(totalPeso,3)+' kg'; $('sumPeso').dataset.copy=brNum(totalPeso,3);
+ $('sumMercadoria').textContent=fmt(totalMercadoria); $('sumMercadoria').dataset.copy=totalMercadoria.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+ $('sumIcms').textContent=fmt(totalIcms); $('sumIcms').dataset.copy=totalIcms.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+ $('sumFreteBruto').textContent=fmt(totalBruto); $('sumFreteBruto').dataset.copy=totalBruto.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+ $('sumFreteLiquido').textContent=fmt(totalLiquido); $('sumFreteLiquido').dataset.copy=totalLiquido.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
  $('ciotMenu').innerHTML=gs.length?gs.map((g,i)=>{
   const loc=cidadeUf(g.destino.municipio);
   return `<div class="menuItem ${i===0?'active':''}" onclick="scrollGrupo(${i})"><div class="menuTop"><span class="menuNum">${i+1}</span><span class="menuName">${esc(g.destino.nome)||'-'}</span></div><div class="menuMeta">${esc(g.tipo)} • ${esc(loc.cidade)}${loc.uf?'/'+esc(loc.uf):''}</div><span class="menuPill">${g.ctes.length} CT-e${g.ctes.length>1?'s':''} • ${uniq(g.nfes.map(n=>n.numero)).length} notas</span></div>`

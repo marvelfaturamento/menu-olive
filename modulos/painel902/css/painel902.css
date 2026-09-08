@@ -814,3 +814,24 @@ button:hover,.btn:hover,.navbtn:hover,.menu button:hover{transform:translateY(-1
 .configManagerHeader{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#0d1838}.configBackBtn{width:auto!important;min-width:112px;background:#172b5f!important}.configManagerHeading{min-width:0}.configManagerHeading h3{margin:0;font-size:17px}.configManagerHeading p{margin:3px 0 0;color:var(--muted);font-size:11px}.configManagerSearch{margin-left:auto;min-width:260px}.configManagerSearch input{width:100%}
 #tab-config > .grid2.configSingleView{grid-template-columns:1fr!important}.configSingleView>.cfgStack{width:100%}.configSingleView [data-config-section]{width:100%}.configSingleView .cfgHistory,.configSingleView .cfgFreteHistory{max-height:58vh;overflow:auto;padding-right:4px}.configSingleView .cfgGroupCompact{max-width:none}.configSingleView .checkpointCompactLine{max-width:760px}
 @media (max-width:1200px){.configHubGrid{grid-template-columns:repeat(2,minmax(220px,1fr))}}@media (max-width:760px){.configHubGrid{grid-template-columns:1fr}.configManagerHeader{flex-wrap:wrap}.configManagerSearch{margin-left:0;min-width:100%;width:100%}}
+
+/* ===== Destaque visual do card atualmente selecionado ===== */
+.cardBtn.card-active{
+  border-color:#60a5fa!important;
+  background:linear-gradient(180deg,#1d3f86,#122b62)!important;
+  box-shadow:0 0 0 2px rgba(96,165,250,.20),0 12px 28px rgba(0,0,0,.28)!important;
+  transform:translateY(-2px);
+  position:relative;
+}
+.cardBtn.card-active::after{
+  content:'';
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:-1px;
+  height:4px;
+  border-radius:4px 4px 0 0;
+  background:#60a5fa;
+}
+.cardBtn.card-active .k{color:#c7dcff!important;}
+.cardBtn.card-active .v{color:#fff!important;}
