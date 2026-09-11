@@ -1904,7 +1904,7 @@ function renderManualTable(){
         <td><button class="btn small btn-save-manual" data-cte="${esc(r.refaturado)}">Salvar</button></td>
       </tr>
     `;
-  }).join('') : `<tr><td colspan="8" class="center muted">Nenhum refaturado identificado</td></tr>`;
+  }).join('') : `<tr><td colspan="7" class="center muted">Nenhum refaturado identificado</td></tr>`;
 }
 
 
@@ -2420,7 +2420,7 @@ function renderManualTable(){
         <td><button class="btn small btn-save-manual" data-cte="${esc(r.refaturado)}">Salvar</button></td>
       </tr>
     `;
-  }).join('') : `<tr><td colspan="8" class="center muted">Nenhum refaturado identificado</td></tr>`;
+  }).join('') : `<tr><td colspan="7" class="center muted">Nenhum refaturado identificado</td></tr>`;
 }
 
 
@@ -5756,8 +5756,8 @@ function __perfAnualAggregate(){
       return {
         tipo: txt(r.tipo || 'CT-e'), cte, cliente:txt(r.cliente),
         usuario:txt(resolveDetailOperator(r, original)), setor:txt(r.setor),
-        motivo:txt(autoReason || r.motivo || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
-        origemMotivo:txt(r.origemMotivo || (autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado'))),
+        motivo:txt(manual.reason || autoReason || r.motivo || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        origemMotivo:txt(r.origemMotivo || (manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado'))),
         observacao:motivoBaixa,
         valor:Number(r.valor||0)
       };
@@ -5805,8 +5805,8 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorRefaturado || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(autoReason || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
-        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        motivo:txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteRefaturado || 0)
       });
@@ -5823,8 +5823,8 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(autoReason || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
-        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        motivo:txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteSubstituto || 0)
       });
@@ -5958,8 +5958,8 @@ function __perfAnualAggregate(){
         cliente:txt(match?.tomadorRefaturado || match?.tomadorOriginal || s.cliente),
         usuario:txt(resolveDetailOperator({usuario:s.usuario}, match) || s.usuario),
         setor:txt(s.setor),
-        motivo:txt(autoReason || motivoFinal(match || {}) || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
-        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        motivo:txt(manual.reason || autoReason || motivoFinal(match || {}) || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(s.debit || 0)
       });
@@ -5980,8 +5980,8 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r)),
         setor:txt(setorLabel),
-        motivo:txt(autoReason || motivoFinal(r) || manual.reason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
-        origemMotivo:txt(autoReason ? 'Identificado automaticamente' : (manual.reason ? 'Preenchimento manual' : 'Não identificado')),
+        motivo:txt(manual.reason || autoReason || motivoFinal(r) || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteSubstituto || 0) / divisor
       });
@@ -6046,3 +6046,240 @@ function __perfAnualAggregate(){
   });
 })();
 
+
+/* ===== v20260910: UX Refaturamento ===== */
+(function(){
+  const oldRenderManualTable = renderManualTable;
+  renderManualTable = function(){
+    const refRows=(state.refaturados||[]).map(r=>({...r,__kind:'ref',__cte:r.refaturado,__client:r.tomadorRefaturado,__date:r.dataRefaturado}));
+    const subUnidentified=(state.substitutos||[]).filter(r=>{
+      const cte=r.substituto||r.cte||r.documento; const m=getManual(cte); return !inferReasonFromText(r.motivoBaixa) && !m.reason;
+    }).map(r=>({...r,__kind:'sub',__cte:r.substituto||r.cte||r.documento,__client:r.tomadorSubstituto||r.tomador,__date:r.dataSubstituto||r.data_baixa}));
+    const rows=[...refRows,...subUnidentified].sort((a,b)=>Number(Boolean(inferReasonFromText(a.motivoBaixa)))-Number(Boolean(inferReasonFromText(b.motivoBaixa))));
+    const tb=document.getElementById('tbodyCadastro'); if(!tb)return;
+    tb.innerHTML=rows.length?rows.map(r=>{
+      const cte=r.__cte, manual=getManual(cte), auto=inferReasonFromText(r.motivoBaixa), motivo=manual.reason||auto||'', detalhe=manual.detail||r.motivoBaixa||'';
+      const motivos=Array.from(new Set([...state.reasons,...(motivo?[motivo]:[])]));
+      const opts=['<option value="">Selecione</option>',...motivos.map(x=>`<option value="${esc(x)}" ${x===motivo?'selected':''}>${esc(x)}</option>`)].join('');
+      const tag=auto?'<span class="tag good">Robô identificou</span>':'<span class="tag warn">Preencher manualmente</span>';
+      return `<tr data-manual-row="${esc(cte)}"><td><strong>${esc(cte)}</strong><div style="margin-top:5px">${tag}${r.__kind==='sub'?' <span class="tag">Substituto</span>':''}</div></td><td>${esc(r.__client||'-')}</td><td>${displayDate(r.__date)}</td><td><input type="date" class="manual-input" data-cte="${esc(cte)}" data-field="requestDate" value="${esc(toInputDate(manual.requestDate||''))}"></td><td><select class="manual-input" data-cte="${esc(cte)}" data-field="reason">${opts}</select></td><td><input class="manual-input manual-detail-input" title="${esc(detalhe)}" data-cte="${esc(cte)}" data-field="detail" value="${esc(detalhe)}" placeholder="Motivo da Baixa / detalhamento"></td><td><select class="manual-input" data-cte="${esc(cte)}" data-field="audit"><option value="nao" ${manual.audit==='nao'||!manual.audit?'selected':''}>Não</option><option value="sim" ${manual.audit==='sim'?'selected':''}>Sim</option></select></td><td><button class="btn small danger btn-delete-record" data-cte="${esc(cte)}">Excluir</button></td></tr>`;
+    }).join(''):`<tr><td colspan="7" class="center muted">Nenhum registro</td></tr>`;
+    ensureBatchBar();
+  };
+  function ensureBatchBar(){
+    const card=document.querySelector('#cadastro .card'); if(!card||card.querySelector('.manual-actions'))return;
+    const bar=document.createElement('div');bar.className='manual-actions';bar.innerHTML='<button class="btn" id="btnSaveManualBatch">💾 Salvar alterações</button><span id="manualPending" class="muted">Nenhuma alteração pendente</span>';
+    const wrap=card.querySelector('.table-wrap');card.insertBefore(bar,wrap);
+  }
+  document.addEventListener('input',e=>{if(e.target.matches('.manual-input')){e.target.classList.add('manual-dirty');const n=document.querySelectorAll('.manual-input.manual-dirty').length;const s=document.getElementById('manualPending');if(s)s.textContent=`${n} campo(s) alterado(s)`;}});
+  document.addEventListener('change',e=>{if(e.target.matches('.manual-input'))e.target.dispatchEvent(new Event('input',{bubbles:true}));});
+  document.addEventListener('click',async e=>{
+    if(e.target.closest('#btnSaveManualBatch')){
+      const dirty=[...document.querySelectorAll('.manual-input.manual-dirty')]; if(!dirty.length){alert('Nenhuma alteração pendente.');return;}
+      const ctes=[...new Set(dirty.map(x=>x.dataset.cte))]; let fails=[];
+      for(const cte of ctes){const payload={};document.querySelectorAll(`.manual-input[data-cte="${CSS.escape(cte)}"]`).forEach(f=>payload[f.dataset.field]=f.value);saveManual(cte,payload);const r=await saveManualToSupabase(cte,payload);if(!r.ok)fails.push(cte);}
+      renderAll(); alert(fails.length?`Alterações locais salvas. Falha na Supabase: ${fails.join(', ')}`:`${ctes.length} registro(s) salvo(s) com sucesso.`); return;
+    }
+    const del=e.target.closest('.btn-delete-record'); if(del){const cte=del.dataset.cte;if(!confirm(`Excluir o CT-e ${cte} da base de refaturamento? Esta ação não pode ser desfeita.`))return;
+      if(state.supabase){const a=await state.supabase.from('refaturamento_importado').delete().eq('documento',cte);if(a.error){alert('Não foi possível excluir da Supabase: '+a.error.message);return;}await state.supabase.from('refaturamento_manual').delete().eq('cte',cte);}
+      state.refaturados=(state.refaturados||[]).filter(r=>r.refaturado!==cte);state.substitutos=(state.substitutos||[]).filter(r=>(r.substituto||r.cte||r.documento)!==cte);delete state.manual[cte];writeStorage('painel_ref_manual_v30',state.manual);renderAll();alert(`CT-e ${cte} removido.`);return;
+    }
+  });
+
+  function setupConfigHub(){
+    const view=document.getElementById('config');if(!view||view.dataset.hubReady)return;view.dataset.hubReady='1';
+    const panels=[...view.querySelectorAll(':scope > .grid, :scope > .card')];if(!panels.length)return;
+    const hub=document.createElement('div');hub.className='config-hub';
+    const names=['📥 Importação Refaturamento','📊 Produtividade','🧠 Motivos e regras','🗄️ Base e manutenção','⚙️ Configuração'];
+    panels.forEach((p,i)=>{p.dataset.configPanel=i;p.classList.add('config-panel-hidden');const title=p.querySelector('h3')?.textContent?.trim()||names[i]||`Configuração ${i+1}`;const c=document.createElement('div');c.className='config-hub-card';c.innerHTML=`<strong>${names[i]||title}</strong><span>${title}</span>`;c.onclick=()=>openPanel(i,title);hub.appendChild(c);});
+    view.insertBefore(hub,view.firstChild);
+    function openPanel(i,title){hub.style.display='none';panels.forEach((p,j)=>p.classList.toggle('config-panel-hidden',j!==i));const p=panels[i];let h=p.querySelector('.config-section-head');if(!h){h=document.createElement('div');h.className='config-section-head';h.innerHTML=`<button class="btn secondary">← Configurações</button><strong>${esc(title)}</strong>`;h.querySelector('button').onclick=()=>{panels.forEach(x=>x.classList.add('config-panel-hidden'));hub.style.display='grid'};p.insertBefore(h,p.firstChild);}}
+  }
+
+  function setupChartModal(){
+    if(document.getElementById('refChartModal'))return;const m=document.createElement('div');m.id='refChartModal';m.innerHTML='<div class="modal-card"><div class="modal-head"><h2 id="refChartTitle">Gráfico</h2><button class="btn secondary" id="refChartClose">✕ Fechar</button></div><div class="modal-grid"><div class="modal-chart"><canvas id="refChartBar"></canvas></div><div class="modal-chart"><canvas id="refChartLine"></canvas></div></div></div>';document.body.appendChild(m);let cb,cl;
+    const close=()=>{m.classList.remove('open');cb?.destroy();cl?.destroy();cb=cl=null};m.querySelector('#refChartClose').onclick=close;m.onclick=e=>{if(e.target===m)close()};
+    document.addEventListener('click',e=>{const canvas=e.target.closest('.chart-box canvas');if(!canvas)return;const src=state.charts[canvas.id];if(!src)return;const title=canvas.closest('.card')?.querySelector('h3')?.textContent||'Gráfico';document.getElementById('refChartTitle').textContent=title;const data=JSON.parse(JSON.stringify(src.data));const common={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}}};cb=new Chart(document.getElementById('refChartBar'),{type:'bar',data:JSON.parse(JSON.stringify(data)),options:common});cl=new Chart(document.getElementById('refChartLine'),{type:'line',data:JSON.parse(JSON.stringify(data)),options:common});m.classList.add('open');});
+  }
+  const oldRenderAll=renderAll;renderAll=function(){oldRenderAll.apply(this,arguments);setupConfigHub();setupChartModal();document.querySelectorAll('.chart-box').forEach(b=>{if(!b.querySelector('.chart-expand-hint')){const h=document.createElement('div');h.className='chart-expand-hint';h.textContent='Clique para ampliar • Barras + Linha';b.appendChild(h);}})};
+  setTimeout(()=>{setupConfigHub();setupChartModal();renderManualTable();},500);
+})();
+
+
+/* ===== v20260910b: pendentes, exclusao segura e config alinhado ===== */
+(function(){
+  let manualMode='ref'; // ref | sub | pending
+  function isPending(r){
+    const cte=r.__cte || r.refaturado || r.substituto || r.cte || r.documento;
+    const m=getManual(cte); return !(m.reason || inferReasonFromText(r.motivoBaixa));
+  }
+  function allManualRows(){
+    const refs=(state.refaturados||[]).map(r=>({...r,__kind:'ref',__cte:r.refaturado,__client:r.tomadorRefaturado,__date:r.dataRefaturado}));
+    const subs=(state.substitutos||[]).map(r=>({...r,__kind:'sub',__cte:r.substituto||r.cte||r.documento,__client:r.tomadorSubstituto||r.tomador,__date:r.dataSubstituto||r.data_baixa}));
+    const seen=new Set(); return [...refs,...subs].filter(r=>r.__cte && !seen.has(r.__cte) && seen.add(r.__cte));
+  }
+  renderManualTable=function(){
+    let rows=allManualRows();
+    if(manualMode==='pending') rows=rows.filter(isPending);
+    else if(manualMode==='sub') rows=rows.filter(r=>r.__kind==='sub');
+    else rows=rows.filter(r=>r.__kind==='ref');
+    rows.sort((a,b)=>Number(!isPending(a))-Number(!isPending(b)));
+    const tb=document.getElementById('tbodyCadastro'); if(!tb)return;
+    tb.innerHTML=rows.length?rows.map(r=>{
+      const cte=r.__cte, manual=getManual(cte), auto=inferReasonFromText(r.motivoBaixa), motivo=manual.reason||auto||'', detalhe=manual.detail||r.motivoBaixa||'';
+      const motivos=Array.from(new Set([...state.reasons,...(motivo?[motivo]:[])]));
+      const opts=['<option value="">Selecione</option>',...motivos.map(x=>`<option value="${esc(x)}" ${x===motivo?'selected':''}>${esc(x)}</option>`)].join('');
+      const tag=manual.reason?'<span class="tag good">Manual</span>':(auto?'<span class="tag good">Robô identificou</span>':'<span class="tag warn">Pendente</span>');
+      return `<tr data-manual-row="${esc(cte)}"><td><strong>${esc(cte)}</strong><div style="margin-top:5px">${tag}${r.__kind==='sub'?' <span class="tag">Substituto</span>':''}</div></td><td>${esc(r.__client||'-')}</td><td>${displayDate(r.__date)}</td><td><input type="date" class="manual-input" data-cte="${esc(cte)}" data-field="requestDate" value="${esc(toInputDate(manual.requestDate||''))}"></td><td><select class="manual-input" data-cte="${esc(cte)}" data-field="reason">${opts}</select></td><td><textarea class="manual-input manual-detail-input" title="${esc(detalhe)}" data-cte="${esc(cte)}" data-field="detail" placeholder="Motivo da Baixa / detalhamento">${esc(detalhe)}</textarea></td><td><select class="manual-input" data-cte="${esc(cte)}" data-field="audit"><option value="nao" ${manual.audit==='nao'||!manual.audit?'selected':''}>Não</option><option value="sim" ${manual.audit==='sim'?'selected':''}>Sim</option></select></td></tr>`;
+    }).join(''):`<tr><td colspan="7" class="center muted">${manualMode==='pending'?'Nenhum caso pendente.':(manualMode==='sub'?'Nenhum substituto.':'Nenhum refaturado.')}</td></tr>`;
+    ensurePendingBar(); updateManualCards();
+  };
+  function ensurePendingBar(){
+    const card=document.querySelector('#cadastro .card'); if(!card)return;
+    let bar=card.querySelector('.manual-actions');
+    if(!bar){bar=document.createElement('div');bar.className='manual-actions';card.insertBefore(bar,card.querySelector('.table-wrap'));}
+    if(!bar.querySelector('#btnSaveManualBatch')) bar.insertAdjacentHTML('afterbegin','<button class="btn" id="btnSaveManualBatch">💾 Salvar alterações</button>');
+    if(!bar.querySelector('#refManualCard')) bar.insertAdjacentHTML('beforeend','<button type="button" class="manual-filter-card" id="refManualCard"><span>🧾 Refaturados</span><strong id="refManualCount">0</strong><small>Séries 80/81 e refaturados</small></button>');
+    if(!bar.querySelector('#subManualCard')) bar.insertAdjacentHTML('beforeend','<button type="button" class="manual-filter-card" id="subManualCard"><span>🔁 Substitutos</span><strong id="subManualCount">0</strong><small>Todos os CT-es substitutos</small></button>');
+    if(!bar.querySelector('#pendingCard')) bar.insertAdjacentHTML('beforeend','<button type="button" class="manual-filter-card pending-card" id="pendingCard"><span>⚠️ Pendentes</span><strong id="pendingCount">0</strong><small>Sem motivo identificado</small></button>');
+    if(!bar.querySelector('#manualPending')) bar.insertAdjacentHTML('beforeend','<span id="manualPending" class="muted">Nenhuma alteração pendente</span>');
+  }
+  function updateManualCards(){
+    const rows=allManualRows();
+    const counts={ref:rows.filter(r=>r.__kind==='ref').length,sub:rows.filter(r=>r.__kind==='sub').length,pending:rows.filter(isPending).length};
+    const a=document.getElementById('refManualCount'); if(a)a.textContent=counts.ref;
+    const b=document.getElementById('subManualCount'); if(b)b.textContent=counts.sub;
+    const c=document.getElementById('pendingCount'); if(c)c.textContent=counts.pending;
+    document.getElementById('refManualCard')?.classList.toggle('active',manualMode==='ref');
+    document.getElementById('subManualCard')?.classList.toggle('active',manualMode==='sub');
+    document.getElementById('pendingCard')?.classList.toggle('active',manualMode==='pending');
+    const h=document.querySelector('#cadastro h3');
+    if(h) h.textContent=manualMode==='sub'?'Cadastro manual — Substitutos':(manualMode==='pending'?'Casos pendentes de classificação':'Cadastro manual — Refaturados');
+  }
+  document.addEventListener('click',e=>{
+    if(e.target.closest('#refManualCard')){manualMode='ref';renderManualTable();return;}
+    if(e.target.closest('#subManualCard')){manualMode='sub';renderManualTable();return;}
+    if(e.target.closest('#pendingCard')){manualMode='pending';renderManualTable();return;}
+  });
+
+  function addSafeDeleteConfig(){
+    const hub=document.querySelector('#config .config-hub'); if(!hub||hub.querySelector('[data-safe-delete]'))return;
+    const card=document.createElement('div');card.className='config-hub-card';card.dataset.safeDelete='1';card.innerHTML='<strong>🗑️ Remover CT-e da base</strong><span>Localizar, conferir e somente então excluir um documento.</span>';hub.appendChild(card);
+    const panel=document.createElement('div');panel.className='safe-delete-panel config-panel-hidden';panel.innerHTML=`<div class="config-section-head"><button class="btn secondary" id="safeDeleteBack">← Configurações</button><strong>Remover CT-e da base</strong></div><div class="card"><h3>Localizar documento</h3><div class="sub">A exclusão só é liberada depois da conferência dos dados.</div><div class="safe-delete-search"><input id="safeDeleteCte" placeholder="Digite o CT-e, ex.: 1-81-37"><button class="btn secondary" id="safeDeleteFind">Localizar</button></div><div id="safeDeleteResult" style="margin-top:14px"></div></div>`;
+    document.getElementById('config').appendChild(panel);
+    card.onclick=()=>{hub.style.display='none';document.querySelectorAll('#config [data-config-panel]').forEach(x=>x.classList.add('config-panel-hidden'));panel.classList.remove('config-panel-hidden')};
+    panel.querySelector('#safeDeleteBack').onclick=()=>{panel.classList.add('config-panel-hidden');hub.style.display='grid'};
+    const normCte=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    async function localizarDocumentoSeguro(){
+      const input=panel.querySelector('#safeDeleteCte');
+      const q=String(input.value||'').trim();
+      const qn=normCte(q);
+      const out=panel.querySelector('#safeDeleteResult');
+      out.innerHTML='<div class="box-info">Localizando documento...</div>';
+      if(!qn){out.innerHTML='<div class="box-danger">Informe o número do CT-e.</div>';return;}
+      // 1) Prioriza o que já está carregado no painel (instantâneo, sem depender de rede).
+      let r=allManualRows().find(x=>normCte(x.__cte)===qn);
+      if(!r){
+        const domRow=[...document.querySelectorAll('#tbodyCadastro tr[data-manual-row]')].find(tr=>normCte(tr.dataset.manualRow)===qn);
+        if(domRow){
+          const cteReal=domRow.dataset.manualRow;
+          r=allManualRows().find(x=>String(x.__cte)===String(cteReal)) || {__cte:cteReal,__kind:'ref',__client:domRow.children?.[1]?.textContent?.trim()||'-',__date:''};
+        }
+      }
+      // 2) Se não estiver no mês carregado, tenta consulta EXATA na Supabase.
+      // Evita varrer a tabela inteira, que podia ficar indefinidamente em "Localizando...".
+      if(!r && state.supabase){
+        try{
+          const variantes=Array.from(new Set([q, q.replace(/\s+/g,''), q.replace(/[–—]/g,'-')]));
+          for(const termo of variantes){
+            const req=state.supabase.from('refaturamento_importado').select('*').eq('documento',termo).limit(10);
+            const timeout=new Promise(resolve=>setTimeout(()=>resolve({__timeout:true}),7000));
+            const res=await Promise.race([req,timeout]);
+            if(res?.__timeout){ out.innerHTML='<div class="box-danger">A consulta à base demorou mais que o esperado. Tente novamente ou carregue o mês do documento.</div>'; return; }
+            if(!res?.error && Array.isArray(res?.data) && res.data.length){
+              const raw=res.data[0];
+              const tipo=String(raw.tipo||'').toLowerCase();
+              r={...raw,__kind:tipo.includes('sub')?'sub':'ref',__cte:raw.documento,__client:raw.cliente||raw.tomador||raw.pagador||raw.tomador_refaturado||raw.tomador_substituto||'-',__date:raw.data_baixa||raw.data||raw.data_refaturado||raw.data_substituto};
+              break;
+            }
+          }
+        }catch(err){console.error('Erro ao localizar CT-e na Supabase:',err);}
+      }
+      if(!r){out.innerHTML='<div class="box-danger">Documento não encontrado. Confira o número do CT-e ou carregue/sincronize a base.</div>';return;}
+      const val=Number(r.freteRefaturado||r.freteSubstituto||r.valor_refaturado||r.valor_substituto||r.valor||r.debit||0);
+      out.innerHTML=`<div class="delete-preview"><div><b>CT-e</b><strong>${esc(r.__cte)}</strong></div><div><b>Cliente</b><strong>${esc(r.__client||'-')}</strong></div><div><b>Data</b><strong>${esc(displayDate(r.__date)||'-')}</strong></div><div><b>Tipo</b><strong>${r.__kind==='sub'?'Substituto':'Refaturado'}</strong></div><div><b>Valor</b><strong>R$ ${fmtMoney(val)}</strong></div></div><button class="btn danger" id="safeDeleteConfirm" data-cte="${esc(r.__cte)}">Excluir definitivamente este CT-e</button>`;
+    }
+    panel.querySelector('#safeDeleteFind').onclick=localizarDocumentoSeguro;
+    panel.querySelector('#safeDeleteCte').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();localizarDocumentoSeguro();}});
+    panel.addEventListener('click',async e=>{const b=e.target.closest('#safeDeleteConfirm');if(!b)return;const cte=b.dataset.cte;if(!confirm(`CONFIRMAR exclusão definitiva do CT-e ${cte}?`))return;if(!confirm(`Última confirmação: remover ${cte} da base?`))return;
+      if(state.supabase){const a=await state.supabase.from('refaturamento_importado').delete().eq('documento',cte);if(a.error){alert('Não foi possível excluir: '+a.error.message);return;}await state.supabase.from('refaturamento_manual').delete().eq('cte',cte);}
+      state.refaturados=(state.refaturados||[]).filter(r=>r.refaturado!==cte);state.substitutos=(state.substitutos||[]).filter(r=>(r.substituto||r.cte||r.documento)!==cte);delete state.manual[cte];writeStorage('painel_ref_manual_v30',state.manual);panel.querySelector('#safeDeleteResult').innerHTML='<div class="box-info">CT-e removido com sucesso.</div>';renderAll();
+    });
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{ensurePendingBar();updateManualCards();addSafeDeleteConfig();},400));
+  document.addEventListener('click',e=>{if(e.target.closest('[data-view="config"]'))setTimeout(addSafeDeleteConfig,100);});
+})();
+
+
+/* ===== v20260911b: feedback visível de sincronização no card Importar Refaturamento ===== */
+(function(){
+  function setupRefSyncFeedback(){
+    const quickStatus=document.getElementById('refSyncQuickStatus');
+    const syncStatus=document.getElementById('syncStatus');
+    const syncQuick=document.getElementById('btnSyncRefPanel');
+    const replaceQuick=document.getElementById('btnReplaceRefPanel');
+    if(!quickStatus || quickStatus.dataset.feedbackBound==='1') return;
+    quickStatus.dataset.feedbackBound='1';
+    const setWorking=(msg,btn)=>{
+      quickStatus.style.display='block';
+      quickStatus.textContent=msg;
+      quickStatus.className='box-info';
+      if(btn){ btn.disabled=true; btn.dataset.oldText=btn.textContent; btn.textContent=msg.includes('Substituindo')?'Substituindo...':'Sincronizando...'; }
+    };
+    const releaseButtons=()=>{
+      [syncQuick,replaceQuick].forEach(b=>{ if(!b)return; b.disabled=false; if(b.dataset.oldText){ b.textContent=b.dataset.oldText; delete b.dataset.oldText; } });
+    };
+    if(syncQuick) syncQuick.addEventListener('click',()=>setWorking('Sincronizando dados do mês...',syncQuick),true);
+    if(replaceQuick) replaceQuick.addEventListener('click',()=>setWorking('Substituindo dados do mês...',replaceQuick),true);
+    if(syncStatus){
+      const mirror=()=>{
+        const txt=(syncStatus.textContent||'').trim();
+        if(!txt) return;
+        quickStatus.style.display='block';
+        quickStatus.textContent=txt;
+        quickStatus.className=/erro|bloqueada/i.test(txt)?'box-danger':'box-info';
+        if(/conclu[ií]da|erro|bloqueada|carregado/i.test(txt)) releaseButtons();
+      };
+      new MutationObserver(mirror).observe(syncStatus,{childList:true,subtree:true,characterData:true});
+      mirror();
+    }
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(setupRefSyncFeedback,300));
+  document.addEventListener('click',e=>{
+    if(e.target.closest('[data-view="config"]') || e.target.closest('.config-hub-card')) setTimeout(setupRefSyncFeedback,120);
+  });
+})();
+
+/* ===== v20260911: nomes intuitivos e atalhos de sincronização no Importar Refaturamento ===== */
+(function(){
+  function bindRefImportSyncActions(){
+    const syncQuick=document.getElementById('btnSyncRefPanel');
+    const replaceQuick=document.getElementById('btnReplaceRefPanel');
+    const syncMain=document.getElementById('btnSyncSupabase');
+    const replaceMain=document.getElementById('btnReimportarMesSeguro');
+    if(syncMain) syncMain.textContent='Sincronizar dados do mês';
+    if(replaceMain) replaceMain.textContent='Substituir dados do mês';
+    if(syncQuick && !syncQuick.dataset.bound){
+      syncQuick.dataset.bound='1';
+      syncQuick.addEventListener('click',()=>syncMain?.click());
+    }
+    if(replaceQuick && !replaceQuick.dataset.bound){
+      replaceQuick.dataset.bound='1';
+      replaceQuick.addEventListener('click',()=>replaceMain?.click());
+    }
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(bindRefImportSyncActions,250));
+  document.addEventListener('click',e=>{
+    if(e.target.closest('[data-view="config"]') || e.target.closest('.config-hub-card')) setTimeout(bindRefImportSyncActions,100);
+  });
+})();

@@ -229,7 +229,7 @@ iframe { flex:1; height:100%; border:none; background:#f4f6f9; width:100%; }
     <button id="btnRateio" onclick="abrirModulo('rateio', this)">Rateio de Faturas</button>
     <div class="footer-note">Versão unificada para testes<br>Depois podemos separar em módulos.</div>
   </aside>
-  <iframe id="frame" title="Módulo de cotações"></iframe>
+  <iframe id="frame" title="Módulo de cotações" allow="clipboard-read; clipboard-write"></iframe>
 </div>
 
 <template id="tplDados">
@@ -1303,8 +1303,6 @@ let freteBRL=parseFloat(document.getElementById("freteBRL").value)||0;
 let dolar=parseFloat(document.getElementById("dolar").value)||1;
 let adv=parseFloat(document.getElementById("adv").value)||0;
 
-let freteTotal=(freteBRL/dolar);
-
 let linhas=document.querySelectorAll(".fatura-row");
 let faturas=[];
 
@@ -1325,34 +1323,54 @@ let d=getPais(selecionado);
 let html="";
 window.ultimoRateioDetalhado = [];
 
-faturas.forEach(f=>{
-let proporcao=f.peso/pesoTotal;
-let freteFatura=freteTotal*proporcao;
-
-let adicionalUSD=f.adicionalBRL/dolar;
-freteFatura+=adicionalUSD;
-let freteFaturaBRL = freteFatura * dolar;
-
-let seguro=f.merc*(adv/100);
-let base=freteFatura-seguro;
-if(base<0) base=0;
-
-let ext=base*(km1/total);
-let int=base*(km2/total);
-
-window.ultimoRateioDetalhado.push({
-  pais: selecionado,
-  numero: f.numero,
-  crt: d.crt,
-  mic: d.mic,
-  externo: ext.toFixed(2),
-  interno: int.toFixed(2),
-  seguro: seguro.toFixed(2),
-  freteTotal: freteFatura.toFixed(2),
-  convertido: formatarBRL3(freteFaturaBRL),
-  mercadoria: f.merc.toFixed(2),
-  aduana: document.getElementById("aduana").value || "-"
+// O frete informado em R$ é a base oficial do rateio. Distribuímos em
+// centavos inteiros e ajustamos a última fatura para o total fechar exato.
+const freteBaseCentavos = Math.round(freteBRL * 100);
+let centavosDistribuidos = 0;
+const rateiosBRLCentavos = faturas.map((f, i) => {
+  if(i === faturas.length - 1) return freteBaseCentavos - centavosDistribuidos;
+  const centavos = Math.round(freteBaseCentavos * (f.peso / pesoTotal));
+  centavosDistribuidos += centavos;
+  return centavos;
 });
+
+faturas.forEach((f, idx)=>{
+  const adicionalCentavos = Math.round(f.adicionalBRL * 100);
+  const freteFaturaBRLCentavos = rateiosBRLCentavos[idx] + adicionalCentavos;
+  const freteFaturaBRL = freteFaturaBRLCentavos / 100;
+
+  // A parcela já fechada em R$ é convertida e arredondada uma única vez em USD.
+  const freteFaturaCentavosUSD = Math.round((freteFaturaBRL / dolar) * 100);
+  const freteFatura = freteFaturaCentavosUSD / 100;
+
+  // Seguro fechado em centavos.
+  let seguroCentavos = Math.round((f.merc * (adv/100)) * 100);
+  if(seguroCentavos < 0) seguroCentavos = 0;
+
+  // Externo + Interno + Seguro fecham exatamente com o Frete Total exibido.
+  const baseCentavos = Math.max(0, freteFaturaCentavosUSD - seguroCentavos);
+  const proporcaoExterna = total > 0 ? (km1 / total) : 0;
+  const extCentavos = Math.round(baseCentavos * proporcaoExterna);
+  const intCentavos = baseCentavos - extCentavos;
+
+  const ext = extCentavos / 100;
+  const int = intCentavos / 100;
+  const seguro = seguroCentavos / 100;
+
+  window.ultimoRateioDetalhado.push({
+    pais: selecionado,
+    numero: f.numero,
+    crt: d.crt,
+    mic: d.mic,
+    externo: ext.toFixed(2),
+    interno: int.toFixed(2),
+    seguro: seguro.toFixed(2),
+    freteTotal: freteFatura.toFixed(2),
+    convertido: formatarBRL2(freteFaturaBRL),
+    convertidoNumero: freteFaturaBRL.toFixed(2),
+    mercadoria: f.merc.toFixed(2),
+    aduana: document.getElementById("aduana").value || "-"
+  });
 
 html+=`<div class="pais-item">
 <b style="color:var(--marvel-accent); font-size:16px;">${selecionado} - Fatura ${f.numero}</b><br>
@@ -1366,7 +1384,7 @@ html+=`<div class="pais-item">
     <span>Frete Total (USD):</span> <b>$ ${freteFatura.toFixed(2)}</b>
   </div>
   <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px; opacity:0.8;">
-    <span>Convertido:</span> <span>R$ ${freteFaturaBRL.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+    <span>Convertido:</span> <span>R$ ${formatarBRL2(freteFaturaBRL)}</span>
   </div>
 </div>
 
@@ -1383,8 +1401,8 @@ res.innerHTML="<span style='color:#fca5a5;'>Erro no cálculo. Verifique a conex�
 }
 }
 
-function formatarBRL3(valor){
-  return Number(valor || 0).toLocaleString('pt-BR', {minimumFractionDigits:3, maximumFractionDigits:3});
+function formatarBRL2(valor){
+  return Number(valor || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
 function gerarTextoRateioDetalhado(){
@@ -1444,12 +1462,85 @@ function gerarTextoRateioDetalhado(){
   return null;
 }
 
+function copiarComFallbackRateio(texto, html, onSuccess){
+  const sucesso = () => { if(typeof onSuccess === "function") onSuccess(); };
+
+  // Fallback robusto para o iframe/srcdoc do Rateio.
+  // Primeiro tenta copiar HTML (quando solicitado) e depois texto puro.
+  try{
+    if(html){
+      const area = document.createElement("div");
+      area.contentEditable = "true";
+      area.style.position = "fixed";
+      area.style.left = "-99999px";
+      area.style.top = "0";
+      area.innerHTML = html;
+      document.body.appendChild(area);
+      const range = document.createRange();
+      range.selectNodeContents(area);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const ok = document.execCommand("copy");
+      sel.removeAllRanges();
+      area.remove();
+      if(ok){ sucesso(); return true; }
+    }
+  }catch(e){ console.warn("Fallback HTML do rateio indisponível:", e); }
+
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = texto || "";
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-99999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand("copy");
+    ta.remove();
+    if(ok){ sucesso(); return true; }
+  }catch(e){ console.warn("Fallback texto do rateio indisponível:", e); }
+
+  return false;
+}
+
+async function copiarTextoRateio(texto, html, onSuccess){
+  // Tenta a API moderna somente em contexto seguro; se falhar, usa execCommand.
+  try{
+    if(window.isSecureContext && navigator.clipboard){
+      if(html && window.ClipboardItem && typeof navigator.clipboard.write === "function"){
+        const item = new ClipboardItem({
+          "text/html": new Blob([html], {type:"text/html"}),
+          "text/plain": new Blob([texto], {type:"text/plain"})
+        });
+        await navigator.clipboard.write([item]);
+        if(typeof onSuccess === "function") onSuccess();
+        return true;
+      }
+      if(typeof navigator.clipboard.writeText === "function"){
+        await navigator.clipboard.writeText(texto);
+        if(typeof onSuccess === "function") onSuccess();
+        return true;
+      }
+    }
+  }catch(e){ console.warn("Clipboard API do rateio falhou; usando fallback:", e); }
+
+  return copiarComFallbackRateio(texto, html, onSuccess);
+}
+
 function copiarFaturamento(){
-  const texto = gerarTextoRateioDetalhado();
-  if(!texto){
+  if(!window.ultimoRateioDetalhado || !Array.isArray(window.ultimoRateioDetalhado) || !window.ultimoRateioDetalhado.length){
     alert("Calcule o rateio primeiro antes de copiar.");
     return;
   }
+
+  // Somente Pedido/Fatura + Frete em R$, em duas colunas para colagem direta.
+  const texto = window.ultimoRateioDetalhado
+    .map(item => `${item.numero}\tR$ ${item.convertido}`)
+    .join("\n");
 
   const confirmar = () => {
     let btn = document.querySelector('.btn-copy-faturamento');
@@ -1459,13 +1550,9 @@ function copiarFaturamento(){
     }
   };
 
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(texto).then(confirmar).catch(() => {
-      if(!copiarComFallback(texto, null, confirmar)) alert("Erro ao copiar.");
-    });
-  }else if(!copiarComFallback(texto, null, confirmar)){
-    alert("Erro ao copiar.");
-  }
+  copiarTextoRateio(texto, null, confirmar).then(ok => {
+    if(!ok) alert("Erro ao copiar.");
+  });
 }
 
 function montarResultadoRateioHtmlParaCopiar(){
@@ -1497,30 +1584,17 @@ function copiarResultadoRateioFormatado(){
 
   if(!html){ alert("Calcule primeiro antes de copiar."); return; }
 
-  if(navigator.clipboard && window.ClipboardItem){
-    const item = new ClipboardItem({
-      "text/html": new Blob([html], {type:"text/html"}),
-      "text/plain": new Blob([texto], {type:"text/plain"})
-    });
-
-    navigator.clipboard.write([item]).then(()=>{
-      const btn = document.querySelector(".btn-copy-resultado");
+  const confirmar = () => {
+    const btn = document.querySelector(".btn-copy-resultado");
+    if(btn){
       btn.innerHTML = "✅ Copiado!";
       setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000);
-    }).catch(()=>{
-      const confirmar = () => {
-        const btn = document.querySelector(".btn-copy-resultado");
-        if(btn){ btn.innerHTML = "✅ Copiado!"; setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000); }
-      };
-      if(!copiarComFallback(texto, html, confirmar)) copiarTextoSimplesRateio(texto);
-    });
-  }else{
-    const confirmar = () => {
-      const btn = document.querySelector(".btn-copy-resultado");
-      if(btn){ btn.innerHTML = "✅ Copiado!"; setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000); }
-    };
-    if(!copiarComFallback(texto, html, confirmar)) copiarTextoSimplesRateio(texto);
-  }
+    }
+  };
+
+  copiarTextoRateio(texto, html, confirmar).then(ok => {
+    if(!ok) alert("Não foi possível copiar.");
+  });
 }
 
 function copiarTextoSimplesRateio(texto){
@@ -1531,14 +1605,9 @@ function copiarTextoSimplesRateio(texto){
       setTimeout(()=>{ btn.innerHTML = "📄 Copiar Resultado"; }, 2000);
     }
   };
-
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(texto).then(confirmar).catch(()=>{
-      if(!copiarComFallback(texto, null, confirmar)) alert("Não foi possível copiar.");
-    });
-  }else if(!copiarComFallback(texto, null, confirmar)){
-    alert("Não foi possível copiar.");
-  }
+  copiarTextoRateio(texto, null, confirmar).then(ok => {
+    if(!ok) alert("Não foi possível copiar.");
+  });
 }
 
 </script>

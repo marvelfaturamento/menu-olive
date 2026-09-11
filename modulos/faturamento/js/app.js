@@ -96,7 +96,7 @@ function parseBR(v){
   return Number(s)||0;
 }
 function fmtMoney(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function fmtPct(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
+function fmtPct(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'; }
 function shortNumber(v){
   const n=Number(v||0);
   if(Math.abs(n)>=1_000_000) return (n/1_000_000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mi';
@@ -625,7 +625,7 @@ function chartOpts(currency=false, datalabels=false, percentAxis=false){
       legend:{labels:{color:'#eef4ff'}},
       datalabels:datalabels ? {
         color:'#fff',
-        formatter:(v)=> currency ? shortNumber(v) : `${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%`,
+        formatter:(v)=> currency ? shortNumber(v) : `${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%`,
         anchor:'end', align:'top', offset:2, clamp:true, font:{size:10,weight:'700'}
       } : {display:false}
     },
@@ -696,7 +696,7 @@ function renderAnual(){
   const meta=agg.map(r=>r.meta);
   const inter=agg.map(r=>r.inter);
   const nac=agg.map(r=>r.nac);
-  const pct=agg.map(r=>r.refPct);
+  const pct=agg.map(r=>Math.round((Number(r.refPct||0)+Number.EPSILON)*100)/100);
 
   destroyChart('annualMain');
   state.charts.annualMain=new Chart(annualMainChart,{
@@ -710,10 +710,16 @@ function renderAnual(){
   });
 
   destroyChart('annualPct');
+  const annualPctOpts=chartOpts(false,true,true);
+  annualPctOpts.plugins.tooltip={
+    callbacks:{
+      label:(ctx)=>`${ctx.dataset.label}: ${Number(ctx.parsed.y||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+    }
+  };
   state.charts.annualPct=new Chart(annualPctChart,{
     type:'bar',
     data:{labels,datasets:[{label:'% refaturado + substituto',data:pct,backgroundColor:'#f2c14f'}]},
-    options:chartOpts(false,true,true)
+    options:annualPctOpts
   });
 
   destroyChart('annualInterNac');
@@ -1453,4 +1459,222 @@ if(!window.__renderAllOriginalV12 && typeof renderAll === 'function'){
   }else{
     garantirPaginaPermitida();
   }
+})();
+
+
+/* =========================================================
+   PATCH v20 - Config em cards + expansão dos gráficos anuais
+   Mantém os elementos, IDs, eventos e regras existentes.
+   ========================================================= */
+(function(){
+  const CONFIG_META_FAT = [
+    {key:'import', icon:'📥', title:'Importação e sincronização', desc:'Importar relatório e sincronizar a base do faturamento.'},
+    {key:'meta', icon:'🎯', title:'Meta mensal', desc:'Cadastrar, consultar, alterar e excluir as metas mensais.'},
+    {key:'reais', icon:'💵', title:'Valores reais do mês', desc:'Bruto Real e Líquido Real usados nos indicadores do faturamento.'},
+    {key:'validacao', icon:'✅', title:'Validação rápida', desc:'Conferência do bruto, descontos, líquido e status do mês.'},
+    {key:'interno', icon:'⚙️', title:'Configuração interna', desc:'Fontes, tabelas e estrutura técnica utilizada pelo módulo.'}
+  ];
+  let configSectionsFat={};
+  let configActiveFat=null;
+
+  function fatText(el){ return (el?.textContent||'').trim().toLowerCase(); }
+  function findPanelByTitle(root,title){
+    return [...root.querySelectorAll('.panel')].find(p=>{
+      const h=p.querySelector(':scope > h2');
+      return h && fatText(h).includes(title.toLowerCase());
+    }) || null;
+  }
+  function mapConfigSectionsFat(){
+    const root=document.getElementById('config');
+    if(!root) return false;
+    const grid=root.querySelector(':scope > .config-grid');
+    const gridPanels=grid ? [...grid.querySelectorAll(':scope > .panel')] : [];
+    configSectionsFat.import=gridPanels.find(p=>fatText(p.querySelector(':scope > h2')).includes('importação')) || null;
+    configSectionsFat.interno=gridPanels.find(p=>fatText(p.querySelector(':scope > h2')).includes('configuração interna')) || null;
+    // Meta mensal vira uma categoria independente sem recriar controles/eventos.
+    if(!document.getElementById('metaPanelFatSeparado')){
+      const metaInput=document.getElementById('metaMonthInput');
+      const metaCard=metaInput?.closest('.meta-card');
+      if(metaCard){
+        const panel=document.createElement('div');
+        panel.id='metaPanelFatSeparado'; panel.className='panel';
+        panel.innerHTML='<h2>Meta mensal</h2><div class="sub">Cadastre, consulte e altere as metas mensais utilizadas nos painéis.</div>';
+        panel.appendChild(metaCard);
+        root.appendChild(panel);
+      }
+    }
+    configSectionsFat.meta=document.getElementById('metaPanelFatSeparado') || null;
+    configSectionsFat.reais=document.getElementById('valoresReaisV11') || findPanelByTitle(root,'valores reais do mês');
+    configSectionsFat.validacao=findPanelByTitle(root,'validação rápida');
+    return !!(configSectionsFat.import && configSectionsFat.interno && configSectionsFat.validacao);
+  }
+  function configCountFat(key){
+    try{
+      if(key==='import') return 'Importar e sincronizar base';
+      if(key==='meta'){
+        const n=document.querySelectorAll('#metaList .meta-pill').length;
+        return n ? `${n} metas mensais cadastradas` : 'Gerenciar metas';
+      }
+      if(key==='reais'){
+        const n=document.querySelectorAll('#vrListaV11 .meta-pill').length;
+        return n ? `${n} competências com valores reais` : 'Gerenciar valores reais';
+      }
+      if(key==='validacao') return (document.getElementById('valStatus')?.textContent||'Validar mês').trim();
+      if(key==='interno') return 'Fontes e tabelas do módulo';
+    }catch(_e){}
+    return 'Gerenciar';
+  }
+  function updateConfigCountsFat(){
+    document.querySelectorAll('#configHubFat [data-fat-count]').forEach(el=>{
+      el.textContent=configCountFat(el.dataset.fatCount);
+    });
+  }
+  function hideOriginalConfigLayoutFat(){
+    const root=document.getElementById('config');
+    const grid=root?.querySelector(':scope > .config-grid');
+    if(grid) grid.style.display='none';
+    Object.values(configSectionsFat).forEach(sec=>{ if(sec) sec.style.display='none'; });
+  }
+  function showConfigHubFat(){
+    configActiveFat=null;
+    hideOriginalConfigLayoutFat();
+    const hub=document.getElementById('configHubFat');
+    const head=document.getElementById('configManagerFat');
+    if(hub) hub.style.display='';
+    if(head) head.style.display='none';
+    updateConfigCountsFat();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function openConfigFat(key){
+    mapConfigSectionsFat();
+    const sec=configSectionsFat[key];
+    if(!sec) return;
+    configActiveFat=key;
+    const root=document.getElementById('config');
+    const grid=root?.querySelector(':scope > .config-grid');
+    // Painéis originalmente dentro do .config-grid continuam usando o ancestral original.
+    // Não podemos ocultar o ancestral e tentar exibir apenas o painel filho.
+    // Para esses dois cards, exibimos o grid como bloco e ocultamos o painel irmão.
+    const secDentroDoGrid = !!(grid && grid.contains(sec));
+    if(grid) grid.style.display = secDentroDoGrid ? 'block' : 'none';
+    Object.values(configSectionsFat).forEach(s=>{ if(s) s.style.display='none'; });
+    sec.style.display='block';
+    const hub=document.getElementById('configHubFat');
+    const head=document.getElementById('configManagerFat');
+    if(hub) hub.style.display='none';
+    if(head){
+      const meta=CONFIG_META_FAT.find(m=>m.key===key);
+      head.style.display='flex';
+      head.querySelector('[data-fat-title]').textContent=`${meta.icon} ${meta.title}`;
+      head.querySelector('[data-fat-desc]').textContent=meta.desc;
+    }
+    sec.style.display='block';
+    sec.classList.add('fatConfigSinglePanel');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function initConfigHubFat(){
+    const root=document.getElementById('config');
+    if(!root || document.getElementById('configHubFat')) return;
+    if(!mapConfigSectionsFat()) return;
+    const hub=document.createElement('div');
+    hub.id='configHubFat';
+    hub.className='configHubFat';
+    hub.innerHTML=`<div class="configHubIntroFat"><div><h2>Central de configurações</h2><p>Escolha uma categoria para consultar ou alterar o Faturamento. Os controles e regras existentes foram preservados.</p></div><span>Configurações organizadas</span></div><div class="configHubGridFat"></div>`;
+    const grid=hub.querySelector('.configHubGridFat');
+    CONFIG_META_FAT.forEach(meta=>{
+      const card=document.createElement('button');
+      card.type='button';
+      card.className='configHubCardFat';
+      card.innerHTML=`<div class="configHubCardTopFat"><span>${meta.icon}</span><b>›</b></div><strong>${meta.title}</strong><p>${meta.desc}</p><small data-fat-count="${meta.key}"></small>`;
+      card.onclick=()=>openConfigFat(meta.key);
+      grid.appendChild(card);
+    });
+    const manager=document.createElement('div');
+    manager.id='configManagerFat';
+    manager.className='configManagerFat';
+    manager.style.display='none';
+    manager.innerHTML=`<button type="button" class="configBackFat">← Configurações</button><div><h2 data-fat-title>Configuração</h2><p data-fat-desc></p></div>`;
+    manager.querySelector('.configBackFat').onclick=showConfigHubFat;
+    root.insertBefore(manager,root.firstChild);
+    root.insertBefore(hub,manager);
+    showConfigHubFat();
+  }
+
+  // A UI de Valores Reais é inserida por outro patch; aguardamos sem recriar nenhum controle.
+  function ensureConfigFat(){
+    if(document.getElementById('configHubFat')){ mapConfigSectionsFat(); return; }
+    initConfigHubFat();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureConfigFat,350),{once:true});
+  else setTimeout(ensureConfigFat,350);
+  setTimeout(ensureConfigFat,900);
+
+  // ---------- Modal de gráficos anuais: barras + linhas ----------
+  let modalBarFat=null, modalLineFat=null;
+  function cloneDatasetsForType(datasets,type){
+    return datasets.map((d,i)=>{
+      const baseColor = (typeof d.borderColor==='string' && d.borderColor!=='transparent') ? d.borderColor :
+        (typeof d.backgroundColor==='string' && d.backgroundColor!=='transparent' ? d.backgroundColor : ['#35b9ff','#1fc16b','#f2c14f','#ff5f96','#ffb23e'][i%5]);
+      if(type==='bar') return {...d, type:'bar', backgroundColor:baseColor, borderColor:baseColor, borderWidth:1, borderDash:undefined, tension:undefined, pointRadius:undefined};
+      return {...d, type:'line', backgroundColor:'transparent', borderColor:baseColor, borderWidth:3, tension:.3, pointRadius:3};
+    });
+  }
+  function expandedOptionsFat(isPercent){
+    const opts=chartOpts(false,false,isPercent);
+    opts.plugins.legend={labels:{color:'#eef4ff'}};
+    opts.plugins.tooltip={callbacks:{label:(ctx)=>{
+      const v=Number(ctx.parsed.y??ctx.raw??0);
+      if(isPercent) return `${ctx.dataset.label}: ${v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%`;
+      return `${ctx.dataset.label}: ${v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    }}};
+    return opts;
+  }
+  function ensureChartModalFat(){
+    let modal=document.getElementById('chartModalFat');
+    if(modal) return modal;
+    modal=document.createElement('div');
+    modal.id='chartModalFat';
+    modal.className='chartModalFat';
+    modal.innerHTML=`<div class="chartModalBoxFat"><div class="chartModalHeaderFat"><div><h2 id="chartModalTitleFat">Gráfico</h2><p>Visão ampliada em barras e linhas</p></div><button type="button" id="chartModalCloseFat">✕</button></div><div class="chartModalGridFat"><div class="chartExpandedCardFat"><h3>Gráfico de barras</h3><div class="chartExpandedCanvasFat"><canvas id="chartModalBarFat"></canvas></div></div><div class="chartExpandedCardFat"><h3>Gráfico de linhas</h3><div class="chartExpandedCanvasFat"><canvas id="chartModalLineFat"></canvas></div></div></div></div>`;
+    document.body.appendChild(modal);
+    const close=()=>{ modal.classList.remove('open'); if(modalBarFat){modalBarFat.destroy();modalBarFat=null;} if(modalLineFat){modalLineFat.destroy();modalLineFat=null;} };
+    modal.querySelector('#chartModalCloseFat').onclick=close;
+    modal.addEventListener('click',e=>{ if(e.target===modal) close(); });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape' && modal.classList.contains('open')) close(); });
+    return modal;
+  }
+  function openChartModalFat(canvas){
+    const source=window.Chart?.getChart ? Chart.getChart(canvas) : null;
+    if(!source) return;
+    const card=canvas.closest('.chart-card');
+    const title=card?.querySelector('.chart-title')?.textContent?.trim() || 'Gráfico';
+    const isPercent=canvas.id==='annualPctChart' || (card?.querySelector('.chart-title')?.textContent||'').includes('%');
+    const labels=[...(source.data.labels||[])];
+    const datasets=(source.data.datasets||[]).map(d=>({...d,data:[...(d.data||[])]}));
+    const modal=ensureChartModalFat();
+    modal.querySelector('#chartModalTitleFat').textContent=title;
+    modal.classList.add('open');
+    if(modalBarFat) modalBarFat.destroy();
+    if(modalLineFat) modalLineFat.destroy();
+    modalBarFat=new Chart(modal.querySelector('#chartModalBarFat'),{type:'bar',data:{labels,datasets:cloneDatasetsForType(datasets,'bar')},options:expandedOptionsFat(isPercent)});
+    modalLineFat=new Chart(modal.querySelector('#chartModalLineFat'),{type:'line',data:{labels,datasets:cloneDatasetsForType(datasets,'line')},options:expandedOptionsFat(isPercent)});
+  }
+  function bindAnnualExpandFat(){
+    document.querySelectorAll('.chart-card').forEach(card=>{
+      if(card.__fatExpandBound) return;
+      const canvas=card.querySelector('canvas');
+      if(!canvas) return;
+      card.__fatExpandBound=true;
+      card.classList.add('chartExpandableFat');
+      card.addEventListener('click',e=>{
+        if(e.target.closest('select,button,input,a')) return;
+        openChartModalFat(canvas);
+      });
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindAnnualExpandFat,{once:true});
+  else bindAnnualExpandFat();
+  setTimeout(bindAnnualExpandFat,700);
+  setTimeout(bindAnnualExpandFat,1600);
+  document.addEventListener('click',()=>setTimeout(bindAnnualExpandFat,80));
 })();

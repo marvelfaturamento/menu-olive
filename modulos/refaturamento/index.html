@@ -329,7 +329,7 @@
 <h3>Cadastro manual por refaturado</h3>
 <div class="sub">O motivo tenta vir automático do Excel.</div>
 <div class="table-wrap">
-<table><thead><tr><th>CTE</th><th>Cliente</th><th>Data baixa</th><th>Solicitação</th><th>Motivo</th><th>Detalhamento</th><th>Auditoria</th><th>Salvar</th></tr></thead><tbody id="tbodyCadastro"></tbody></table>
+<table><thead><tr><th>CTE</th><th>Cliente</th><th>Data baixa</th><th>Solicitação</th><th>Motivo</th><th>Detalhamento</th><th>Auditoria</th></tr></thead><tbody id="tbodyCadastro"></tbody></table>
 </div>
 </div>
 </section>
@@ -345,6 +345,16 @@
 </div>
 <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
 <button class="btn secondary" id="btnClearAnnual">Limpar mês anual</button>
+</div>
+<div class="card" style="margin-top:14px; padding:14px; background:rgba(255,255,255,.02);">
+  <h3 style="margin:0 0 6px 0; font-size:14px;">Atualizar base do mês</h3>
+  <div class="sub">Depois de conferir o Excel carregado, escolha como atualizar a Supabase.</div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+    <button class="btn secondary" id="btnSyncRefPanel" type="button">Sincronizar dados do mês</button>
+    <button class="btn secondary" id="btnReplaceRefPanel" type="button">Substituir dados do mês</button>
+  </div>
+  <div class="sub" style="margin-top:10px;"><b>Sincronizar:</b> atualiza somente diferenças. <b>Substituir:</b> limpa o mês e recria os dados conforme o Excel.</div>
+  <div class="box-info" id="refSyncQuickStatus" style="margin-top:10px; display:none;">Aguardando ação.</div>
 </div>
 <div class="box-info" id="importMsg" style="margin-top:14px;">
           Excel importado com sucesso.<br/>
@@ -370,10 +380,10 @@
 </div>
 <div class="card">
 <h3>Supabase</h3>
-<div class="sub">Use Importar mês novo para primeira carga do mês. Use Reimportar mês seguro para corrigir um mês já existente.</div>
+<div class="sub"><strong>Sincronizar dados do mês:</strong> compara o Excel carregado com a base e grava somente as diferenças.<br><strong>Substituir dados do mês:</strong> apaga os dados do mês na base e recria tudo conforme os arquivos carregados.</div>
 <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-<button class="btn secondary" id="btnSyncSupabase">Importar mês novo</button>
-<button class="btn secondary" id="btnReimportarMesSeguro" type="button">Reimportar mês seguro</button>
+<button class="btn secondary" id="btnSyncSupabase">Sincronizar dados do mês</button>
+<button class="btn secondary" id="btnReimportarMesSeguro" type="button">Substituir dados do mês</button>
 <button class="btn secondary" id="btnExportExcel" type="button">Extrair Excel</button></div>
 <div class="box-info" id="syncStatus" style="margin-top:14px;">Mês 01/2026 carregado da Supabase (73 duplicado(s) ignorado(s) na leitura).</div>
 <textarea readonly="" style="margin-top:14px; min-height:170px;">SQL inicial:
