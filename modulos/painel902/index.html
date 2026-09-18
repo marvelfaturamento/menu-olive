@@ -58,6 +58,7 @@
 <button class="cardBtn" data-open="alertaNac"><div class="k">Alerta nacional</div><div class="v" id="cNac">24</div><div class="k">UF destino diferente de EX</div></button>
 <button class="cardBtn" data-open="alertaInt"><div class="k">Alerta internacional impo</div><div class="v" id="cInt">10</div><div class="k" id="cIntFrete">R$ 0,00 em fretes</div><div class="k">UF EX ou saída de aduana</div></button>
 <button class="cardBtn" data-open="alertaExpo"><div class="k">Alerta internacional expo</div><div class="v" id="cExpo">5</div><div class="k">Clientes exportação com UF destino EX</div></button>
+<button class="cardBtn checkpointCard" data-open="checkpoint"><div class="k">Checkpoint não confirmado</div><div class="v" id="cCheckpoint">0</div><div class="k">Conferir possível passagem pela coleta</div></button>
 </div>
 <section class="panel tab hidden" id="tab-ativo">
 <div class="filters">
@@ -68,6 +69,11 @@
 </div>
 <h3 class="sectionTitle">PCs ativas</h3>
 <div class="tableWrap"><table id="tbAtivo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section class="panel tab hidden" id="tab-checkpoint">
+<div class="checkpointIntro"><div><h3 class="sectionTitle">⚠ Checkpoint não confirmado</h3><div class="small">Veículos que se aproximaram da coleta e depois começaram a se afastar sem o checkpoint ter sido confirmado. Até 20 km o checkpoint é confirmado automaticamente; entre 20 e 40 km o painel apenas monitora a tendência. Nada é enviado para faturamento sem confirmação.</div></div></div>
+<div class="tableWrap"><table id="tbCheckpoint"></table></div>
 </section>
 <section class="panel tab hidden" id="tab-agNota">
 <div class="filters" style="grid-template-columns:1.5fr 1fr 1fr">

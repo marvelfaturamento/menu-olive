@@ -20,7 +20,10 @@ const state = {
   supabase: null,
   remoteFinalizedIds: new Set(),
   lastUpdateAt: null,
-  tratativas: {}
+  tratativas: {},
+  coletaCheckpoints: {},
+  coletaMonitor: {},
+  competenciasZeradas: new Set()
 };
 
 function norm(v){ return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
@@ -98,17 +101,34 @@ async function carregarTratativasSupabase(){
   try{
     const rows = await fetchAllRows('configuracoes_902', 'chave,valor', 'chave', true, 1000);
     const out = {};
+    const coleta = {};
+    const monitor = {};
+    const zeradas = new Set();
     (rows || []).forEach(r => {
-      if(!String(r.chave || '').startsWith('tratativa:')) return;
-      const id = String(r.chave).slice('tratativa:'.length);
+      const chave = String(r.chave || '');
       try{
         const obj = typeof r.valor === 'string' ? JSON.parse(r.valor) : r.valor;
-        if(obj && obj.status === 'contatado') out[id] = obj;
+        if(chave.startsWith('tratativa:')){
+          const id = chave.slice('tratativa:'.length);
+          if(obj && obj.status === 'contatado') out[id] = obj;
+        }else if(chave.startsWith('coleta_checkpoint:')){
+          const id = chave.slice('coleta_checkpoint:'.length);
+          if(obj && obj.confirmado) coleta[id] = obj;
+        }else if(chave.startsWith('coleta_monitor:')){
+          const id = chave.slice('coleta_monitor:'.length);
+          if(obj) monitor[id] = obj;
+        }else if(chave.startsWith('competencia_zerada:')){
+          const comp = chave.slice('competencia_zerada:'.length);
+          if(obj && obj.zerada) zeradas.add(comp);
+        }
       }catch(e){}
     });
-    const antes = JSON.stringify(state.tratativas || {});
-    const depois = JSON.stringify(out);
+    const antes = JSON.stringify({t:state.tratativas || {}, c:state.coletaCheckpoints || {}, m:state.coletaMonitor || {}, z:[...(state.competenciasZeradas||[])]});
+    const depois = JSON.stringify({t:out, c:coleta, m:monitor, z:[...zeradas]});
     state.tratativas = out;
+    state.coletaCheckpoints = coleta;
+    state.coletaMonitor = monitor;
+    state.competenciasZeradas = zeradas;
     return antes !== depois;
   }catch(e){ console.warn('Não foi possível carregar tratativas:', e); return false; }
 }
@@ -500,7 +520,7 @@ function openTab(tab){
   document.getElementById('tab-'+tab).classList.remove('hidden');
   document.querySelectorAll('.navbtn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
   document.querySelectorAll('.cardBtn').forEach(btn => btn.classList.toggle('card-active', btn.dataset.open === tab));
-  const labels = {ativo:'Painel Ativo', agNota:'Ag nota', aduana:'Aduana', alertaNac:'Clientes alerta nacional', alertaInt:'Clientes alerta internacional impo', alertaExpo:'Clientes alerta internacional expo', finalizados:'Finalizados', config:'Configurações'};
+  const labels = {ativo:'Painel Ativo', agNota:'Ag nota', aduana:'Aduana', alertaNac:'Clientes alerta nacional', alertaInt:'Clientes alerta internacional impo', alertaExpo:'Clientes alerta internacional expo', checkpoint:'Checkpoint não confirmado', finalizados:'Finalizados', config:'Configurações'};
   pageTitle.textContent = labels[tab];
   renderAll(true);
 }
@@ -607,6 +627,113 @@ function temCheckpointCidadeOrigem(row){
   return !!norm(row?.cidadeOrigem);
 }
 
+
+function checkpointColetaAtual(row){
+  return row && state.coletaCheckpoints ? state.coletaCheckpoints[row.id] || null : null;
+}
+const checkpointSaveTimers = new Map();
+function persistirCheckpointColeta(row, origem='automatico'){
+  if(!row?.id) return;
+  const existente = checkpointColetaAtual(row);
+  if(existente?.confirmado) return;
+  const cp = {
+    confirmado:true,
+    origem,
+    em:new Date().toISOString(),
+    cidade:row.cidadeOrigem || '',
+    uf:row.ufRem || '',
+    posicao:row.posicao || '',
+    usuario: origem === 'manual' ? usuarioAtual902() : 'Robô 902'
+  };
+  state.coletaCheckpoints[row.id] = cp;
+  if(!state.supabase) return;
+  clearTimeout(checkpointSaveTimers.get(row.id));
+  checkpointSaveTimers.set(row.id, setTimeout(async()=>{
+    try{
+      await state.supabase.from('configuracoes_902').upsert({
+        chave:`coleta_checkpoint:${row.id}`,
+        valor:JSON.stringify(cp),
+        updated_at:new Date().toISOString()
+      }, {onConflict:'chave'});
+    }catch(e){ console.warn('Falha ao persistir checkpoint de coleta', e); }
+  }, 80));
+}
+function checkpointColetaConfirmado(row){ return !!checkpointColetaAtual(row)?.confirmado; }
+const RAIO_CHECKPOINT_KM = 20;
+const RAIO_APROXIMACAO_KM = 40;
+const AFASTAMENTO_MIN_KM = 15;
+const monitorSaveTimers = new Map();
+function distanciaReferenciadaOrigem(row){
+  const pos = norm(row?.posicao), cidade = norm(row?.cidadeOrigem);
+  if(!pos || !cidade || !pos.includes(cidade)) return null;
+  const m = pos.match(/(\d+(?:[.,]\d+)?)\s*KM\b/);
+  if(!m) return rowInOriginCity(row) ? 0 : null;
+  const n = Number(m[1].replace(',','.'));
+  return Number.isFinite(n) ? n : null;
+}
+function persistirMonitorColeta(row, patch){
+  if(!row?.id) return;
+  const atual = state.coletaMonitor[row.id] || {};
+  const obj = {...atual, ...patch, atualizadoEm:new Date().toISOString()};
+  state.coletaMonitor[row.id] = obj;
+  if(!state.supabase) return;
+  clearTimeout(monitorSaveTimers.get(row.id));
+  monitorSaveTimers.set(row.id, setTimeout(async()=>{
+    try{ await state.supabase.from('configuracoes_902').upsert({chave:`coleta_monitor:${row.id}`, valor:JSON.stringify(obj), updated_at:new Date().toISOString()}, {onConflict:'chave'}); }catch(e){ console.warn('Falha ao persistir monitor de coleta',e); }
+  },100));
+}
+function atualizarMonitorColeta(row){
+  if(!row || checkpointColetaConfirmado(row) || !temCheckpointCidadeOrigem(row)) return;
+  const d = distanciaReferenciadaOrigem(row);
+  const atual = state.coletaMonitor[row.id] || {};
+  if(d !== null){
+    const min = atual.minDistKm == null ? d : Math.min(Number(atual.minDistKm), d);
+    persistirMonitorColeta(row,{minDistKm:min,lastDistKm:d,viuAproximacao: min <= RAIO_APROXIMACAO_KM, ultimaPosicao:row.posicao||''});
+    if(d <= RAIO_CHECKPOINT_KM) persistirCheckpointColeta(row,'automatico');
+  }else if(atual.viuAproximacao){
+    persistirMonitorColeta(row,{afastouDaReferencia:true,ultimaPosicao:row.posicao||''});
+  }
+}
+function rowInDestinationCity(row){
+  const cidade = norm(row?.cidadeDestino);
+  const posicao = norm(row?.posicao);
+  if(!cidade || !posicao) return false;
+  return posicao.includes(cidade);
+}
+function checkpointNaoConfirmadoSuspeito(row){
+  if(!row || row.status === 'Finalizado' || checkpointColetaConfirmado(row) || !temCheckpointCidadeOrigem(row)) return false;
+
+  // Evidência forte: o veículo já aparece na própria cidade de destino e não há
+  // passagem registrada pela coleta. Mesmo que o polling tenha "pulado" o raio
+  // da origem entre duas leituras, o caso precisa ser revisado e não pode ficar
+  // silenciosamente em PCs ativas.
+  if(rowInDestinationCity(row)) return true;
+
+  const m = state.coletaMonitor[row.id];
+  if(!m?.viuAproximacao) return false;
+  const d = distanciaReferenciadaOrigem(row);
+  if(d === null) return !!m.afastouDaReferencia;
+  return Number(m.minDistKm) <= RAIO_APROXIMACAO_KM && d >= Number(m.minDistKm) + AFASTAMENTO_MIN_KM;
+}
+window.confirmarCheckpointColeta = async function(id){
+  id = decodeURIComponent(id);
+  const row = state.rows.find(r=>r.id===id);
+  if(!row) return;
+  if(!confirm(`Confirmar que a coleta da PC ${row.pv || row.id} foi realizada em ${row.cidadeOrigem || 'origem'}?`)) return;
+  persistirCheckpointColeta(row, 'manual');
+  reclassify();
+  renderAll(true);
+  setStatusText('Supabase: coleta confirmada manualmente');
+};
+function checkpointAction(row){
+  const cp = checkpointColetaAtual(row);
+  if(cp?.confirmado){
+    const meta = [cp.usuario, formatTratativaData(cp.em)].filter(Boolean).join(' • ');
+    return `<div class="checkpointOk">✓ Coleta confirmada${meta?`<div class="small">${escHtml(meta)}</div>`:''}</div>`;
+  }
+  return `<button class="mini btn-fat" onclick="confirmarCheckpointColeta('${encodeURIComponent(row.id)}')">Confirmar coleta</button>`;
+}
+
 function fretePadrao(row){
   const p = norm(row.pagador), r = norm(row.remetente), o = norm(row.ufRem), d = norm(row.ufDest);
   const found = state.config.fretes.find(f => (!f.pagador || p.includes(norm(f.pagador))) && (!f.remetente || r.includes(norm(f.remetente))) && norm(f.ufOrigem) === o && norm(f.ufDestino) === d);
@@ -627,6 +754,10 @@ function reclassify(){
     row.competencia = competenciaMes(row.dataPC);
 
     const checkpointRule = hasCheckpointRule(row);
+
+    // Monitora aproximação da coleta. Até 20 km confirma automaticamente; entre
+    // 20 e 40 km apenas guarda evidência. O alerta só nasce se depois houver afastamento.
+    atualizarMonitorColeta(row);
 
     if(typeof row.passouCheckpoint !== 'boolean') row.passouCheckpoint = false;
     if(checkpointRule && rowInCheckpointCity(row, checkpointRule)) row.passouCheckpoint = true;
@@ -791,7 +922,34 @@ function reclassify(){
        3) Nacional sem regra: se UF da posição divergir da UF do remetente, sobe para alerta nacional.
     */
     const semRegraPadrao = !temRegraPadrao(row, checkpointRule);
+    const saiuCidadeOrigem = temCheckpointCidadeOrigem(row) && !rowInOriginCity(row);
 
+    /* CHECKPOINT GERAL POR CIDADE — fallback principal
+       Depois que a coleta foi CONFIRMADA e o veículo deixa a cidade de origem,
+       não dependemos mais exclusivamente da leitura da UF na posição. Isso evita
+       PCs travadas quando o rastreador devolve posição com UF em formato diferente.
+       As regras específicas (aduana, cliente alerta, checkpoint cadastrado e paga)
+       já foram tratadas acima e continuam com prioridade. */
+    if(semRegraPadrao && saiuCidadeOrigem && checkpointColetaConfirmado(row)){
+      if(isUFEx(row.ufRem)){
+        row.bucket = 'alertaInt';
+        row.status = 'Faturar';
+        return;
+      }
+      if(isUFEx(row.ufDest)){
+        row.bucket = 'alertaExpo';
+        row.status = 'Faturar';
+        return;
+      }
+      if(!isUFEx(row.ufRem) && !isUFEx(row.ufDest)){
+        row.bucket = 'alertaNac';
+        row.status = 'Faturar';
+        return;
+      }
+    }
+
+    // Compatibilidade para bases antigas sem município de origem: mantém as
+    // regras anteriores por Brasil/UF da posição.
     if(semRegraPadrao && isUFEx(row.ufRem) && isInBrazil(row.posicao)){
       row.bucket = 'alertaInt';
       row.status = 'Faturar';
@@ -833,7 +991,7 @@ function reclassify(){
     }
   });
 }
-function currentSets(){ return { ativo: state.rows.filter(r => r.bucket === 'ativo'), agNota: state.rows.filter(r => r.bucket === 'agNota'), aduana: state.rows.filter(r => r.bucket === 'aduana'), alertaNac: state.rows.filter(r => r.bucket === 'alertaNac'), alertaInt: state.rows.filter(r => r.bucket === 'alertaInt'), alertaExpo: state.rows.filter(r => r.bucket === 'alertaExpo') }; }
+function currentSets(){ return { ativo: state.rows.filter(r => r.bucket === 'ativo'), agNota: state.rows.filter(r => r.bucket === 'agNota'), aduana: state.rows.filter(r => r.bucket === 'aduana'), alertaNac: state.rows.filter(r => r.bucket === 'alertaNac'), alertaInt: state.rows.filter(r => r.bucket === 'alertaInt'), alertaExpo: state.rows.filter(r => r.bucket === 'alertaExpo'), checkpoint: state.rows.filter(checkpointNaoConfirmadoSuspeito) }; }
 function fillSelect(el, items, current=''){ const keep = current || el.value || ''; el.innerHTML = '<option value="">Todos</option>' + [...new Set(items.filter(Boolean))].sort().map(v => `<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join(''); if([...el.options].some(o => o.value === keep)) el.value = keep; }
 function filterRows(rows, {q='', client='', status='', ufOrigem='', ufDestino=''}={}){ const text = norm(q); return rows.filter(r => { if(client && norm(r.pagador) !== norm(client)) return false; if(status && r.status !== status) return false; if(ufOrigem && norm(r.ufRem) !== norm(ufOrigem)) return false; if(ufDestino && norm(r.ufDest) !== norm(ufDestino)) return false; const hay = norm([r.cavalo,r.pagador,r.posicao,r.motorista,r.referencia,r.talhao,r.destinatario,r.remetente].join(' ')); return !text || hay.includes(text); }); }
 function statusSelect(row, fromFinalizados=false){ const opts = ['Coleta','AG Nota','Aduana','Faturar','Finalizado']; return `<select onchange="alterarStatus('${encodeURIComponent(row.id)}', this.value, ${fromFinalizados ? 'true' : 'false'})">${opts.map(s => `<option value="${s}" ${row.status===s?'selected':''}>${s}</option>`).join('')}</select>`; }
@@ -869,6 +1027,23 @@ function renderTable(el, rows, includeFrete=false, fromFinalizados=false, alertM
   el.innerHTML = `<thead><tr>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${shown.length ? shown.map(r => `<tr>${cols.map(c => `<td>${c[1](r)}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${cols.length}" style="text-align:center;color:#9bb0df">Nenhum registro encontrado.</td></tr>`}</tbody>`;
   renderPager(el, total, page, pages);
 }
+
+function renderCheckpointTable(el, rows){
+  const total = rows.length;
+  el.innerHTML = `<thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição atual</th><th>Pagador</th><th>Origem da coleta</th><th>Destino</th><th>Motorista</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows.length ? rows.map(r=>`<tr>
+    <td>${copyable(r.cavalo||'-','cavalo')}</td>
+    <td>${copyable(r.dataPC||'-','data PC')}<div class="small">PV ${copyable(r.pv||'-','PV')}</div></td>
+    <td>${copyable(r.posicao||'-','posição')}</td>
+    <td>${copyable(r.pagador||'-','pagador')}</td>
+    <td>${copyable(r.cidadeOrigem||'-','cidade de origem')} / ${copyable(r.ufRem||'-','UF origem')}</td>
+    <td>${copyable(r.cidadeDestino||'-','cidade destino')} / ${copyable(r.ufDest||'-','UF destino')}</td>
+    <td>${copyable(r.motorista||'-','motorista')}</td>
+    <td><span class="checkpointWarn">⚠ Passagem pela coleta não registrada</span><div class="small">A PC não foi movida automaticamente.</div></td>
+    <td>${checkpointAction(r)}</td>
+  </tr>`).join('') : `<tr><td colspan="9" style="text-align:center;color:#9bb0df">Nenhum checkpoint pendente de conferência.</td></tr>`}</tbody>`;
+  let pager = document.getElementById('pager-'+el.id); if(pager) pager.remove();
+}
+
 function renderPager(el, total, page, pages){
   let pager = document.getElementById('pager-' + el.id);
   if(!pager){
@@ -914,8 +1089,8 @@ function sortStableRows(rows){
 function renderMonthsPanel(){
   const box = mesesBox;
   const compet = {};
-  state.rows.forEach(r => { if(r.competencia){ compet[r.competencia] = (compet[r.competencia] || 0) + 1; } });
-  state.finalizados.forEach(r => { if(r.competencia){ compet[r.competencia] = compet[r.competencia] || 0; } });
+  state.rows.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)){ compet[r.competencia] = (compet[r.competencia] || 0) + 1; } });
+  state.finalizados.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)){ compet[r.competencia] = compet[r.competencia] || 0; } });
   const months = Object.keys(compet).sort();
   box.innerHTML = '';
   if(!months.length){ box.innerHTML = '<div class="small">Ainda não há competências carregadas.</div>'; return; }
@@ -925,7 +1100,7 @@ function renderMonthsPanel(){
     const pode = abertos === 0;
     const div = document.createElement('div');
     div.className = 'monthCard';
-    div.innerHTML = `<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small" style="margin-top:8px">Abertos: ${abertos} | Finalizados: ${finalizados}</div></div><div class="monthStatus ${pode ? 'ok' : 'warn'}">${pode ? 'Sem PV em aberto. Pode zerar.' : 'Ainda com PV em aberto'}</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" ${pode ? '' : 'disabled'} onclick="zerarCompetenciaSupabase('${m}')">Zerar Supabase</button></div>`;
+    div.innerHTML = `<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small" style="margin-top:8px">Abertos: ${abertos} | Finalizados: ${finalizados}</div></div><div class="monthStatus ${pode ? 'ok' : 'warn'}">${pode ? 'Sem PV em aberto. Pode zerar.' : 'Ainda com PV em aberto'}</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" onclick="zerarCompetenciaSupabase('${m}')">Zerar Supabase</button></div>`;
     box.appendChild(div);
   });
 }
@@ -936,14 +1111,43 @@ window.exportarCompetencia = function(m){
 };
 window.zerarCompetenciaSupabase = async function(m){
   if(!state.supabase){ alert('Preencha a conexão no HTML.'); return; }
-  if(!confirm(`Zerar a competência ${m} na Supabase?`)) return;
+  if(!confirm(`Zerar a competência ${m} na Supabase?\n\nOs registros abertos deste mês serão removidos do painel ativo e a competência ficará bloqueada para não ser recriada por sincronizações futuras.`)) return;
   const [year, month] = m.split('-');
   const monthKey = `${year}-${month}-01`;
+  let error = null;
+
+  // 1) Limpeza pelo campo de competência (base atual).
   const del1 = await state.supabase.from('painel_902').delete().eq('competencia_mes', monthKey);
-  const error = del1.error;
-  if(error){ alert('Erro ao zerar mês: ' + error.message); return; }
+  error = del1.error || error;
+
+  // 2) Segurança para bases antigas: alguns registros podem ter sido gravados sem
+  // competencia_mes. Localizamos pelo próprio data_pc e apagamos pelos IDs.
+  if(!error){
+    try{
+      const dbRows = await fetchAllRows('painel_902', 'id,data_pc,competencia_mes', 'id', true, 1000);
+      const idsMes = (dbRows || []).filter(r => {
+        const c = competenciaMes(r.data_pc || '');
+        const cm = String(r.competencia_mes || '').slice(0,7);
+        return c === m || cm === m;
+      }).map(r => r.id).filter(Boolean);
+      for(let i=0; i<idsMes.length; i+=200){
+        const del = await state.supabase.from('painel_902').delete().in('id', idsMes.slice(i,i+200));
+        error = del.error || error;
+        if(error) break;
+      }
+    }catch(e){ error = e; }
+  }
+  if(error){ alert('Erro ao zerar mês: ' + (error.message || error)); return; }
+
+  // 3) Marca a competência como encerrada. Sync/Carregar não podem ressuscitá-la.
+  const marker = {zerada:true, em:new Date().toISOString(), usuario:usuarioAtual902()};
+  const mk = await state.supabase.from('configuracoes_902').upsert({chave:`competencia_zerada:${m}`, valor:JSON.stringify(marker), updated_at:new Date().toISOString()}, {onConflict:'chave'});
+  if(mk.error){ alert('Mês apagado, mas não foi possível registrar o bloqueio da competência: ' + mk.error.message); return; }
+  state.competenciasZeradas.add(m);
+  state.rows = state.rows.filter(r => r.competencia !== m);
+  state.finalizados = state.finalizados.filter(r => r.competencia !== m);
   await carregarDaSupabase();
-  alert(`Competência ${m} zerada na Supabase.`);
+  alert(`Competência ${m} zerada e bloqueada na Supabase.`);
 };
 
 function renderConfigEditors(){
@@ -1020,7 +1224,8 @@ function renderAll(full=false){
     aduana: sortStableRows(rawSets.aduana),
     alertaNac: sortStableRows(rawSets.alertaNac),
     alertaInt: sortStableRows(rawSets.alertaInt),
-    alertaExpo: sortStableRows(rawSets.alertaExpo)
+    alertaExpo: sortStableRows(rawSets.alertaExpo),
+    checkpoint: sortStableRows(rawSets.checkpoint || [])
   };
 
   cAtivas.textContent = sets.ativo.length;
@@ -1032,6 +1237,7 @@ function renderAll(full=false){
   cInt.textContent = sets.alertaInt.length;
   if(typeof cIntFrete !== 'undefined' && cIntFrete) cIntFrete.textContent = `${money(sets.alertaInt.reduce((a,b)=>a+Number(b.frete||0),0))} em fretes`;
   cExpo.textContent = sets.alertaExpo.length;
+  if(typeof cCheckpoint !== 'undefined' && cCheckpoint) cCheckpoint.textContent = sets.checkpoint.length;
   renderLastUpdate();
 
   if(full){
@@ -1067,6 +1273,7 @@ function renderAll(full=false){
   renderTable(tbInt, intRows, true, false, true);
   renderTable(tbExpo, expoRows, false, false, true);
   renderTable(tbFim, state.finalizados, false, true);
+  if(typeof tbCheckpoint !== 'undefined' && tbCheckpoint) renderCheckpointTable(tbCheckpoint, sets.checkpoint);
 
   sumAgQtd.textContent = agRows.length;
   sumAgFrete.textContent = money(agRows.reduce((a,b) => a + Number(b.frete||0), 0));
@@ -1583,7 +1790,7 @@ async function syncToSupabase(silent=false){
   state.rows.forEach(r => mergedMap.set(r.id, {...r, status: r.status || 'Coleta'}));
   state.finalizados.forEach(r => mergedMap.set(r.id, {...r, status: 'Finalizado', finalizadoEm: r.finalizadoEm || new Date().toISOString()}));
 
-  const payload = uniqueDbPayloadById([...mergedMap.values()].map(mapRowToDb));
+  const payload = uniqueDbPayloadById([...mergedMap.values()].filter(r => !state.competenciasZeradas.has(competenciaMes(r.dataPC))).map(mapRowToDb));
 
   let error = null;
 
@@ -1609,7 +1816,7 @@ async function syncToSupabase(silent=false){
   }
 
   if(!error){
-    const finalPayload = uniqueDbPayloadById(uniqueRowsById(state.finalizados).map(r => ({...mapRowToDb({...r, status:'Finalizado'}), finalizado_em: r.finalizadoEm || new Date().toISOString()})));
+    const finalPayload = uniqueDbPayloadById(uniqueRowsById(state.finalizados).filter(r => !state.competenciasZeradas.has(competenciaMes(r.dataPC))).map(r => ({...mapRowToDb({...r, status:'Finalizado'}), finalizado_em: r.finalizadoEm || new Date().toISOString()})));
     if(finalPayload.length){
       for(let i = 0; i < finalPayload.length; i += 500){
         const chunk = finalPayload.slice(i, i + 500);

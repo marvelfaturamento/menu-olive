@@ -835,3 +835,12 @@ button:hover,.btn:hover,.navbtn:hover,.menu button:hover{transform:translateY(-1
 }
 .cardBtn.card-active .k{color:#c7dcff!important;}
 .cardBtn.card-active .v{color:#fff!important;}
+
+/* Checkpoint persistente de coleta */
+.cards{grid-template-columns:repeat(7,minmax(145px,1fr))}
+.checkpointCard{border-color:#9a6a16!important}
+.checkpointCard.card-active{border-color:#ffbd3f!important;box-shadow:0 0 0 2px rgba(255,189,63,.20),0 10px 24px rgba(0,0,0,.18)!important}
+.checkpointWarn{display:inline-block;color:#ffca55;font-weight:800}
+.checkpointOk{color:#45d483;font-weight:800}
+.checkpointIntro{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+@media(max-width:1250px){.cards{grid-template-columns:repeat(4,minmax(150px,1fr))}}
