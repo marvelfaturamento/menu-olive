@@ -628,8 +628,27 @@ function temCheckpointCidadeOrigem(row){
 }
 
 
+function checkpointStateKey(row){
+  if(!row) return '';
+  const comp = competenciaMes(row.dataPC) || 'SEM-COMP';
+  const filial = norm(row.filial) || 'SEM-FILIAL';
+  const pvpc = norm(row.pv || row.pvReal) || 'SEM-PC';
+  // O checkpoint pertence à programação, nunca ao cavalo. A competência evita
+  // reaproveitar estado quando o mesmo número de PC/PV voltar em outro mês.
+  return [comp, filial, pvpc].join('|');
+}
 function checkpointColetaAtual(row){
-  return row && state.coletaCheckpoints ? state.coletaCheckpoints[row.id] || null : null;
+  if(!row || !state.coletaCheckpoints) return null;
+  const k = checkpointStateKey(row);
+  const atual = state.coletaCheckpoints[k];
+  if(atual) return atual;
+  // Compatibilidade: versões anteriores persistiam pelo row.id (REF|FILIAL|PC).
+  const legado = state.coletaCheckpoints[row.id];
+  if(legado){
+    state.coletaCheckpoints[k] = {...legado, migradoDe:row.id};
+    return state.coletaCheckpoints[k];
+  }
+  return null;
 }
 const checkpointSaveTimers = new Map();
 function persistirCheckpointColeta(row, origem='automatico'){
@@ -645,13 +664,14 @@ function persistirCheckpointColeta(row, origem='automatico'){
     posicao:row.posicao || '',
     usuario: origem === 'manual' ? usuarioAtual902() : 'Robô 902'
   };
-  state.coletaCheckpoints[row.id] = cp;
+  const stateKey = checkpointStateKey(row);
+  state.coletaCheckpoints[stateKey] = cp;
   if(!state.supabase) return;
-  clearTimeout(checkpointSaveTimers.get(row.id));
-  checkpointSaveTimers.set(row.id, setTimeout(async()=>{
+  clearTimeout(checkpointSaveTimers.get(stateKey));
+  checkpointSaveTimers.set(stateKey, setTimeout(async()=>{
     try{
       await state.supabase.from('configuracoes_902').upsert({
-        chave:`coleta_checkpoint:${row.id}`,
+        chave:`coleta_checkpoint:${stateKey}`,
         valor:JSON.stringify(cp),
         updated_at:new Date().toISOString()
       }, {onConflict:'chave'});
@@ -673,19 +693,21 @@ function distanciaReferenciadaOrigem(row){
 }
 function persistirMonitorColeta(row, patch){
   if(!row?.id) return;
-  const atual = state.coletaMonitor[row.id] || {};
+  const stateKey = checkpointStateKey(row);
+  const atual = state.coletaMonitor[stateKey] || state.coletaMonitor[row.id] || {};
   const obj = {...atual, ...patch, atualizadoEm:new Date().toISOString()};
-  state.coletaMonitor[row.id] = obj;
+  state.coletaMonitor[stateKey] = obj;
   if(!state.supabase) return;
-  clearTimeout(monitorSaveTimers.get(row.id));
-  monitorSaveTimers.set(row.id, setTimeout(async()=>{
-    try{ await state.supabase.from('configuracoes_902').upsert({chave:`coleta_monitor:${row.id}`, valor:JSON.stringify(obj), updated_at:new Date().toISOString()}, {onConflict:'chave'}); }catch(e){ console.warn('Falha ao persistir monitor de coleta',e); }
+  clearTimeout(monitorSaveTimers.get(stateKey));
+  monitorSaveTimers.set(stateKey, setTimeout(async()=>{
+    try{ await state.supabase.from('configuracoes_902').upsert({chave:`coleta_monitor:${stateKey}`, valor:JSON.stringify(obj), updated_at:new Date().toISOString()}, {onConflict:'chave'}); }catch(e){ console.warn('Falha ao persistir monitor de coleta',e); }
   },100));
 }
 function atualizarMonitorColeta(row){
   if(!row || checkpointColetaConfirmado(row) || !temCheckpointCidadeOrigem(row)) return;
   const d = distanciaReferenciadaOrigem(row);
-  const atual = state.coletaMonitor[row.id] || {};
+  const stateKey = checkpointStateKey(row);
+  const atual = state.coletaMonitor[stateKey] || state.coletaMonitor[row.id] || {};
   if(d !== null){
     const min = atual.minDistKm == null ? d : Math.min(Number(atual.minDistKm), d);
     persistirMonitorColeta(row,{minDistKm:min,lastDistKm:d,viuAproximacao: min <= RAIO_APROXIMACAO_KM, ultimaPosicao:row.posicao||''});
@@ -709,11 +731,25 @@ function checkpointNaoConfirmadoSuspeito(row){
   // silenciosamente em PCs ativas.
   if(rowInDestinationCity(row)) return true;
 
-  const m = state.coletaMonitor[row.id];
+  const m = state.coletaMonitor[checkpointStateKey(row)] || state.coletaMonitor[row.id];
   if(!m?.viuAproximacao) return false;
   const d = distanciaReferenciadaOrigem(row);
   if(d === null) return !!m.afastouDaReferencia;
   return Number(m.minDistKm) <= RAIO_APROXIMACAO_KM && d >= Number(m.minDistKm) + AFASTAMENTO_MIN_KM;
+}
+function diagnosticoCheckpoint(row){
+  const key = checkpointStateKey(row);
+  const cp = checkpointColetaAtual(row);
+  const mon = state.coletaMonitor[key] || state.coletaMonitor[row.id] || null;
+  let motivo = 'Sem evidência suficiente';
+  if(cp?.confirmado) motivo = `Confirmado (${cp.origem || 'salvo'})`;
+  else if(rowInDestinationCity(row)) motivo = 'Destino alcançado sem passagem registrada';
+  else if(mon?.viuAproximacao){
+    const d = distanciaReferenciadaOrigem(row);
+    if(d === null && mon.afastouDaReferencia) motivo = 'Aproximou e saiu da referência';
+    else if(d !== null) motivo = `Aproximação ${Number(mon.minDistKm||0).toFixed(1)} km → atual ${Number(d).toFixed(1)} km`;
+  }
+  return {key, cp, mon, motivo};
 }
 window.confirmarCheckpointColeta = async function(id){
   id = decodeURIComponent(id);
@@ -1038,7 +1074,7 @@ function renderCheckpointTable(el, rows){
     <td>${copyable(r.cidadeOrigem||'-','cidade de origem')} / ${copyable(r.ufRem||'-','UF origem')}</td>
     <td>${copyable(r.cidadeDestino||'-','cidade destino')} / ${copyable(r.ufDest||'-','UF destino')}</td>
     <td>${copyable(r.motorista||'-','motorista')}</td>
-    <td><span class="checkpointWarn">⚠ Passagem pela coleta não registrada</span><div class="small">A PC não foi movida automaticamente.</div></td>
+    <td><span class="checkpointWarn">⚠ Passagem pela coleta não registrada</span><div class="small">${escHtml(diagnosticoCheckpoint(r).motivo)}</div><div class="small" title="Chave do checkpoint">Chave: ${escHtml(diagnosticoCheckpoint(r).key)}</div></td>
     <td>${checkpointAction(r)}</td>
   </tr>`).join('') : `<tr><td colspan="9" style="text-align:center;color:#9bb0df">Nenhum checkpoint pendente de conferência.</td></tr>`}</tbody>`;
   let pager = document.getElementById('pager-'+el.id); if(pager) pager.remove();
@@ -1927,6 +1963,10 @@ async function carregarDaSupabase(silent=false){
   state.config.fretes = dedupeFretes(state.config.fretes);
   state.config.checkpoints = dedupeCheckpoints(state.config.checkpoints);
 
+  // Atualiza o estado operacional do checkpoint imediatamente antes da
+  // classificação. Isso elimina divergência entre a versão isolada e a integrada
+  // causada por estado local antigo ou por polling ainda não executado.
+  await carregarTratativasSupabase();
   renderConfigEditors();
   reclassify();
   await saveLocal();
