@@ -52,7 +52,9 @@ function renderCurrentView(){
   }else if(view === 'performance'){
     renderPerformanceView?.();
   }else if(view === 'performanceAnual'){
-    renderPerformanceAnualView?.();
+    // v36: chama o wrapper anual que primeiro carrega TODOS os meses da Supabase.
+    // Antes chamava a função lexical antiga e ignorava completamente o carregador v33-v35.
+    window.renderPerformanceAnualView?.();
   }else if(view === 'clientes'){
     renderClientesView?.();
   }else if(view === 'setores'){
@@ -547,7 +549,7 @@ async function loadMonthFromSupabase(monthKey){
   }
 
   const allRef = (refData || []).slice().sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
-  const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || '').localeCompare(String(b.operador || '')));
+  const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || a.usuario || '').localeCompare(String(b.operador || b.usuario || '')));
   const refRows = allRef.filter(r => r.tipo === 'refaturado');
   const subRows = allRef.filter(r => r.tipo === 'substituto');
   const setorRows = allRef.filter(r => r.tipo === 'setor');
@@ -559,17 +561,17 @@ async function loadMonthFromSupabase(monthKey){
     refaturado: r.documento || '',
     freteRefaturado: parseNumber(r.frete_refaturado || 0),
     dataOriginal: '',
-    operadorOriginal: r.operador || '',
+    operadorOriginal: r.operador || r.usuario || '',
     tomadorOriginal: r.cliente || '',
-    original: r.documento_original || '',
+    original: r.documento_original || r.original_doc || '',
     freteOriginal: parseNumber(r.frete_original || 0),
     diferenca: 0,
-    reduzido: r.reduzido || '',
+    reduzido: sectorNormalize(r.reduzido || r.setor || ''),
     motivoBaixa: r.motivo_baixa || '',
     clientGroup: clientGroup(r.cliente || ''),
-    originalTail: (tailDigits(r.documento_original || '') || '').replace(/^0+/,'') || '0',
+    originalTail: (tailDigits(r.documento_original || r.original_doc || '') || '').replace(/^0+/,'') || '0',
     debit: parseNumber(r.debito || 0),
-    userSetor: r.operador || '',
+    userSetor: r.operador || r.usuario || '',
     setorLancamento: r.setor || ''
   }));
   state.substitutos = subRows.map(r => ({
@@ -578,15 +580,15 @@ async function loadMonthFromSupabase(monthKey){
     substituto: r.documento || '',
     freteSubstituto: parseNumber(r.frete_substituto || 0),
     dataOriginal: '',
-    operadorOriginal: r.operador || '',
+    operadorOriginal: r.operador || r.usuario || '',
     tomadorOriginal: r.cliente || '',
-    original: r.documento_original || '',
+    original: r.documento_original || r.original_doc || '',
     freteOriginal: parseNumber(r.frete_original || 0),
     diferenca: 0,
-    reduzido: r.reduzido || '',
+    reduzido: sectorNormalize(r.reduzido || r.setor || ''),
     motivoBaixa: r.motivo_baixa || '',
     clientGroup: clientGroup(r.cliente || ''),
-    originalTail: (tailDigits(r.documento_original || '') || '').replace(/^0+/,'') || '0',
+    originalTail: (tailDigits(r.documento_original || r.original_doc || '') || '').replace(/^0+/,'') || '0',
     debit: 0
   }));
   state.setores = setorRows.map(r => ({
@@ -594,14 +596,14 @@ async function loadMonthFromSupabase(monthKey){
     docto: (String(r.documento || '').split('|')[2] || ''),
     cliente: r.cliente || '',
     debit: parseNumber(r.debito || 0),
-    documentos: docTokens(r.documento_original || ''),
-    usuario: r.operador || '',
+    documentos: docTokens(r.documento_original || r.original_doc || ''),
+    usuario: r.operador || r.usuario || '',
     setor: r.setor || 'NÃO IDENTIFICADO',
     clientGroup: clientGroup(r.cliente || '')
   }));
   state.prodRows = [];
   allProd.forEach(r => {
-    const usuario = prodNorm(r.operador || '');
+    const usuario = prodNorm(r.operador || r.usuario || '');
     const pushRow = (tipo, quantidade) => {
       const q = parseNumber(quantidade || 0);
       if(q > 0) state.prodRows.push({ usuario, tipo, quantidade: q });
@@ -1020,7 +1022,7 @@ function inferReasonFromText(text){
   // Por isso, a justificativa final deve ter prioridade sobre palavras presentes
   // apenas na descrição da nota relacionada.
   const explicitParts = [];
-  const afterSubstituido = original.match(/substitu[ií]d[oa]\s+do\s+ct-?e[^-–—:]*[-–—:]\s*(.+)$/i);
+  const afterSubstituido = original.match(/(?:substitu[ií]d[oa]|substituto)\s+(?:do\s+)?ct-?e[^-–—:]*[-–—:]\s*(.+)$/i);
   if(afterSubstituido?.[1]) explicitParts.push(afterSubstituido[1]);
 
   const separators = original.split(/\s[-–—:]\s/).map(v => v.trim()).filter(Boolean);
@@ -1043,7 +1045,9 @@ function inferReasonFromText(text){
       { reason:'alteração do CT-e base', terms:['alteracao do cte base','alteracao do ct-e base','alterar o cte base','alterar o ct-e base','motivo de alteracao do cte base','motivo de alteracao do ct-e base'] },
       { reason:'falta de notas fiscais', terms:['faltou nota','faltou notas','faltaram notas','faltou 1 nota','falta de nota','falta de notas','notas faltantes','nf faltante','nfs faltantes'] },
       { reason:'imposto incorreto', terms:['somou icms indevidamente','icms indevido','icms incorreto','icms errado','icms calculado indevidamente','imposto indevido','imposto incorreto','cst incorreto','cst incorreta','cst errado','cst errada','cst divergente'] },
-      { reason:'nota fiscal de pallet', terms:['nf pallet','nf de pallet','nota pallet','nota de pallet','nota fiscal de pallet','emitido com nf pallet','emitido com nf de pallet','emitido com nota de pallet','emitido com nota fiscal de pallet','nota fiscal de pallet incorreta','nf de pallet incorreta','erro nf pallet','erro nota pallet'] },
+      // Motivos efetivos têm prioridade sobre referências documentais como "NF pallet 397133".
+      { reason:'valor incorreto', terms:['valor incorreto','valor errado','valor divergente'] },
+      { reason:'nota fiscal de pallet', terms:['nota fiscal de pallet incorreta','nf de pallet incorreta','erro nf pallet','erro nota pallet','motivo nota fiscal de pallet','motivo nf pallet'] },
       { reason:'nota fiscal indevida', terms:['nota incorreta','nf incorreta','nota fiscal incorreta','nota fiscal indevida','nf indevida','nota indevida','documento fiscal indevido'] },
       { reason:'pagador incorreto', terms:['pagador incorreto','pagador errado','tomador incorreto','tomador errado','tomador divergente'] },
       { reason:'valor incorreto na tabela', terms:['valor incorreto na tabela','valor de tabela incorreto','tabela incorreta','tarifa incorreta','valor tabela'] },
@@ -1055,7 +1059,6 @@ function inferReasonFromText(text){
       { reason:'advalorem', terms:['advalorem','ad valorem'] },
       { reason:'CT-e base incorreto', terms:['cte base errado','ct-e base errado','cte base incorreto','ct-e base incorreto','vinculado ao cte base errado','vinculado ao ct-e base errado','vinculado ao cte errado'] },
       { reason:'valor incorreto e emissão indevida', terms:['valor e emissao incorretos','valor e emissao incorreto','valor e emissao errados','valor e tipo de emissao incorretos'] },
-      { reason:'valor incorreto', terms:['valor incorreto','valor errado','valor divergente'] },
       { reason:'sem preenchimento', terms:['sem preenchimento','nao preenchido','faltou preenchimento','campo em branco'] }
     ];
 
@@ -1066,7 +1069,8 @@ function inferReasonFromText(text){
     // Só considera a palavra pallet isoladamente quando estamos analisando o
     // texto completo e não existe uma justificativa final mais específica.
     if(allowDocumentContext && (valueNorm.includes('pallet') || valueNorm.includes('palete'))){
-      return 'nota fiscal de pallet';
+      const palletIsExplicitError = /(?:pallet|palete).{0,35}(?:incorret|indevid|errad|divergent)/.test(valueNorm) || /(?:incorret|indevid|errad|divergent).{0,35}(?:pallet|palete)/.test(valueNorm);
+      if(palletIsExplicitError) return 'nota fiscal de pallet';
     }
 
     // Motivos cadastrados continuam sendo reconhecidos, mas somente após as
@@ -4088,7 +4092,7 @@ async function loadMonthFromSupabase(monthKey){
 });
 
 const allProd = Array.from(prodMap.values())
-  .sort((a,b) => String(a.operador || '').localeCompare(String(b.operador || '')));
+  .sort((a,b) => String(a.operador || a.usuario || '').localeCompare(String(b.operador || b.usuario || '')));
   const refRows = allRef.filter(r => r.tipo === 'refaturado');
   const subRows = allRef.filter(r => r.tipo === 'substituto');
   const setorRows = allRef.filter(r => r.tipo === 'setor');
@@ -5001,8 +5005,33 @@ if(document.readyState === 'loading'){
 
 
 /* ===== Performance Anual de Usuários ===== */
+function __perfAnualUserKey(usuario){
+  // Canonicaliza identidades históricas do mesmo usuário. O Balestrin já teve
+  // dois cadastros no painel; meses antigos podem estar gravados como Jonatan,
+  // Jonathan, com ponto/espaço/_/- ou até e-mail. Todos devem cair na mesma série.
+  let u = prodNorm(usuario || '')
+    .replace(/@.*$/g, '')
+    .replace(/[\s_-]+/g, '.')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^\.|\.$/g, '');
+
+  const compact = u.replace(/[^a-z0-9]/g, '');
+  const aliases = {
+    'jonatanbalestrin':'jonatan.balestrin',
+    'jonathanbalestrin':'jonatan.balestrin',
+    'jhonatanbalestrin':'jonatan.balestrin',
+    'jhonathanbalestrin':'jonatan.balestrin',
+    'balestrinjonatan':'jonatan.balestrin',
+    'balestrinjonathan':'jonatan.balestrin'
+  };
+  if(aliases[compact]) return aliases[compact];
+  // Segurança para o cadastro duplicado histórico: se o identificador contém
+  // Balestrin e uma variação inequívoca de Jonatan/Jonathan, consolida no login atual.
+  if(compact.includes('balestrin') && /^(j?h?onat(h)?an|jonat)/.test(compact)) return 'jonatan.balestrin';
+  return u;
+}
 function __perfAnualEnsureUser(map, usuario){
-  const u = prodNorm(usuario || '');
+  const u = __perfAnualUserKey(usuario || '');
   if(!u) return null;
   if(!map.has(u)){
     map.set(u, {
@@ -5022,7 +5051,7 @@ function __perfAnualSplitUsers(value){
   if(!raw) return [];
   return raw
     .split(/[,;|]+/g)
-    .map(v => prodNorm(v))
+    .map(v => __perfAnualUserKey(v))
     .filter(Boolean)
     .filter((v, i, arr) => arr.indexOf(v) === i);
 }
@@ -5241,11 +5270,25 @@ function renderPerformanceAnualView(){
   let labels = months.map(monthLabel);
   let datasets = [];
   if(selected === 'TODOS'){
-    const top = rows.slice().sort((a,b)=>b.impacto-a.impacto).slice(0,5);
-    datasets = top.map(r => ({ label:r.usuario, data: months.map(k => r.meses[k]?.performance ?? null), tension:.35, fill:false }));
+    // Exibe TODOS os usuários operacionais que possuem performance em pelo menos um mês.
+    // Não limita mais a evolução mensal aos 5 maiores impactos financeiros.
+    const evolutionUsers = rows
+      .filter(r => !__perfAnualIsUsuarioTecnico(r.usuario))
+      .filter(r => months.some(k => (state.perfAnualMonthlyExact?.[k]?.[__perfAnualUserKey(r.usuario)]?.performance ?? r.meses[k]?.performance) != null))
+      .slice()
+      .sort((a,b) => String(a.usuario).localeCompare(String(b.usuario), 'pt-BR'));
+    datasets = evolutionUsers.map(r => ({
+      label:r.usuario,
+      data: months.map(k => state.perfAnualMonthlyExact?.[k]?.[__perfAnualUserKey(r.usuario)]?.performance ?? r.meses[k]?.performance ?? null),
+      tension:.35,
+      fill:false,
+      spanGaps:false,
+      pointRadius:2.5,
+      pointHoverRadius:5
+    }));
   }else{
     const r = rows.find(x => x.usuario === selected);
-    datasets = [{ label:selected, data: months.map(k => r?.meses[k]?.performance ?? null), tension:.35, fill:false }];
+    datasets = [{ label:selected, data: months.map(k => state.perfAnualMonthlyExact?.[k]?.[__perfAnualUserKey(selected)]?.performance ?? r?.meses[k]?.performance ?? null), tension:.35, fill:false }];
   }
   destroyChart('chartPerfAnualEvolucao');
   const ctx = document.getElementById('chartPerfAnualEvolucao');
@@ -5550,6 +5593,7 @@ function __perfAnualAggregate(){
 (function(){
   const oldRenderPerfAnual = window.renderPerformanceAnualView || (typeof renderPerformanceAnualView === 'function' ? renderPerformanceAnualView : null);
   let loadingAllMonths = null;
+  let annualMonthsLoadedOnce = false;
 
   function v33MonthKeysFromRows(rows){
     return Array.from(new Set((rows || [])
@@ -5560,14 +5604,14 @@ function __perfAnualAggregate(){
 
   function v33BuildSnapshotFromSupabase(refData, prodData, monthKey){
     const allRef = (refData || []).slice().sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
-    const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || '').localeCompare(String(b.operador || '')));
+    const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || a.usuario || '').localeCompare(String(b.operador || b.usuario || '')));
     const refRows = allRef.filter(r => r.tipo === 'refaturado');
     const subRows = allRef.filter(r => r.tipo === 'substituto');
     const setorRows = allRef.filter(r => r.tipo === 'setor');
 
     const prodRows = [];
     allProd.forEach(r => {
-      const usuario = prodNorm(r.operador || '');
+      const usuario = prodNorm(r.operador || r.usuario || '');
       const pushRow = (tipo, quantidade) => {
         const q = parseNumber(quantidade || 0);
         if(q > 0) prodRows.push({ usuario, tipo, quantidade: q });
@@ -5586,17 +5630,17 @@ function __perfAnualAggregate(){
         refaturado: r.documento || '',
         freteRefaturado: parseNumber(r.frete_refaturado || 0),
         dataOriginal: '',
-        operadorOriginal: r.operador || '',
+        operadorOriginal: r.operador || r.usuario || '',
         tomadorOriginal: r.cliente || '',
-        original: r.documento_original || '',
+        original: r.documento_original || r.original_doc || '',
         freteOriginal: parseNumber(r.frete_original || 0),
         diferenca: 0,
-        reduzido: r.reduzido || '',
+        reduzido: sectorNormalize(r.reduzido || r.setor || ''),
         motivoBaixa: r.motivo_baixa || '',
         clientGroup: clientGroup(r.cliente || ''),
-        originalTail: (tailDigits(r.documento_original || '') || '').replace(/^0+/,'') || '0',
+        originalTail: (tailDigits(r.documento_original || r.original_doc || '') || '').replace(/^0+/,'') || '0',
         debit: parseNumber(r.debito || 0),
-        userSetor: r.operador || '',
+        userSetor: r.operador || r.usuario || '',
         setorLancamento: r.setor || ''
       })),
       substitutos: subRows.map(r => ({
@@ -5605,15 +5649,15 @@ function __perfAnualAggregate(){
         substituto: r.documento || '',
         freteSubstituto: parseNumber(r.frete_substituto || 0),
         dataOriginal: '',
-        operadorOriginal: r.operador || '',
+        operadorOriginal: r.operador || r.usuario || '',
         tomadorOriginal: r.cliente || '',
-        original: r.documento_original || '',
+        original: r.documento_original || r.original_doc || '',
         freteOriginal: parseNumber(r.frete_original || 0),
         diferenca: 0,
-        reduzido: r.reduzido || '',
+        reduzido: sectorNormalize(r.reduzido || r.setor || ''),
         motivoBaixa: r.motivo_baixa || '',
         clientGroup: clientGroup(r.cliente || ''),
-        originalTail: (tailDigits(r.documento_original || '') || '').replace(/^0+/,'') || '0',
+        originalTail: (tailDigits(r.documento_original || r.original_doc || '') || '').replace(/^0+/,'') || '0',
         debit: 0
       })),
       setores: setorRows.map(r => ({
@@ -5621,16 +5665,19 @@ function __perfAnualAggregate(){
         docto: (String(r.documento || '').split('|')[2] || ''),
         cliente: r.cliente || '',
         debit: parseNumber(r.debito || 0),
-        documentos: docTokens(r.documento_original || ''),
-        usuario: r.operador || '',
+        documentos: docTokens(r.documento_original || r.original_doc || ''),
+        usuario: r.operador || r.usuario || '',
         setor: r.setor || 'NÃO IDENTIFICADO',
         clientGroup: clientGroup(r.cliente || '')
       })),
       prodRows
     };
 
-    const filtered = snapshotFilteredByMonth(snapshot, monthKey);
-    if(snapshotHasMonthlyData(filtered)) snapshot = filtered;
+    // v35: NÃO filtrar novamente por data. A consulta Supabase acima já está
+    // restrita por ano/mês. O filtro por data_baixa eliminava registros históricos
+    // válidos (principalmente Jan/Fev/Mar) quando a data original estava vazia ou
+    // em formato legado. É exatamente por isso que o mês individual mostrava o
+    // usuário, mas a Performance Anual começava somente em abril.
     return snapshot;
   }
 
@@ -5646,28 +5693,60 @@ function __perfAnualAggregate(){
 
   async function v33EnsureAllAnnualMonthsLoaded(){
     if(!ensureSupabaseConnected()) return;
+    if(annualMonthsLoadedOnce) return;
     if(loadingAllMonths) return loadingAllMonths;
 
     loadingAllMonths = (async () => {
       try{
-        const { data: mesesData, error: mesesError } = await state.supabase
-          .from('meses_importados')
-          .select('mes,ano')
-          .order('ano', { ascending: true })
-          .order('mes', { ascending: true });
-        if(mesesError){
-          console.warn('Performance Anual: não foi possível listar meses importados.', mesesError);
+        // v37: preserva a leitura mensal que já existe no painel antes de recarregar
+        // a Supabase. Isso é importante para históricos em que um cadastro duplicado
+        // foi removido depois: o mês individual ainda possui o snapshot correto, mas a
+        // tabela atual pode não ter mais a linha antiga daquele operador.
+        const __cachedMonthlyExact = {};
+        Object.keys(state.annual || {}).forEach(__key => {
+          const __snap = state.annual?.[__key]?.snapshot;
+          if(!__snap) return;
+          const __backup = cloneMonthlySnapshot();
+          try{
+            applySnapshot(JSON.parse(JSON.stringify(__snap)));
+            const __rows = (aggregateProd() || []).filter(x => x.totalDocs > 0 || x.erros > 0);
+            __cachedMonthlyExact[__key] = {};
+            __rows.forEach(x => {
+              const __u = __perfAnualUserKey(x.usuario || '');
+              if(!__u) return;
+              __cachedMonthlyExact[__key][__u] = {
+                performance: x.performance == null ? null : Number(x.performance),
+                baseDocs: Number(x['ctrc'] || 0) + Number(x['ost'] || 0),
+                erros: Number(x.erros || 0)
+              };
+            });
+          } finally { applySnapshot(__backup); }
+        });
+        // IMPORTANTE: meses_importados foi criado depois dos primeiros imports e,
+        // em bases antigas, pode não conter Jan/Fev/Mar mesmo existindo produtividade.
+        // Por isso a Performance Anual descobre os meses pela UNIÃO do controle mensal
+        // com os próprios registros de produtividade. Assim nenhum histórico antigo é cortado.
+        const [{ data: mesesData, error: mesesError }, { data: prodMonthsData, error: prodMonthsError }] = await Promise.all([
+          state.supabase.from('meses_importados').select('mes,ano'),
+          state.supabase.from('produtividade_usuarios').select('mes,ano')
+        ]);
+        if(mesesError) console.warn('Performance Anual: falha ao listar meses_importados.', mesesError);
+        if(prodMonthsError) console.warn('Performance Anual: falha ao listar meses da produtividade.', prodMonthsError);
+
+        const keys = Array.from(new Set([
+          ...v33MonthKeysFromRows(mesesData || []),
+          ...v33MonthKeysFromRows(prodMonthsData || [])
+        ])).sort();
+        if(!keys.length){
+          console.warn('Performance Anual: nenhum mês encontrado na base.');
           return;
         }
-
-        const keys = v33MonthKeysFromRows(mesesData);
         state.remoteMonths = keys;
 
         for(const key of keys){
-          const hasRefSnapshot = !!(state.annual && state.annual[key] && state.annual[key].snapshot);
-          const hasProdRows = !!(state.annualProd && state.annualProd[key] && Array.isArray(state.annualProd[key].rows));
-          if(hasRefSnapshot && hasProdRows) continue;
-
+          // Sempre recarrega a produtividade mensal da Supabase para a Performance Anual.
+          // Não reutiliza annualProd local antigo, pois ele podia estar incompleto e fazia
+          // usuários (ex.: jonatan.balestrin) começarem apenas em meses mais recentes.
           const [ano, mes] = key.split('-');
           const [{ data: refData, error: refError }, { data: prodData, error: prodError }] = await Promise.all([
             state.supabase.from('refaturamento_importado').select('*').eq('ano', ano).eq('mes', mes),
@@ -5679,6 +5758,35 @@ function __perfAnualAggregate(){
           }
 
           const snapshot = v33BuildSnapshotFromSupabase(refData || [], prodData || [], key);
+
+          // v34: calcula a performance do mês pela MESMA função usada na tela mensal.
+          // Isso evita qualquer divergência entre o gráfico mensal e a Evolução Anual.
+          state.perfAnualMonthlyExact = state.perfAnualMonthlyExact || {};
+          const __backupPerfMonth = cloneMonthlySnapshot();
+          try{
+            applySnapshot(snapshot);
+            const __monthRows = (aggregateProd() || []).filter(x => x.totalDocs > 0 || x.erros > 0);
+            state.perfAnualMonthlyExact[key] = {};
+            __monthRows.forEach(x => {
+              const __u = __perfAnualUserKey(x.usuario || '');
+              if(!__u) return;
+              state.perfAnualMonthlyExact[key][__u] = {
+                performance: x.performance == null ? null : Number(x.performance),
+                baseDocs: Number(x['ctrc'] || 0) + Number(x['ost'] || 0),
+                erros: Number(x.erros || 0)
+              };
+            });
+            // Se o snapshot mensal histórico possui um usuário que já não existe na
+            // linha atual da Supabase, mantém o resultado mensal real em vez de apagá-lo.
+            Object.entries(__cachedMonthlyExact[key] || {}).forEach(([__u, __v]) => {
+              if(!state.perfAnualMonthlyExact[key][__u] || state.perfAnualMonthlyExact[key][__u].performance == null){
+                state.perfAnualMonthlyExact[key][__u] = __v;
+              }
+            });
+          }finally{
+            applySnapshot(__backupPerfMonth);
+          }
+
           state.annual[key] = v33SummaryFromSnapshot(snapshot);
           state.annualProd[key] = {
             documentos: (snapshot.prodRows || [])
@@ -5691,6 +5799,10 @@ function __perfAnualAggregate(){
         writeStorage('painel_ref_annual_v32', state.annual);
         writeStorage('painel_ref_annual_prod_v36', state.annualProd);
         refreshMonthViewSelect?.();
+        // v35: evita refazer dezenas de consultas toda vez que renderAll() roda.
+        // Uma carga completa por sessão é suficiente; sincronizações/reload da página
+        // renovam a base normalmente.
+        annualMonthsLoadedOnce = true;
       }catch(err){
         console.warn('Performance Anual: erro ao consolidar todos os meses.', err);
       }finally{
