@@ -1951,7 +1951,7 @@ function saveCurrentMonthToAnnual(){
   alert('Mês salvo na base anual.');
 }
 function saveCurrentProdMonth(){
-  if(!(state.prodRows || []).length){ alert('Importe um Excel de produtividade antes.'); return; }
+  if(!(state.prodRows || []).length){ alert('Importe o relatório do sistema ou um Excel de produtividade antes.'); return; }
   const month = document.getElementById('prodMonth').value;
   const year = document.getElementById('prodYear').value || new Date().getFullYear();
   const key = `${year}-${month}`;
@@ -1959,7 +1959,7 @@ function saveCurrentProdMonth(){
   state.annualProd[key] = { documentos: docs, rows: JSON.parse(JSON.stringify(state.prodRows || [])) };
   writeStorage('painel_ref_annual_prod_v36', state.annualProd);
   renderAnnualView();
-  alert('Documentos do mês salvos na base anual.');
+  alert(`Produtividade de ${month}/${year} salva/substituída na base anual.`);
 }
 function renderAnnualView(){
   const keys = Object.keys(state.annual).sort();
@@ -5816,10 +5816,25 @@ function __perfAnualAggregate(){
   window.renderPerformanceAnualView = async function(){
     const status = document.getElementById('syncStatus');
     const previousText = status?.textContent || '';
-    if(status) status.textContent = 'Consolidando Performance Anual de todos os meses salvos...';
-    await v33EnsureAllAnnualMonthsLoaded();
-    if(status && previousText) status.textContent = previousText;
-    return oldRenderPerfAnual ? oldRenderPerfAnual.apply(this, arguments) : undefined;
+    const loader = document.getElementById('perfAnnualLoader');
+    const loaderText = document.getElementById('perfAnnualLoaderText');
+    const showLoader = (txt)=>{ if(loader){ loader.style.display='flex'; loader.setAttribute('aria-busy','true'); } if(loaderText) loaderText.textContent=txt; };
+    const hideLoader = ()=>{ if(loader){ loader.style.display='none'; loader.setAttribute('aria-busy','false'); } };
+    try{
+      showLoader('Consultando produtividade dos meses…');
+      if(status) status.textContent = 'Consolidando Performance Anual de todos os meses salvos...';
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      await v33EnsureAllAnnualMonthsLoaded();
+      showLoader('Calculando indicadores e preparando gráficos…');
+      await new Promise(r=>setTimeout(r,0));
+      const result = oldRenderPerfAnual ? oldRenderPerfAnual.apply(this, arguments) : undefined;
+      showLoader('Finalizando Performance Anual…');
+      await new Promise(r=>requestAnimationFrame(r));
+      return result;
+    } finally {
+      hideLoader();
+      if(status && previousText) status.textContent = previousText;
+    }
   };
 })();
 
@@ -6202,7 +6217,7 @@ function __perfAnualAggregate(){
     const view=document.getElementById('config');if(!view||view.dataset.hubReady)return;view.dataset.hubReady='1';
     const panels=[...view.querySelectorAll(':scope > .grid, :scope > .card')];if(!panels.length)return;
     const hub=document.createElement('div');hub.className='config-hub';
-    const names=['📥 Importação Refaturamento','📊 Produtividade','🧠 Motivos e regras','🗄️ Base e manutenção','⚙️ Configuração'];
+    const names=['📥 Importação Refaturamento','📊 Produtividade','🗄️ Base do Refaturamento','🧠 Motivos e regras','⚙️ Configuração'];
     panels.forEach((p,i)=>{p.dataset.configPanel=i;p.classList.add('config-panel-hidden');const title=p.querySelector('h3')?.textContent?.trim()||names[i]||`Configuração ${i+1}`;const c=document.createElement('div');c.className='config-hub-card';c.innerHTML=`<strong>${names[i]||title}</strong><span>${title}</span>`;c.onclick=()=>openPanel(i,title);hub.appendChild(c);});
     view.insertBefore(hub,view.firstChild);
     function openPanel(i,title){hub.style.display='none';panels.forEach((p,j)=>p.classList.toggle('config-panel-hidden',j!==i));const p=panels[i];let h=p.querySelector('.config-section-head');if(!h){h=document.createElement('div');h.className='config-section-head';h.innerHTML=`<button class="btn secondary">← Configurações</button><strong>${esc(title)}</strong>`;h.querySelector('button').onclick=()=>{panels.forEach(x=>x.classList.add('config-panel-hidden'));hub.style.display='grid'};p.insertBefore(h,p.firstChild);}}
@@ -6394,4 +6409,89 @@ function __perfAnualAggregate(){
   document.addEventListener('click',e=>{
     if(e.target.closest('[data-view="config"]') || e.target.closest('.config-hub-card')) setTimeout(bindRefImportSyncActions,100);
   });
+})();
+
+/* ===== PRODUTIVIDADE AUTOMATICA PELO RELATORIO DO SISTEMA ===== */
+(function(){
+  const STORAGE_KEY='refaturamento_prod_usuarios_monitorados_v1';
+  const DEFAULT_USERS=['ADEMIR.FERNANDES','ADENILSON.FILHO','ANGELICA.LUCCA','ANGELITA.SANTOS','CAROLINA.PASQUALI','ELISANGELA.VIEIRA','GEOVANA.SILVA','Integracao.XML','JHONATAN.GHIZZI','JONATAN.BALESTRIN','JOSETE.GABRIEL','KARLLIN','KAROLINE.ROMANINI','LEIA.MATTOS','MATHEUS.DEVISE','MULTISOFT.SERVICE','RAFAELA.MARTINI','SILVANA.WIEDENHOFT','TIAGO.CARNIEL'].map(nome=>({nome,ativo:true,aliases:[]}));
+  const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase().replace(/\s+/g,'');
+  function loadUsers(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(Array.isArray(x)&&x.length)return x}catch(e){} return JSON.parse(JSON.stringify(DEFAULT_USERS))}
+  const saveUsers=x=>localStorage.setItem(STORAGE_KEY,JSON.stringify(x));
+  const aliasesOf=u=>[u.nome].concat(Array.isArray(u.aliases)?u.aliases:[]).map(norm).filter(Boolean);
+  const findMonitored=(raw,list)=>{const k=norm(raw);return list.find(u=>u.ativo&&aliasesOf(u).includes(k))};
+  function renderUsers(){
+    const box=document.getElementById('prodUsersConfigList');if(!box)return;const list=loadUsers();
+    box.innerHTML=list.map((u,i)=>`<div style="display:grid;grid-template-columns:auto 1.2fr 1.5fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)"><input type="checkbox" data-pu-active="${i}" ${u.ativo?'checked':''}><input data-pu-name="${i}" value="${String(u.nome||'').replace(/"/g,'&quot;')}" style="width:100%"><input data-pu-alias="${i}" value="${(u.aliases||[]).join(', ')}" placeholder="aliases" style="width:100%"><button class="btn secondary" data-pu-remove="${i}" type="button" style="padding:6px 9px">Remover</button></div>`).join('');
+    const persist=()=>{const cur=loadUsers();box.querySelectorAll('[data-pu-name]').forEach(el=>{if(cur[+el.dataset.puName])cur[+el.dataset.puName].nome=el.value.trim()});box.querySelectorAll('[data-pu-alias]').forEach(el=>{if(cur[+el.dataset.puAlias])cur[+el.dataset.puAlias].aliases=el.value.split(',').map(x=>x.trim()).filter(Boolean)});box.querySelectorAll('[data-pu-active]').forEach(el=>{if(cur[+el.dataset.puActive])cur[+el.dataset.puActive].ativo=!!el.checked});saveUsers(cur)};
+    box.querySelectorAll('input').forEach(el=>el.addEventListener('change',persist));box.querySelectorAll('[data-pu-remove]').forEach(btn=>btn.addEventListener('click',()=>{const cur=loadUsers();cur.splice(+btn.dataset.puRemove,1);saveUsers(cur);renderUsers()}));
+  }
+  function parseSystemReport(workbook){
+    const ws=workbook.Sheets[workbook.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}),users=loadUsers(),acc=new Map();
+    let header=null, startedDaily=false, dailyBlocks=0;
+    const types={'CTRC':'ctrc','MANIFESTO':'manifesto','OST':'ost','NF. FAT':'nf.fat','NF.FAT':'nf.fat'};
+    const ensure=u=>{const k=norm(u.nome);if(!acc.has(k))acc.set(k,{usuario:String(u.nome).trim().toLowerCase(),ctrc:0,manifesto:0,ost:0,'nf.fat':0});return acc.get(k)};
+    users.filter(u=>u.ativo).forEach(ensure);
+    const isDateCell=v=>{if(v instanceof Date&&!isNaN(v))return true;const x=String(v||'').trim();return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(x)};
+    for(const row0 of rows){
+      const row=Array.isArray(row0)?row0:[], first=String(row[0]||'').trim();
+      if(norm(first)==='RESUMOGERAL') break;
+      // O relatório traz um quadro acumulado antes dos blocos diários. Ele NÃO pode
+      // ser somado novamente, senão duplica parte da produtividade (ex.: Balestrin 10+152=162).
+      if(row.some(isDateCell)){startedDaily=true;header=null;dailyBlocks++;continue}
+      if(!startedDaily) continue;
+      let matches=0;row.forEach(v=>{if(findMonitored(v,users))matches++});
+      if(matches>0&&!types[first.toUpperCase()]){header=row.map(v=>String(v||'').trim());continue}
+      const tipo=types[first.toUpperCase()];if(!tipo||!header)continue;
+      for(let c=0;c<header.length&&c<row.length;c++){
+        const mon=findMonitored(header[c],users);if(!mon)continue;
+        const q=Number(row[c]);if(Number.isFinite(q)&&q>0)ensure(mon)[tipo]+=q;
+      }
+    }
+    const out=[];acc.forEach(r=>['ctrc','manifesto','ost','nf.fat'].forEach(tipo=>{const q=Number(r[tipo]||0);if(q>0)out.push({usuario:r.usuario,tipo,quantidade:q})}));
+    return{out,acc,dailyBlocks};
+  }
+  function preview(parsed,fileName){const msg=document.getElementById('systemReportMsg');if(!msg)return;const rows=Array.from(parsed.acc.values()).filter(r=>r.ctrc||r.manifesto||r.ost||r['nf.fat']),total=rows.reduce((s,r)=>s+r.ctrc+r.ost,0);msg.innerHTML=`<b>${fileName}</b> lido com sucesso.<br>Blocos diários lidos: <b>${parsed.dailyBlocks||0}</b> · Usuários monitorados encontrados: <b>${rows.length}</b> · Base Performance (CTRC + OST): <b>${total}</b><div style="overflow:auto;max-height:260px;margin-top:10px"><table style="width:100%;font-size:12px"><thead><tr><th>Usuário</th><th>CTRC</th><th>Manifesto</th><th>OST</th><th>NF.FAT</th><th>Perf.</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.usuario}</td><td>${r.ctrc}</td><td>${r.manifesto}</td><td>${r.ost}</td><td>${r['nf.fat']}</td><td><b>${r.ctrc+r.ost}</b></td></tr>`).join('')}</tbody></table></div><div class="sub" style="margin-top:8px">Confira a prévia e depois <b>sincronize</b> ou <b>substitua</b> a produtividade do mês.</div>`}
+  function bind(){renderUsers();document.getElementById('btnProdUsersAdd')?.addEventListener('click',()=>{const nome=prompt('Usuário como aparece no relatório (ex.: NOME.SOBRENOME):');if(!nome)return;const list=loadUsers();list.push({nome:nome.trim(),ativo:true,aliases:[]});saveUsers(list);renderUsers()});document.getElementById('btnProdUsersReset')?.addEventListener('click',()=>{if(confirm('Restaurar a lista inicial?')){saveUsers(JSON.parse(JSON.stringify(DEFAULT_USERS)));renderUsers()}});document.getElementById('systemReportUpload')?.addEventListener('change',function(e){const file=e.target.files&&e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(evt){try{const wb=XLSX.read(evt.target.result,{type:'array',cellDates:true}),parsed=parseSystemReport(wb);state.prodRows=parsed.out;state.live.prodRows=JSON.parse(JSON.stringify(state.prodRows));state.__ultimoExcelProdutividade=JSON.parse(JSON.stringify(state.prodRows));state.__ultimoExcelProdutividadeEm=new Date().toISOString();preview(parsed,file.name);const old=document.getElementById('prodImportMsg');if(old)old.textContent=`Produtividade gerada pelo relatório. Registros: ${state.prodRows.length}`;renderAll()}catch(err){console.error(err);const m=document.getElementById('systemReportMsg');if(m)m.textContent='Erro ao ler o relatório: '+err.message}};reader.readAsArrayBuffer(file)})}
+  window.addEventListener('DOMContentLoaded',()=>setTimeout(bind,0));window.__parseSystemReportProd=parseSystemReport;
+})();
+
+/* ===== PRODUTIVIDADE V4: sincronizacao mensal independente ===== */
+(function(){
+  function status(msg, err){ const el=document.getElementById('prodSyncStatus'); if(el){el.style.display='block';el.textContent=msg;el.style.borderColor=err?'#ef4444':'';} }
+  function mesAno(){ return {mes:String(document.getElementById('prodMonth')?.value||'').padStart(2,'0'),ano:String(document.getElementById('prodYear')?.value||'').trim()}; }
+  function rows(){ const {mes,ano}=mesAno(); return (window.buildProdRowsForSync?.(mes,ano)||[]).map(r=>({...r,mes,ano})); }
+  async function markMonth(mes,ano){
+    const prev=await state.supabase.from('meses_importados').select('tem_refaturamento,tem_produtividade').eq('mes',mes).eq('ano',ano).maybeSingle();
+    const payload={mes,ano,tem_refaturamento:!!prev.data?.tem_refaturamento,tem_produtividade:true};
+    const r=await state.supabase.from('meses_importados').upsert(payload,{onConflict:'mes,ano'}); if(r.error) throw r.error;
+  }
+  async function sync(){
+    try{
+      if(!state?.supabase) return alert('Supabase não conectada.');
+      const {mes,ano}=mesAno(), local=rows(); if(!local.length) return alert('Importe o relatório do sistema antes de sincronizar.');
+      status('Comparando produtividade com a base...');
+      const q=await state.supabase.from('produtividade_usuarios').select('*').eq('mes',mes).eq('ano',ano); if(q.error) throw q.error;
+      const remote=new Map((q.data||[]).map(r=>[String(r.operador||'').trim().toLowerCase(),r]));
+      const changed=local.filter(r=>{const p=remote.get(String(r.operador||'').trim().toLowerCase());return !p||Number(p.ctrc||0)!==Number(r.ctrc||0)||Number(p.manifesto||0)!==Number(r.manifesto||0)||Number(p.ost||0)!==Number(r.ost||0)||Number(p.nf_fat||0)!==Number(r.nf_fat||0)});
+      for(const r of changed){ const d=await state.supabase.from('produtividade_usuarios').delete().eq('mes',mes).eq('ano',ano).eq('operador',r.operador); if(d.error) throw d.error; }
+      if(changed.length){const ins=await state.supabase.from('produtividade_usuarios').insert(changed);if(ins.error)throw ins.error;}
+      await markMonth(mes,ano); status(`Produtividade ${mes}/${ano} sincronizada. ${changed.length} usuário(s) atualizado(s); ${local.length} no relatório.`); alert('Produtividade do mês sincronizada na base.');
+    }catch(e){console.error(e);status('Erro ao sincronizar: '+(e.message||e),true);}
+  }
+  async function replace(){
+    try{
+      if(!state?.supabase) return alert('Supabase não conectada.');
+      const {mes,ano}=mesAno(), local=rows(); if(!local.length) return alert('Importe o relatório do sistema antes de substituir.');
+      if(!confirm(`Substituir SOMENTE a produtividade de ${mes}/${ano}? Os dados de Refaturamento não serão alterados.`))return;
+      status('Substituindo produtividade do mês...');
+      const del=await state.supabase.from('produtividade_usuarios').delete().eq('mes',mes).eq('ano',ano); if(del.error)throw del.error;
+      const ins=await state.supabase.from('produtividade_usuarios').insert(local); if(ins.error)throw ins.error;
+      await markMonth(mes,ano); status(`Produtividade ${mes}/${ano} substituída com sucesso. ${local.length} usuário(s) gravado(s).`); alert('Produtividade do mês substituída na base.');
+    }catch(e){console.error(e);status('Erro ao substituir: '+(e.message||e),true);}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
+    document.getElementById('btnSyncProdMonth')?.addEventListener('click',sync);
+    document.getElementById('btnReplaceProdMonth')?.addEventListener('click',replace);
+  },300));
 })();

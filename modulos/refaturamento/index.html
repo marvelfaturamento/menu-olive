@@ -10,7 +10,12 @@
 
 
 
-<meta id="dcngeagmmhegagicpcmpinaoklddcgon"/><link href="css/refaturamento.css" rel="stylesheet"/></head>
+<meta id="dcngeagmmhegagicpcmpinaoklddcgon"/><link href="css/refaturamento.css" rel="stylesheet"/>
+<style>
+@keyframes perfAnnualSpin{to{transform:rotate(360deg)}}
+.perf-annual-spinner{width:24px;height:24px;border:3px solid rgba(125,180,255,.22);border-top-color:#63a9ff;border-radius:50%;display:inline-block;flex:0 0 auto;animation:perfAnnualSpin .8s linear infinite}
+</style>
+</head>
 <body>
 <div class="app">
 <aside class="sidebar">
@@ -245,6 +250,12 @@
 </section>
 
 <section class="view" id="performanceAnual">
+<div id="perfAnnualLoader" aria-live="polite" aria-busy="false" style="display:none;position:sticky;top:8px;z-index:30;align-items:center;justify-content:center;margin:0 0 14px;">
+  <div style="display:flex;align-items:center;gap:12px;background:#132238;border:1px solid #2b4770;border-radius:14px;padding:13px 18px;box-shadow:0 12px 30px rgba(0,0,0,.28);min-width:min(460px,92%);">
+    <span class="perf-annual-spinner" aria-hidden="true"></span>
+    <div><b>Carregando Performance Anual…</b><div id="perfAnnualLoaderText" class="sub" style="margin-top:3px">Consultando produtividade dos meses…</div></div>
+  </div>
+</div>
 <div class="card" style="margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
     <div>
@@ -366,21 +377,34 @@
 </div>
 <div class="card"><h3>Console do parser</h3><textarea id="logBox" readonly=""></textarea></div>
 </div>
-<div class="grid grid-2" style="margin-top:16px;">
+<div class="grid" style="margin-top:16px;">
 <div class="card">
-<h3>Importar Excel de produtividade</h3>
-<div class="sub">Usado para a aba Performance Usuários e para Documentos anuais. A conta anual considera CTRC + OST.</div>
-<div class="field"><label>Arquivo</label><input accept=".xls,.xlsx,.csv" id="prodExcelUpload" type="file"/></div>
-<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:10px; margin-top:14px; align-items:end;">
+<h3>Produtividade pelo relatório do sistema</h3>
+<div class="sub">Fonte principal da produtividade. Importe um único relatório do sistema, confira a prévia e depois sincronize ou substitua somente a produtividade do mês selecionado.</div>
+<div class="field" style="margin-top:12px"><label>Relatório do sistema</label><input accept=".xls,.xlsx" id="systemReportUpload" type="file"/></div>
+<div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;margin-top:14px;align-items:end;">
 <div class="field"><label>Mês produtividade</label><select id="prodMonth"><option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div>
 <div class="field"><label>Ano produtividade</label><input id="prodYear" type="number" value="2026"/></div>
-<button class="btn secondary" id="btnSaveProdMonth">Salvar docs</button>
+<button class="btn secondary" id="btnSyncProdMonth" type="button">Sincronizar dados do mês</button>
+<button class="btn secondary" id="btnReplaceProdMonth" type="button">Substituir dados do mês</button>
 </div>
-<div class="box-info" id="prodImportMsg" style="margin-top:14px;">Nenhum Excel de produtividade importado.</div>
+<div id="systemReportMsg" class="box-info" style="margin-top:12px">Nenhum relatório importado.</div>
+<div id="prodSyncStatus" class="box-info" style="margin-top:10px;display:none">Aguardando ação.</div>
+<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Usuários monitorados e aliases</summary>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn secondary" id="btnProdUsersAdd" type="button">+ Adicionar usuário</button><button class="btn secondary" id="btnProdUsersReset" type="button">Restaurar lista inicial</button></div>
+<div class="sub" style="margin-top:10px">Inative para retirar alguém dos próximos meses sem apagar o histórico. Aliases podem ser separados por vírgula.</div>
+<div id="prodUsersConfigList" style="margin-top:10px;max-height:300px;overflow:auto"></div></details>
+<details style="margin-top:12px"><summary style="cursor:pointer">Importação manual de produtividade (backup)</summary>
+<div class="sub" style="margin-top:8px">Use somente se o relatório do sistema não estiver disponível.</div>
+<div class="field" style="margin-top:8px"><label>Excel manual</label><input accept=".xls,.xlsx,.csv" id="prodExcelUpload" type="file"/></div>
+<div class="box-info" id="prodImportMsg" style="margin-top:10px">Nenhum Excel manual importado.</div>
+</details>
 </div>
+</div>
+<div class="grid grid-2" style="margin-top:16px;">
 <div class="card">
-<h3>Supabase</h3>
-<div class="sub"><strong>Sincronizar dados do mês:</strong> compara o Excel carregado com a base e grava somente as diferenças.<br><strong>Substituir dados do mês:</strong> apaga os dados do mês na base e recria tudo conforme os arquivos carregados.</div>
+<h3>Base do Refaturamento</h3>
+<div class="sub">Estas ações afetam somente os dados de Refaturamento do mês. A produtividade é controlada separadamente no menu Produtividade.</div>
 <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
 <button class="btn secondary" id="btnSyncSupabase">Sincronizar dados do mês</button>
 <button class="btn secondary" id="btnReimportarMesSeguro" type="button">Substituir dados do mês</button>
