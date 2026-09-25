@@ -314,7 +314,7 @@ button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18
           <button class="primary" onclick="readPDFs()">Ler PDF estável</button>
           <button class="ok" onclick="copyPDFKeys()">Copiar chaves</button>
           <button class="light" onclick="downloadPDFCSV()">Baixar CSV</button>
-          <button class="light" onclick="(()=>{const i=orderedPages.findIndex(p=>!p.key); i>=0 ? openScannerOrdered(i) : alert('Nenhuma página sem leitura para conferir.');})()">Scanner falhas</button>
+          <button class="light" onclick="(()=>{const i=orderedPages.findIndex(p=>!p.key && p.status !== 'Página em branco' && p.method !== 'ignorada'); i>=0 ? openScannerOrdered(i) : alert('Nenhuma página sem leitura para conferir.');})()">Scanner falhas</button>
           <button class="danger" onclick="clearPDF()">Limpar</button>
         </div>
 
@@ -545,6 +545,27 @@ function modeloDoc(chave){
 }
 function extractNFfromKey(chave){ return chave && chave.length===44 ? chave.substring(25,34).replace(/^0+/,'') : ''; }
 
+
+// Quando o nome do PDF informa a NF (ex.: "NFD - 61191 - ..."),
+// ele e a melhor ancora para separar a chave da DANFE das chaves de NFs
+// referenciadas que tambem aparecem no corpo da nota.
+function expectedNFfromFileName(fileName){
+  const name = String(fileName || '');
+  let m = name.match(/\bNFD?\s*[-_ ]+\s*0*(\d{1,9})\b/i);
+  if(!m) m = name.match(/\bNF[-_ ]*0*(\d{1,9})\b/i);
+  return m ? String(Number(m[1])) : '';
+}
+
+function chooseKeysForPDF(keys, fileName){
+  const unique = [...new Set((keys || []).map(onlyDigits).filter(isRealAccessKey))];
+  if(!unique.length) return [];
+  const expected = expectedNFfromFileName(fileName);
+  if(!expected) return unique;
+  const exact = unique.filter(k => extractNFfromKey(k) === expected);
+  // Se o arquivo declara a NF, nunca troca silenciosamente por uma NF referenciada.
+  return exact;
+}
+
 async function getWorker(){
   if(worker) return worker;
   worker = await Tesseract.createWorker('por');
@@ -754,10 +775,31 @@ async function readPDFs(){
       let keys = [];
       let method = '';
       try{
-        const txtContent = await page.getTextContent();
-        const txt = txtContent.items.map(i=>i.str).join(' ');
-        keys = findKeys(txt);
-        if(keys.length) method = 'texto PDF';
+        const txtContent = await page.getTextContent({normalizeWhitespace:true, disableCombineTextItems:false});
+        const items = (txtContent.items || []).filter(i => i && String(i.str || '').trim());
+        const txt = items.map(i=>i.str).join(' ');
+
+        // PDFs de DANFE costumam entregar a chave em vários blocos de 4 dígitos.
+        // Além do texto corrido, reconstrói cada linha pela posição X/Y para não
+        // misturar a chave principal com números de outros campos da nota.
+        let textCandidates = [...findKeys(txt)];
+        const lines = [];
+        for(const it of items){
+          const y = Math.round((it.transform && it.transform[5]) || 0);
+          let line = lines.find(l => Math.abs(l.y-y) <= 2);
+          if(!line){ line={y,items:[]}; lines.push(line); }
+          line.items.push({x:((it.transform && it.transform[4]) || 0), s:String(it.str||'')});
+        }
+        for(const line of lines){
+          line.items.sort((a,b)=>a.x-b.x);
+          const lineText = line.items.map(i=>i.s).join(' ');
+          textCandidates.push(...findKeys(lineText));
+          // Segunda tentativa: somente os blocos numéricos da mesma linha.
+          const digitLine = line.items.map(i=>onlyDigits(i.s)).filter(Boolean).join(' ');
+          textCandidates.push(...findKeys(digitLine));
+        }
+        keys = chooseKeysForPDF(textCandidates, file.name);
+        if(keys.length) method = 'texto PDF (DANFE)';
       }catch(e){}
 
       const canvas = await renderPage(page, 1.65);
@@ -778,7 +820,7 @@ async function readPDFs(){
       // 2) barcode
       if(!keys.length){
         const r = await tryBarcodes(canvas);
-        keys = r.keys;
+        keys = chooseKeysForPDF(r.keys, file.name);
         method = r.method;
       }
 
@@ -787,7 +829,7 @@ async function readPDFs(){
         setPDFStatus(`OCR na página ${p}/${pdf.numPages}...`);
         await new Promise(r=>setTimeout(r,5));
         const r = await tryOCR(canvas);
-        keys = r.keys;
+        keys = chooseKeysForPDF(r.keys, file.name);
         method = r.method;
       }
 
@@ -810,8 +852,20 @@ async function readPDFs(){
             pageRecord.method = result.status;
           }
         });
-        logPDF(`Página ${p}: ${keys.length} chave(s) válida(s) via ${method}.`);
+        logPDF(`Página ${p}: ${keys.length} chave(s) da própria NF via ${method}.`);
       }else{
+        // Muitos DANFEs deste lote possuem uma 2ª página realmente vazia.
+        // Página sem qualquer item de texto não deve virar erro/manual pendente.
+        let blankPage = false;
+        try{
+          const tcBlank = await page.getTextContent({normalizeWhitespace:true});
+          blankPage = !(tcBlank.items || []).some(i => String(i.str || '').trim());
+        }catch(e){}
+        if(blankPage){
+          pageRecord.status = 'Página em branco';
+          pageRecord.method = 'ignorada';
+          logPDF(`Página ${p}: em branco, ignorada.`);
+        }else{
         pageRecord.status = 'Chave não localizada';
         pageRecord.method = 'manual pendente';
         pdfFails.push({file:file.name,page:p,reason:'Sem chave válida'});
@@ -819,6 +873,7 @@ async function readPDFs(){
           reviewImages.push({file:file.name,page:p,img:reviewImage(canvas),full:fullPageImage(canvas)});
         }
         logPDF(`Página ${p}: sem leitura.`);
+        }
       }
 
       done++;
@@ -866,8 +921,8 @@ function renderErrorPages(){
   const box = document.getElementById('pageList');
   if(!box) return;
 
-  const failPages = orderedPages.filter(p=>!p.key);
-  const ok = orderedPages.length - failPages.length;
+  const failPages = orderedPages.filter(p=>!p.key && p.status !== 'Página em branco' && p.method !== 'ignorada');
+  const ok = orderedPages.filter(p=>p.key).length;
   const fl = document.getElementById('failList');
 
   if(!orderedPages.length){
@@ -1111,11 +1166,37 @@ document.addEventListener('keydown', function(e){
   if(e.key === '-') scannerZoom(-0.15);
 });
 
-function copyPDFKeys(){
-  const keys = [...new Set(pdfResults.map(r=>r.key))].join('\n');
+async function copyTextSafe(text){
+  const value = String(text || '');
+  if(!value) return false;
+  try{
+    if(window.isSecureContext && navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  }catch(e){ console.warn('Clipboard API falhou; usando fallback.', e); }
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = value;
+    ta.setAttribute('readonly','');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return !!ok;
+  }catch(e){ console.error('Fallback de cópia falhou.', e); return false; }
+}
+
+async function copyPDFKeys(){
+  const keys = [...new Set(pdfResults.map(r=>r.key).filter(Boolean))].join('\n');
   if(!keys) return alert('Nenhuma chave para copiar.');
-  navigator.clipboard.writeText(keys);
-  alert('Chaves copiadas.');
+  const ok = await copyTextSafe(keys);
+  alert(ok ? `${keys.split('\n').length} chave(s) copiada(s).` : 'Não foi possível copiar automaticamente.');
 }
 
 function downloadPDFCSV(){
