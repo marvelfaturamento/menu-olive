@@ -1142,6 +1142,24 @@ function isoDayFromDataPC(v){
   m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return `${m[1]}-${m[2]}-${m[3]}`;
   return '';
 }
+
+function isoDayFromDataPC902(v){
+  const s=String(v||'').trim();
+  let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return '';
+}
+function dataRecomendadaPorAbertos902(){
+  const dias=state.rows.map(r=>{
+    const comp=r.competencia||competenciaMes(r.dataPC||r.data_pc||'');
+    if(comp && state.competenciasZeradas.has(comp)) return '';
+    return isoDayFromDataPC902(r.dataPC||r.data_pc||'');
+  }).filter(Boolean).sort();
+  return dias[0]||'';
+}
+
 function renderExcelImportGuide(){
   const el=document.getElementById('excelImportGuideText'); if(!el) return;
   const m=state.lastExcelImport;
@@ -1151,9 +1169,13 @@ function renderExcelImportGuide(){
     return;
   }
   const quando=m.em ? formatDateTimeBR(m.em) : '-';
-  const dia=m.data_recomendada ? brDateFromIsoDay(m.data_recomendada) : '-';
-  el.innerHTML=`📅 Próximo Excel: <b>a partir de ${dia}</b>`;
-  el.title=`Última importação: ${quando}${m.arquivo ? ` • ${m.arquivo}`:''}. Na próxima extração, gere o relatório a partir de ${dia}. Pode repetir esse dia: PCs existentes serão comparados e competências encerradas serão ignoradas.`;
+  const aberta=dataRecomendadaPorAbertos902();
+  const recomendada=aberta || m.data_recomendada || '';
+  const dia=recomendada ? brDateFromIsoDay(recomendada) : '-';
+  el.innerHTML=aberta ? `📅 Próximo Excel: <b>gerar desde ${dia}</b>` : `📅 Próximo Excel: <b>a partir de ${dia}</b>`;
+  el.title=aberta
+    ? `Existe programação ainda em aberto desde ${dia}. Gere o próximo relatório a partir desse dia para que alterações e vínculos de CT-e em PCs antigos também sejam recebidos. Última importação: ${quando}${m.arquivo ? ` • ${m.arquivo}`:''}.`
+    : `Não há programação aberta anterior identificada. Última importação: ${quando}${m.arquivo ? ` • ${m.arquivo}`:''}.`;
 }
 async function salvarMetaImportacaoExcel(meta){
   state.lastExcelImport=meta; renderExcelImportGuide();
@@ -1773,11 +1795,11 @@ fileExcel.addEventListener('change', async e => {
     const matrix = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
     const resultado = await parseExcelRows(matrix);
 
-    const meta={em:new Date().toISOString(),arquivo:file.name,data_recomendada:resultado.maiorDataImportada||'',novos:resultado.novos,atualizados:resultado.atualizados,sem_alteracao:resultado.semAlteracao,bloqueadas:resultado.bloqueadas};
+    const meta={em:new Date().toISOString(),arquivo:file.name,data_recomendada:dataRecomendadaPorAbertos902()||resultado.maiorDataImportada||'',novos:resultado.novos,atualizados:resultado.atualizados,sem_alteracao:resultado.semAlteracao,bloqueadas:resultado.bloqueadas};
     await salvarMetaImportacaoExcel(meta);
     const resumo=`${resultado.novos} novo(s) • ${resultado.atualizados} atualizado(s) • ${resultado.semAlteracao} sem alteração • ${resultado.bloqueadas} ignorado(s) por mês encerrado`;
     setStatusText(`Importação 902 concluída: ${resumo}`);
-    alert(`Importação concluída.\n\n${resultado.novos} novo(s)\n${resultado.atualizados} atualizado(s)\n${resultado.semAlteracao} sem alteração\n${resultado.bloqueadas} ignorado(s) por competência encerrada${resultado.maiorDataImportada?`\n\nPróximo relatório: gerar a partir de ${brDateFromIsoDay(resultado.maiorDataImportada)}.`:''}`);
+    alert(`Importação concluída.\n\n${resultado.novos} novo(s)\n${resultado.atualizados} atualizado(s)\n${resultado.semAlteracao} sem alteração\n${resultado.bloqueadas} ignorado(s) por competência encerrada${dataRecomendadaPorAbertos902()?`\n\nPróximo relatório: gerar desde ${brDateFromIsoDay(dataRecomendadaPorAbertos902())}, pois esta é a programação aberta mais antiga.`:''}`);
   }catch(err){
     console.error('Erro na importação do 902:', err);
     setStatusText('Importação 902: erro ao processar arquivo');
