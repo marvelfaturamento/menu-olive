@@ -23,7 +23,9 @@ const state = {
   tratativas: {},
   coletaCheckpoints: {},
   coletaMonitor: {},
-  competenciasZeradas: new Set()
+  competenciasZeradas: new Set(),
+  competenciasZeradasMeta: {},
+  lastExcelImport: null
 };
 
 function norm(v){ return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
@@ -104,6 +106,8 @@ async function carregarTratativasSupabase(){
     const coleta = {};
     const monitor = {};
     const zeradas = new Set();
+    const zeradasMeta = {};
+    let lastExcelImport = state.lastExcelImport || null;
     (rows || []).forEach(r => {
       const chave = String(r.chave || '');
       try{
@@ -119,7 +123,9 @@ async function carregarTratativasSupabase(){
           if(obj) monitor[id] = obj;
         }else if(chave.startsWith('competencia_zerada:')){
           const comp = chave.slice('competencia_zerada:'.length);
-          if(obj && obj.zerada) zeradas.add(comp);
+          if(obj && obj.zerada){ zeradas.add(comp); zeradasMeta[comp] = obj; }
+        }else if(chave === 'ultima_importacao_excel') {
+          if(obj) lastExcelImport = obj;
         }
       }catch(e){}
     });
@@ -129,6 +135,9 @@ async function carregarTratativasSupabase(){
     state.coletaCheckpoints = coleta;
     state.coletaMonitor = monitor;
     state.competenciasZeradas = zeradas;
+    state.competenciasZeradasMeta = zeradasMeta;
+    state.lastExcelImport = lastExcelImport;
+    renderExcelImportGuide();
     return antes !== depois;
   }catch(e){ console.warn('Não foi possível carregar tratativas:', e); return false; }
 }
@@ -400,6 +409,8 @@ function saveLocalDebounced(){
 }
 async function loadLocal(){
   loadLastUpdate();
+  try{ state.lastExcelImport = JSON.parse(localStorage.getItem(STORE+'_ultima_importacao_excel')||'null'); }catch(e){}
+  renderExcelImportGuide();
   try{
     const raw = JSON.parse(localStorage.getItem(STORE)||'null');
     if(raw && raw.config){
@@ -1029,7 +1040,7 @@ function reclassify(){
 }
 function currentSets(){ return { ativo: state.rows.filter(r => r.bucket === 'ativo'), agNota: state.rows.filter(r => r.bucket === 'agNota'), aduana: state.rows.filter(r => r.bucket === 'aduana'), alertaNac: state.rows.filter(r => r.bucket === 'alertaNac'), alertaInt: state.rows.filter(r => r.bucket === 'alertaInt'), alertaExpo: state.rows.filter(r => r.bucket === 'alertaExpo'), checkpoint: state.rows.filter(checkpointNaoConfirmadoSuspeito) }; }
 function fillSelect(el, items, current=''){ const keep = current || el.value || ''; el.innerHTML = '<option value="">Todos</option>' + [...new Set(items.filter(Boolean))].sort().map(v => `<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join(''); if([...el.options].some(o => o.value === keep)) el.value = keep; }
-function filterRows(rows, {q='', client='', status='', ufOrigem='', ufDestino=''}={}){ const text = norm(q); return rows.filter(r => { if(client && norm(r.pagador) !== norm(client)) return false; if(status && r.status !== status) return false; if(ufOrigem && norm(r.ufRem) !== norm(ufOrigem)) return false; if(ufDestino && norm(r.ufDest) !== norm(ufDestino)) return false; const hay = norm([r.cavalo,r.pagador,r.posicao,r.motorista,r.referencia,r.talhao,r.destinatario,r.remetente].join(' ')); return !text || hay.includes(text); }); }
+function filterRows(rows, {q='', client='', status='', ufOrigem='', ufDestino=''}={}){ const text = norm(q); return rows.filter(r => { if(client && norm(r.pagador) !== norm(client)) return false; if(status && r.status !== status) return false; if(ufOrigem && norm(r.ufRem) !== norm(ufOrigem)) return false; if(ufDestino && norm(r.ufDest) !== norm(ufDestino)) return false; const hay = norm([r.id,r.pv,r.numeroDocumento,r.numero_documento,r.documento,r.cte,r.cavalo,r.pagador,r.posicao,r.motorista,r.referencia,r.talhao,r.destinatario,r.remetente,r.cidadeOrigem,r.cidadeDestino,r.ufRem,r.ufDest].join(' ')); return !text || hay.includes(text); }); }
 function statusSelect(row, fromFinalizados=false){ const opts = ['Coleta','AG Nota','Aduana','Faturar','Finalizado']; return `<select onchange="alterarStatus('${encodeURIComponent(row.id)}', this.value, ${fromFinalizados ? 'true' : 'false'})">${opts.map(s => `<option value="${s}" ${row.status===s?'selected':''}>${s}</option>`).join('')}</select>`; }
 function rowButtons(row, fromFinalizados=false){ if(fromFinalizados){ return `<div class="rowActions"><button class="mini btn-green" onclick="reabrirRegistro('${encodeURIComponent(row.id)}')">Reabrir</button></div>`; } return `<div class="rowActions"><button class="mini btn-fat" onclick="marcarFaturar('${encodeURIComponent(row.id)}')">Faturar</button><button class="mini btn-fin" onclick="marcarFinalizado('${encodeURIComponent(row.id)}')">Finalizado</button></div>`; }
 function columns(includeFrete=false, fromFinalizados=false, alertMode=false){
@@ -1122,68 +1133,183 @@ function sortStableRows(rows){
   });
 }
 
+function brDateFromIsoDay(v){
+  const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(v||'');
+}
+function isoDayFromDataPC(v){
+  const t=String(v||'').trim();
+  let m=t.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return '';
+}
+function renderExcelImportGuide(){
+  const el=document.getElementById('excelImportGuideText'); if(!el) return;
+  const m=state.lastExcelImport;
+  if(!m){
+    el.textContent='📅 Próximo Excel: período ainda não registrado';
+    el.title='Ainda não há importação registrada. Gere o relatório incluindo o período necessário.';
+    return;
+  }
+  const quando=m.em ? formatDateTimeBR(m.em) : '-';
+  const dia=m.data_recomendada ? brDateFromIsoDay(m.data_recomendada) : '-';
+  el.innerHTML=`📅 Próximo Excel: <b>a partir de ${dia}</b>`;
+  el.title=`Última importação: ${quando}${m.arquivo ? ` • ${m.arquivo}`:''}. Na próxima extração, gere o relatório a partir de ${dia}. Pode repetir esse dia: PCs existentes serão comparados e competências encerradas serão ignoradas.`;
+}
+async function salvarMetaImportacaoExcel(meta){
+  state.lastExcelImport=meta; renderExcelImportGuide();
+  try{ localStorage.setItem(STORE+'_ultima_importacao_excel', JSON.stringify(meta)); }catch(e){}
+  if(state.supabase){
+    const {error}=await state.supabase.from('configuracoes_902').upsert({chave:'ultima_importacao_excel',valor:JSON.stringify(meta),updated_at:new Date().toISOString()},{onConflict:'chave'});
+    if(error) console.warn('Não foi possível salvar orientação da próxima importação:',error);
+  }
+}
+function rowFingerprint902(r){
+  return JSON.stringify([r.ref,r.dataPC,r.filial,r.pv,r.pvReal,r.cavalo,r.posicao,r.motorista,r.remetente,r.cidadeOrigem,r.ufRem,r.destinatario,r.cidadeDestino,r.ufDest,r.pagador,r.talhao,r.referencia,r.status]);
+}
+
+function bulkCloseCandidates(cutoff){
+  if(!cutoff) return [];
+  const all=new Set();
+  state.rows.forEach(r=>{ if(r.competencia && r.competencia<=cutoff && !state.competenciasZeradas.has(r.competencia)) all.add(r.competencia); });
+  state.finalizados.forEach(r=>{ if(r.competencia && r.competencia<=cutoff && !state.competenciasZeradas.has(r.competencia)) all.add(r.competencia); });
+  return [...all].sort().map(m=>({
+    mes:m,
+    abertos:state.rows.filter(r=>r.competencia===m).length,
+    finalizados:state.finalizados.filter(r=>r.competencia===m).length
+  }));
+}
+window.previewBulkClose=function(){
+  const sel=document.getElementById('bulkCloseMonth'), out=document.getElementById('bulkClosePreview'), btn=document.getElementById('bulkCloseBtn');
+  if(!sel||!out) return;
+  const rows=bulkCloseCandidates(sel.value), eleg=rows.filter(x=>x.abertos===0 && x.finalizados>0), bloqueados=rows.filter(x=>x.abertos>0);
+  const total=eleg.reduce((a,x)=>a+x.finalizados,0);
+  if(!rows.length){ out.innerHTML='Nenhuma competência aberta encontrada até o período selecionado.'; if(btn)btn.disabled=true; return; }
+  let html=eleg.length?`<b>${eleg.length} competência(s) pronta(s)</b> • ${total} finalizado(s) serão removidos: ${eleg.map(x=>`${x.m} (${x.finalizados})`).join(' • ')}`:'Nenhuma competência está pronta para encerramento.';
+  if(bloqueados.length) html+=`<br><span style="color:#f6c85f">Protegidas por ainda terem programações em andamento: ${bloqueados.map(x=>`${x.m} (${x.abertos})`).join(' • ')}</span>`;
+  out.innerHTML=html; if(btn)btn.disabled=!eleg.length;
+};
+function setupBulkCloseSelector(){
+  const sel=document.getElementById('bulkCloseMonth'); if(!sel)return;
+  const months=new Set();
+  state.rows.forEach(r=>{if(r.competencia&&!state.competenciasZeradas.has(r.competencia))months.add(r.competencia)});
+  state.finalizados.forEach(r=>{if(r.competencia&&!state.competenciasZeradas.has(r.competencia))months.add(r.competencia)});
+  const arr=[...months].sort(); const old=sel.value;
+  sel.innerHTML=arr.map(m=>`<option value="${m}">${m}</option>`).join('');
+  if(old&&arr.includes(old))sel.value=old; else if(arr.length)sel.value=arr[arr.length-1];
+  previewBulkClose();
+}
+window.encerrarCompetenciasAnteriores=async function(){
+  if(!state.supabase){alert('Preencha a conexão no HTML.');return;}
+  const cutoff=document.getElementById('bulkCloseMonth')?.value;
+  const eleg=bulkCloseCandidates(cutoff).filter(x=>x.abertos===0&&x.finalizados>0);
+  if(!eleg.length){alert('Não há competências concluídas para encerrar até esse mês.');return;}
+  const total=eleg.reduce((a,x)=>a+x.finalizados,0), meses=eleg.map(x=>x.mes);
+  if(!confirm(`Encerrar ${meses.length} competência(s) até ${cutoff}?\n\n${meses.map(m=>`${m}: ${eleg.find(x=>x.mes===m).finalizados} finalizado(s)`).join('\n')}\n\nTotal: ${total} finalizado(s).\n\nSomente meses SEM programações em andamento serão encerrados. Eles ficarão bloqueados para futuras importações até que você use “Reabrir competência”.`))return;
+  const dbRows=await fetchAllRows('painel_902','id,data_pc,competencia_mes,status','id',true,1000);
+  const ids=(dbRows||[]).filter(r=>{const m=competenciaMes(r.data_pc||'')||String(r.competencia_mes||'').slice(0,7);return meses.includes(m)&&norm(r.status)==='FINALIZADO'}).map(r=>r.id).filter(Boolean);
+  for(let i=0;i<ids.length;i+=200){const x=await state.supabase.from('painel_902').delete().in('id',ids.slice(i,i+200));if(x.error){alert('Erro ao limpar painel_902: '+x.error.message);return;}}
+  const hist=await fetchAllRows('painel_902_finalizados','id,data_pc,competencia_mes','id',true,1000);
+  const hids=(hist||[]).filter(r=>{const m=competenciaMes(r.data_pc||'')||String(r.competencia_mes||'').slice(0,7);return meses.includes(m)}).map(r=>r.id).filter(Boolean);
+  for(let i=0;i<hids.length;i+=200){const x=await state.supabase.from('painel_902_finalizados').delete().in('id',hids.slice(i,i+200));if(x.error){alert('Erro ao limpar histórico: '+x.error.message);return;}}
+  const now=new Date().toISOString(), user=usuarioAtual902();
+  for(const x of eleg){
+    const marker={zerada:true,em:now,usuario:user,registros:x.finalizados,origem:'encerramento_em_lote'};
+    const q=await state.supabase.from('configuracoes_902').upsert({chave:`competencia_zerada:${x.mes}`,valor:JSON.stringify(marker),updated_at:now},{onConflict:'chave'});
+    if(q.error){alert(`Os registros foram limpos, mas houve erro ao bloquear ${x.mes}: ${q.error.message}`);return;}
+    state.competenciasZeradas.add(x.mes); state.competenciasZeradasMeta[x.mes]=marker;
+  }
+  state.finalizados=state.finalizados.filter(r=>!meses.includes(r.competencia));
+  await saveLocal(); renderAll(true); renderConfigEditors();
+  alert(`${total} finalizado(s) removido(s).\n${meses.length} competência(s) encerrada(s) e bloqueada(s) para futuras importações.`);
+};
+
+
+function currentCompetencia902(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function renderExcluirFinalizadosMes(){
+ const sel=document.getElementById('mesExcluirFinalizados'), info=document.getElementById('qtdExcluirFinalizados'), btn=document.getElementById('btnLimparFinalizados'); if(!sel||!btn)return;
+ const atual=currentCompetencia902(), counts={}; state.finalizados.forEach(r=>{const m=r.competencia||competenciaMes(r.dataPC||r.data_pc||''); if(m&&m<atual&&!state.competenciasZeradas.has(m))counts[m]=(counts[m]||0)+1;});
+ const meses=Object.keys(counts).sort().reverse(), old=sel.value; sel.innerHTML=meses.length?meses.map(m=>`<option value="${m}">${m} — ${counts[m]} finalizado(s)</option>`).join(''):'<option value="">Nenhum mês anterior disponível</option>'; if(old&&meses.includes(old))sel.value=old; btn.disabled=!meses.length;
+ const refresh=()=>{const m=sel.value,q=counts[m]||0;if(info)info.textContent=m?`${q} finalizado(s). PCs em andamento permanecem.`:'';}; sel.onchange=refresh;refresh();
+}
+
 function renderMonthsPanel(){
   const box = mesesBox;
   const compet = {};
-  state.rows.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)){ compet[r.competencia] = (compet[r.competencia] || 0) + 1; } });
-  state.finalizados.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)){ compet[r.competencia] = compet[r.competencia] || 0; } });
+  state.rows.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)) compet[r.competencia] = true; });
+  state.finalizados.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)) compet[r.competencia] = true; });
   const months = Object.keys(compet).sort();
+  const closed = [...state.competenciasZeradas].sort();
   box.innerHTML = '';
-  if(!months.length){ box.innerHTML = '<div class="small">Ainda não há competências carregadas.</div>'; return; }
+  if(!months.length && !closed.length){ box.innerHTML = '<div class="small">Ainda não há competências carregadas.</div>'; return; }
   months.forEach(m => {
     const abertos = state.rows.filter(r => r.competencia === m).length;
     const finalizados = state.finalizados.filter(r => r.competencia === m).length;
-    const pode = abertos === 0;
     const div = document.createElement('div');
     div.className = 'monthCard';
-    div.innerHTML = `<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small" style="margin-top:8px">Abertos: ${abertos} | Finalizados: ${finalizados}</div></div><div class="monthStatus ${pode ? 'ok' : 'warn'}">${pode ? 'Sem PV em aberto. Pode zerar.' : 'Ainda com PV em aberto'}</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" onclick="zerarCompetenciaSupabase('${m}')">Zerar Supabase</button></div>`;
+    div.innerHTML = `<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small" style="margin-top:8px">Em andamento: ${abertos} | Finalizados: ${finalizados}</div></div><div class="monthStatus ${finalizados ? 'ok' : 'warn'}">${finalizados ? 'Finalizados disponíveis para limpeza' : 'Sem finalizados para limpar'}</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" ${finalizados?'':'disabled'} onclick="zerarCompetenciaSupabase('${m}')">Limpar finalizados</button></div>`;
     box.appendChild(div);
   });
+  if(closed.length){
+    const title=document.createElement('div'); title.className='small'; title.style.margin='12px 0 6px'; title.innerHTML='<b>Competências encerradas / bloqueadas</b>';
+    box.appendChild(title);
+    closed.forEach(m=>{
+      const meta=state.competenciasZeradasMeta?.[m]||{};
+      const d=document.createElement('div'); d.className='monthCard';
+      d.innerHTML=`<div><div style="font-size:22px;font-weight:900">${m}</div><div class="small">Encerrada ${meta.em?formatDateTimeBR(meta.em):''}${meta.usuario?' • '+escHtml(meta.usuario):''}</div></div><div class="monthStatus ok">Bloqueada para novas importações</div><div class="monthActions"><button class="mini btn-green" onclick="reabrirCompetencia('${m}')">Reabrir competência</button></div>`;
+      box.appendChild(d);
+    });
+  }
 }
 window.exportarCompetencia = function(m){
   const payload = { competencia:m, ativos:state.rows.filter(r => r.competencia === m), finalizados:state.finalizados.filter(r => r.competencia === m) };
   const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `competencia_${m}.json`; a.click(); URL.revokeObjectURL(a.href);
 };
+window.reabrirCompetencia = async function(m){
+  if(!state.supabase){ alert('Preencha a conexão no HTML.'); return; }
+  if(!state.competenciasZeradas.has(m)){ alert(`A competência ${m} já está aberta.`); return; }
+  if(!confirm(`Reabrir a competência ${m}?\n\nIsso remove somente o bloqueio de importação. Os finalizados que foram apagados NÃO serão restaurados automaticamente.\nPara recuperar registros desse mês, importe novamente um Excel que contenha a competência ${m}.`)) return;
+  try{
+    const {error}=await state.supabase.from('configuracoes_902').delete().eq('chave',`competencia_zerada:${m}`);
+    if(error) throw error;
+    state.competenciasZeradas.delete(m);
+    if(state.competenciasZeradasMeta) delete state.competenciasZeradasMeta[m];
+    await saveLocal();
+    renderAll(true);
+    renderConfigEditors();
+    alert(`Competência ${m} reaberta com sucesso.\n\nEla voltará a ser aceita nas próximas importações. Se precisar recuperar os registros removidos, importe novamente o Excel contendo esse mês.`);
+  }catch(e){
+    alert('Erro ao reabrir competência: '+(e?.message||e));
+  }
+};
+
 window.zerarCompetenciaSupabase = async function(m){
   if(!state.supabase){ alert('Preencha a conexão no HTML.'); return; }
-  if(!confirm(`Zerar a competência ${m} na Supabase?\n\nOs registros abertos deste mês serão removidos do painel ativo e a competência ficará bloqueada para não ser recriada por sincronizações futuras.`)) return;
-  const [year, month] = m.split('-');
-  const monthKey = `${year}-${month}-01`;
-  let error = null;
-
-  // 1) Limpeza pelo campo de competência (base atual).
-  const del1 = await state.supabase.from('painel_902').delete().eq('competencia_mes', monthKey);
-  error = del1.error || error;
-
-  // 2) Segurança para bases antigas: alguns registros podem ter sido gravados sem
-  // competencia_mes. Localizamos pelo próprio data_pc e apagamos pelos IDs.
-  if(!error){
-    try{
-      const dbRows = await fetchAllRows('painel_902', 'id,data_pc,competencia_mes', 'id', true, 1000);
-      const idsMes = (dbRows || []).filter(r => {
-        const c = competenciaMes(r.data_pc || '');
-        const cm = String(r.competencia_mes || '').slice(0,7);
-        return c === m || cm === m;
-      }).map(r => r.id).filter(Boolean);
-      for(let i=0; i<idsMes.length; i+=200){
-        const del = await state.supabase.from('painel_902').delete().in('id', idsMes.slice(i,i+200));
-        error = del.error || error;
-        if(error) break;
-      }
-    }catch(e){ error = e; }
-  }
-  if(error){ alert('Erro ao zerar mês: ' + (error.message || error)); return; }
-
-  // 3) Marca a competência como encerrada. Sync/Carregar não podem ressuscitá-la.
-  const marker = {zerada:true, em:new Date().toISOString(), usuario:usuarioAtual902()};
-  const mk = await state.supabase.from('configuracoes_902').upsert({chave:`competencia_zerada:${m}`, valor:JSON.stringify(marker), updated_at:new Date().toISOString()}, {onConflict:'chave'});
-  if(mk.error){ alert('Mês apagado, mas não foi possível registrar o bloqueio da competência: ' + mk.error.message); return; }
-  state.competenciasZeradas.add(m);
-  state.rows = state.rows.filter(r => r.competencia !== m);
-  state.finalizados = state.finalizados.filter(r => r.competencia !== m);
-  await carregarDaSupabase();
-  alert(`Competência ${m} zerada e bloqueada na Supabase.`);
+  const qtd=state.finalizados.filter(r=>{ const c=r.competencia||competenciaMes(r.dataPC||r.data_pc||''); return c===m; }).length;
+  if(!qtd){ alert(`Não há finalizados em ${m} para limpar.`); return; }
+  if(!confirm(`Limpar ${qtd} programação(ões) FINALIZADA(S) de ${m}?\n\nProgramações ainda em andamento NÃO serão apagadas.\nA competência ficará bloqueada para que o Excel ou a futura sincronização automática não recriem registros deste mês.`)) return;
+  let error=null;
+  try{
+    const dbRows=await fetchAllRows('painel_902','id,data_pc,competencia_mes,status','id',true,1000);
+    const ids=(dbRows||[]).filter(r=>{
+      const c=competenciaMes(r.data_pc||''); const cm=String(r.competencia_mes||'').slice(0,7);
+      return (c===m||cm===m) && norm(r.status)==='FINALIZADO';
+    }).map(r=>r.id).filter(Boolean);
+    for(let i=0;i<ids.length;i+=200){ const x=await state.supabase.from('painel_902').delete().in('id',ids.slice(i,i+200)); if(x.error){error=x.error;break;} }
+    if(!error){
+      const hist=await fetchAllRows('painel_902_finalizados','id,data_pc,competencia_mes','id',true,1000);
+      const hids=(hist||[]).filter(r=>competenciaMes(r.data_pc||'')===m||String(r.competencia_mes||'').slice(0,7)===m).map(r=>r.id).filter(Boolean);
+      for(let i=0;i<hids.length;i+=200){ const x=await state.supabase.from('painel_902_finalizados').delete().in('id',hids.slice(i,i+200)); if(x.error){error=x.error;break;} }
+    }
+  }catch(e){error=e;}
+  if(error){ alert('Erro ao limpar finalizados: '+(error.message||error)); return; }
+  const marker={zerada:true,em:new Date().toISOString(),usuario:usuarioAtual902(),registros:qtd};
+  const mk=await state.supabase.from('configuracoes_902').upsert({chave:`competencia_zerada:${m}`,valor:JSON.stringify(marker),updated_at:new Date().toISOString()},{onConflict:'chave'});
+  if(mk.error){ alert('Finalizados apagados, mas não foi possível registrar o bloqueio: '+mk.error.message); return; }
+  state.competenciasZeradas.add(m); state.competenciasZeradasMeta[m]=marker;
+  state.finalizados=state.finalizados.filter(r=>{ const c=r.competencia||competenciaMes(r.dataPC||r.data_pc||''); return c!==m; });
+  await saveLocal(); renderAll(true); renderConfigEditors();
+  alert(`${qtd} finalizado(s) de ${m} removido(s). A competência ficou bloqueada para futuras importações.`);
 };
 
 function renderConfigEditors(){
@@ -1253,6 +1379,7 @@ btnSalvarCfg.onclick = () => {
 };
 
 function renderAll(full=false){
+  setTimeout(renderExcluirFinalizadosMes,0);
   const rawSets = currentSets();
   const sets = {
     ativo: sortStableRows(rawSets.ativo),
@@ -1308,7 +1435,9 @@ function renderAll(full=false){
   renderTable(tbNac, nacRows, false, false, true);
   renderTable(tbInt, intRows, true, false, true);
   renderTable(tbExpo, expoRows, false, false, true);
-  renderTable(tbFim, state.finalizados, false, true);
+  const fimRows = filterRows(sortStableRows(state.finalizados), {q: (typeof buscaFim !== 'undefined' && buscaFim) ? buscaFim.value : ''});
+  renderTable(tbFim, fimRows, false, true);
+  if(typeof qtdFimFiltrada !== 'undefined' && qtdFimFiltrada) qtdFimFiltrada.textContent = (fimRows.length === state.finalizados.length ? `(${fimRows.length})` : `(${fimRows.length} de ${state.finalizados.length})`);
   if(typeof tbCheckpoint !== 'undefined' && tbCheckpoint) renderCheckpointTable(tbCheckpoint, sets.checkpoint);
 
   sumAgQtd.textContent = agRows.length;
@@ -1317,7 +1446,7 @@ function renderAll(full=false){
   sumAduanaFrete.textContent = money(adRows.reduce((a,b) => a + Number(b.frete||0), 0));
   renderMonthsPanel();
 }
-[buscaAtivo,clienteAtivo,ufOrigemAtivo,ufDestinoAtivo,buscaAg,clienteAg,ufDestinoAg,buscaAduana,clienteAduana,ufDestinoAduana,buscaNac,clienteNac,statusNac,ufDestinoNac,buscaInt,clienteInt,statusInt,ufDestinoInt,buscaExpo,clienteExpo,statusExpo,ufDestinoExpo].forEach(el => el.addEventListener('input', () => renderAll(false)));
+[buscaAtivo,clienteAtivo,ufOrigemAtivo,ufDestinoAtivo,buscaAg,clienteAg,ufDestinoAg,buscaAduana,clienteAduana,ufDestinoAduana,buscaNac,clienteNac,statusNac,ufDestinoNac,buscaInt,clienteInt,statusInt,ufDestinoInt,buscaExpo,clienteExpo,statusExpo,ufDestinoExpo,buscaFim].forEach(el => el && el.addEventListener('input', () => { if(el === buscaFim && typeof tbFim !== 'undefined' && tbFim) tbFim.dataset.page='1'; renderAll(false); }));
 
 function detectHeaderRow(rows){ for(let i=0;i<Math.min(rows.length,15);i++){ const t = (rows[i]||[]).map(x => norm(x)).join('|'); if(t.includes('REF') && t.includes('DATA PC') && t.includes('MOTORISTA')) return i; } return 0; }
 async function parseExcelRows(matrix){
@@ -1386,11 +1515,13 @@ async function parseExcelRows(matrix){
   const oldFinalMap = new Map(state.finalizados.map(r => [r.id, r]));
   const remoteFinalizedIds = state.remoteFinalizedIds || new Set();
 
-  const importedActiveMap = new Map();
+  const importedActiveMap = new Map(oldActiveMap);
   const importedFinalMap = new Map(oldFinalMap);
   let lidas = 0;
   let validas = 0;
   let autoFinalizadas = 0;
+  let bloqueadas = 0, novos = 0, atualizados = 0, semAlteracao = 0;
+  let maiorDataImportada = '';
 
   for(const r of rows){
     lidas++;
@@ -1412,6 +1543,10 @@ async function parseExcelRows(matrix){
     const pvReal = col(r, 'PV');
     if(!ref || !pv) continue;
     validas++;
+    const compLinha = competenciaMes(dataPC);
+    const isoLinha = isoDayFromDataPC(dataPC);
+    if(isoLinha && isoLinha > maiorDataImportada) maiorDataImportada = isoLinha;
+    if(compLinha && state.competenciasZeradas.has(compLinha)){ bloqueadas++; continue; }
 
     const id = [ref, filial, pv].join('|');
     const old = oldActiveMap.get(id) || oldFinalMap.get(id);
@@ -1437,8 +1572,12 @@ async function parseExcelRows(matrix){
       passouCheckpoint: old?.passouCheckpoint || false,
       finalizadoEm: old?.finalizadoEm || null
     };
+    const novoStatus = (oldFinalMap.has(id) || remoteFinalizedIds.has(id) || old?.status === 'Finalizado' || autoFinalizar) ? 'Finalizado' : (old?.status || '');
+    const candidatoComparacao = {...baseRow,status:novoStatus};
+    if(!old) novos++; else if(rowFingerprint902({...old,status:old.status||''}) === rowFingerprint902(candidatoComparacao)) semAlteracao++; else atualizados++;
 
     if(oldFinalMap.has(id) || remoteFinalizedIds.has(id) || old?.status === 'Finalizado'){
+      importedActiveMap.delete(id);
       importedFinalMap.set(id, {
         ...baseRow,
         status: 'Finalizado',
@@ -1449,6 +1588,7 @@ async function parseExcelRows(matrix){
     }
 
     if(autoFinalizar){
+      importedActiveMap.delete(id);
       importedFinalMap.set(id, {
         ...baseRow,
         status: 'Finalizado',
@@ -1478,9 +1618,9 @@ async function parseExcelRows(matrix){
   await saveLocal();
   renderAll(true);
 
-  const resumo = `${state.rows.length} ativa(s), ${state.finalizados.length} finalizada(s)`;
+  const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada`;
   setStatusText(`Importação 902 concluída: ${resumo}`);
-  return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length };
+  return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length, novos, atualizados, semAlteracao, bloqueadas, maiorDataImportada };
 }
 
 function getHeaderIndex624(headers){
@@ -1633,10 +1773,11 @@ fileExcel.addEventListener('change', async e => {
     const matrix = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
     const resultado = await parseExcelRows(matrix);
 
-    const extras = resultado.autoFinalizadas
-      ? ` • ${resultado.autoFinalizadas} finalizada(s) automaticamente`
-      : '';
-    setStatusText(`Importação 902 concluída: ${resultado.ativas} ativa(s) / ${resultado.finalizadas} finalizada(s)${extras}`);
+    const meta={em:new Date().toISOString(),arquivo:file.name,data_recomendada:resultado.maiorDataImportada||'',novos:resultado.novos,atualizados:resultado.atualizados,sem_alteracao:resultado.semAlteracao,bloqueadas:resultado.bloqueadas};
+    await salvarMetaImportacaoExcel(meta);
+    const resumo=`${resultado.novos} novo(s) • ${resultado.atualizados} atualizado(s) • ${resultado.semAlteracao} sem alteração • ${resultado.bloqueadas} ignorado(s) por mês encerrado`;
+    setStatusText(`Importação 902 concluída: ${resumo}`);
+    alert(`Importação concluída.\n\n${resultado.novos} novo(s)\n${resultado.atualizados} atualizado(s)\n${resultado.semAlteracao} sem alteração\n${resultado.bloqueadas} ignorado(s) por competência encerrada${resultado.maiorDataImportada?`\n\nPróximo relatório: gerar a partir de ${brDateFromIsoDay(resultado.maiorDataImportada)}.`:''}`);
   }catch(err){
     console.error('Erro na importação do 902:', err);
     setStatusText('Importação 902: erro ao processar arquivo');
@@ -1729,7 +1870,7 @@ window.reabrirRegistro = async function(id){
     renderAll(true);
   }
 };
-btnLimparFinalizados.onclick = () => { if(confirm('Excluir todos os finalizados locais?')){ state.finalizados = []; saveLocal(); renderAll(true); } };
+btnLimparFinalizados.onclick = async () => { const m=document.getElementById('mesExcluirFinalizados')?.value; if(!m){alert('Não há mês anterior com finalizados para excluir.');return;} await zerarCompetenciaSupabase(m); renderExcluirFinalizadosMes(); };
 
 btnExport.onclick = () => {
   const blob = new Blob([JSON.stringify({rows: state.rows, finalizados: state.finalizados, config: state.config}, null, 2)], {type:'application/json'});
@@ -1830,18 +1971,8 @@ async function syncToSupabase(silent=false){
 
   let error = null;
 
-  const dbRows = await fetchAllRows('painel_902', 'id', 'id', true, 1000);
-  const dbIds = dbRows.map(x => x.id).filter(Boolean);
-
-  if(dbIds.length){
-    for(let i = 0; i < dbIds.length; i += 200){
-      const chunk = dbIds.slice(i, i + 200);
-      const delRes = await state.supabase.from('painel_902').delete().in('id', chunk);
-      error = delRes.error || error;
-      if(error) break;
-    }
-  }
-
+  // Sincronização incremental: não apaga o espelho inteiro.
+  // PCs novos entram por upsert, PCs alterados são atualizados e registros ausentes no arquivo permanecem.
   if(!error && payload.length){
     for(let i = 0; i < payload.length; i += 500){
       const chunk = payload.slice(i, i + 500);

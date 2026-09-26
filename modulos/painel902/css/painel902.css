@@ -844,3 +844,12 @@ button:hover,.btn:hover,.navbtn:hover,.menu button:hover{transform:translateY(-1
 .checkpointOk{color:#45d483;font-weight:800}
 .checkpointIntro{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 @media(max-width:1250px){.cards{grid-template-columns:repeat(4,minmax(150px,1fr))}}
+
+/* v2.1 - orientação do próximo Excel compacta ao lado da atualização */
+.topUpdateBox .excelGuideSep{color:#5875aa;font-weight:900;opacity:.8}
+.topUpdateBox .excelGuideInline{color:#cfe0ff;font-size:10.5px;white-space:nowrap;opacity:.96}
+.topUpdateBox .excelGuideInline b{color:#fff;font-weight:900}
+@media (max-width:1100px){
+  .topUpdateBox .excelGuideSep{display:none}
+  .topUpdateBox .excelGuideInline{white-space:normal}
+}

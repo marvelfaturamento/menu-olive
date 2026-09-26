@@ -73,6 +73,13 @@
     .scannerTools button{padding:8px 10px;border-radius:10px;font-size:12px}
     .scannerView{overflow:auto;background:#e5e7eb;display:flex;align-items:flex-start;justify-content:center;padding:14px}
     .scannerView img{max-width:none;background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(15,23,42,.25);transform-origin:center top}
+    .scannerPageWrap{position:relative;display:inline-block;transform-origin:center top}
+    .scannerTextLayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+    .scannerCropBox{position:absolute;border:2px dashed #2563eb;background:rgba(37,99,235,.12);display:none;pointer-events:none;z-index:8}
+    .scannerCropMode #scannerImg{cursor:crosshair;user-select:none;-webkit-user-drag:none}
+    .scannerTextWord{position:absolute;pointer-events:auto;user-select:text;-webkit-user-select:text;color:rgba(0,0,0,.015);line-height:1;white-space:pre;cursor:text;border-radius:2px}
+    .scannerTextWord:hover{background:rgba(59,130,246,.16);outline:1px solid rgba(59,130,246,.45)}
+    .scannerTextWord::selection{background:#60a5fa;color:transparent}
     .scannerBottom{padding:12px;background:#f8fafc;border-top:1px solid #e2e8f0;display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
     .scannerBottom input{width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:12px;font-family:Consolas,monospace;font-size:15px}
     .warnBox{margin-top:12px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:16px;padding:12px;font-size:13px}
@@ -292,7 +299,7 @@ button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18
 <body>
 <div class="app">
   <aside>
-    <div class="brand">Leitor Scanner V40</div>
+    <div class="brand">Leitor Scanner V41</div>
     <div class="sub">HTML puro<br>PDF + TXT por viagem</div>
     <button class="tab active" onclick="openTab('pdf')">📄 Ler PDF</button>
     <button class="tab" onclick="openTab('img')">🖼️ Ler Imagem</button>
@@ -320,15 +327,15 @@ button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18
 
         <div class="opts">
           <label><input id="useBarcode" type="checkbox" checked> Tentar código de barras</label>
-          <label><input id="useOCR" type="checkbox" checked> Usar OCR no topo</label>
+          <label><input id="useOCR" type="checkbox"> OCR automático no lote (mais lento)</label>
           <label><input id="tryRotated" type="checkbox" checked> Tentar páginas de lado</label>
           <label><input id="fullRotationMode" type="checkbox"> Rotação completa 90°/180°</label>
-          <label><input id="deepMode" type="checkbox"> Modo profundo nas falhas</label>
+          <label><input id="deepMode" type="checkbox"> Modo profundo extra</label>
           <label><input id="manualReview" type="checkbox" checked> Mostrar recorte manual</label>
         </div>
 
         <div class="warnBox">
-          Importante: em PDF escaneado ruim, 100% automático não é garantido. Esta versão evita travar: lê rápido e mostra exatamente quais páginas precisam conferência.
+          Modo rápido: o lote tenta texto do PDF + código de barras. OCR pesado fica desligado por padrão. Nas páginas não lidas, use “Ler chave rápido”. Ele processa somente a região provável da chave; se necessário, use “Selecionar faixa”.
         </div>
 
         <div class="stats">
@@ -568,7 +575,7 @@ function chooseKeysForPDF(keys, fileName){
 
 async function getWorker(){
   if(worker) return worker;
-  worker = await Tesseract.createWorker('por');
+  worker = await Tesseract.createWorker('eng');
   await worker.setParameters({
     tessedit_char_whitelist: '0123456789 .-/',
     preserve_interword_spaces: '1'
@@ -706,10 +713,73 @@ async function tryBarcodes(canvas){
   return {keys:[], method:''};
 }
 
-async function ocrCanvas(canvas){
+async function ocrCanvas(canvas, timeoutMs=12000){
   const w = await getWorker();
-  const res = await w.recognize(canvas);
-  return res?.data?.text || '';
+  let timer;
+  try{
+    const timeout = new Promise((_, reject)=>{
+      timer = setTimeout(()=>reject(new Error('OCR_TIMEOUT')), timeoutMs);
+    });
+    const res = await Promise.race([w.recognize(canvas), timeout]);
+    return res?.data?.text || '';
+  }catch(err){
+    if(String(err && err.message || err).includes('OCR_TIMEOUT')){
+      logPDF('OCR excedeu 12s; página enviada para conferência sem travar o lote.');
+      try{ await w.terminate(); }catch(e){}
+      worker = null;
+      return '';
+    }
+    throw err;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+
+function isVisuallyBlank(canvas){
+  // Não confunde PDF escaneado (sem camada de texto) com página vazia.
+  // Analisa pixels em uma miniatura e considera vazia somente quando quase tudo é branco.
+  const maxW = 220;
+  const scale = Math.min(1, maxW / Math.max(1, canvas.width));
+  const c = makeCanvas(canvas.width*scale, canvas.height*scale);
+  const ctx = c.getContext('2d', {willReadFrequently:true});
+  ctx.drawImage(canvas,0,0,c.width,c.height);
+  const d = ctx.getImageData(0,0,c.width,c.height).data;
+  let ink=0, dark=0, total=d.length/4;
+  for(let i=0;i<d.length;i+=4){
+    const g=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+    if(g < 242) ink++;
+    if(g < 205) dark++;
+  }
+  return (ink/total) < 0.0025 && (dark/total) < 0.0007;
+}
+
+async function tryVisualRecoveryOCR(canvas, fileName){
+  // Recuperação visual rápida: tenta somente as regiões onde a chave normalmente fica.
+  // Evita dezenas de OCRs sequenciais que podiam aparentar travamento.
+  if(!document.getElementById('useOCR').checked) return {keys:[], method:''};
+  const rotations = [0,270,90,180];
+  for(const rot of rotations){
+    const base = rotateCanvas(canvas, rot);
+    const W=base.width, H=base.height;
+    const regions = [
+      {name:'topo-chave', c:cropCanvas(base,W*.18,H*.00,W*.81,H*.36)},
+      {name:'topo-amplo', c:cropCanvas(base,W*.02,H*.00,W*.96,H*.48)}
+    ];
+    for(const reg of regions){
+      const variants = [
+        upscaleCanvas(enhanceCanvas(reg.c),1.65),
+        upscaleCanvas(thresholdCanvas(reg.c,182),1.65)
+      ];
+      for(const prepared of variants){
+        const txt = await ocrCanvas(prepared, 8000);
+        if(!txt) continue;
+        const keys = chooseKeysForPDF(findKeys(txt),fileName);
+        if(keys.length) return {keys,method:`OCR visual automático — ${reg.name}${rot ? ' '+rot+'°' : ''}`};
+      }
+    }
+  }
+  return {keys:[],method:''};
 }
 
 async function tryOCR(canvas){
@@ -721,7 +791,7 @@ async function tryOCR(canvas){
     const base = rotateCanvas(canvas, rot);
     for(const crop of topKeyCrops(base)){
       const c = enhanceCanvas(cropCanvas(base, crop.x, crop.y, crop.w, crop.h));
-      const txt = await ocrCanvas(c);
+      const txt = await ocrCanvas(c, 10000);
       const keys = findKeys(txt);
       if(keys.length) return {keys, method:`OCR ${crop.name}${rot ? ' '+rot+'°' : ''}`};
     }
@@ -731,7 +801,7 @@ async function tryOCR(canvas){
     for(const rot of [0,270,90,180]){
       const base = rotateCanvas(canvas, rot);
       const c = enhanceCanvas(base);
-      const txt = await ocrCanvas(c);
+      const txt = await ocrCanvas(c, 10000);
       const keys = findKeys(txt);
       if(keys.length) return {keys, method:`OCR profundo${rot ? ' '+rot+'°' : ''}`};
     }
@@ -828,9 +898,24 @@ async function readPDFs(){
       if(!keys.length){
         setPDFStatus(`OCR na página ${p}/${pdf.numPages}...`);
         await new Promise(r=>setTimeout(r,5));
-        const r = await tryOCR(canvas);
-        keys = chooseKeysForPDF(r.keys, file.name);
-        method = r.method;
+        try{
+          const r = await tryOCR(canvas);
+          keys = chooseKeysForPDF(r.keys, file.name);
+          method = r.method;
+        }catch(e){ logPDF(`Página ${p}: OCR rápido falhou; seguindo para conferência.`); }
+      }
+
+      // 4) recuperação visual automática: para PDF escaneado/foto sem texto selecionável.
+      // Só roda quando as tentativas rápidas falham, para não deixar o lote lento sem necessidade.
+      if(!keys.length && !isVisuallyBlank(canvas)){
+        setPDFStatus(`Leitura visual automática na página ${p}/${pdf.numPages}...`);
+        logPDF(`Página ${p}: tentando OCR visual automático...`);
+        await new Promise(r=>setTimeout(r,5));
+        try{
+          const r = await tryVisualRecoveryOCR(canvas, file.name);
+          keys = r.keys;
+          method = r.method;
+        }catch(e){ logPDF(`Página ${p}: OCR visual indisponível; mantida para conferência manual.`); }
       }
 
       if(keys.length){
@@ -854,13 +939,9 @@ async function readPDFs(){
         });
         logPDF(`Página ${p}: ${keys.length} chave(s) da própria NF via ${method}.`);
       }else{
-        // Muitos DANFEs deste lote possuem uma 2ª página realmente vazia.
-        // Página sem qualquer item de texto não deve virar erro/manual pendente.
-        let blankPage = false;
-        try{
-          const tcBlank = await page.getTextContent({normalizeWhitespace:true});
-          blankPage = !(tcBlank.items || []).some(i => String(i.str || '').trim());
-        }catch(e){}
+        // Só ignora página REALMENTE vazia pela imagem renderizada.
+        // Ausência de texto selecionável não significa branco: scans/fotos continuam como falha.
+        const blankPage = isVisuallyBlank(canvas);
         if(blankPage){
           pageRecord.status = 'Página em branco';
           pageRecord.method = 'ignorada';
@@ -1010,6 +1091,123 @@ let scannerIndex = 0;
 let scannerScale = 1;
 let scannerDeg = 0;
 
+
+let scannerOCRBusy = false;
+function scannerClearTextLayer(){ const l=document.getElementById('scannerTextLayer'); if(l){l.innerHTML='';l.style.width='0';l.style.height='0';} }
+function scannerCollectWords(data){
+  const out=[];
+  const walk=n=>{ if(!n) return; if(Array.isArray(n)){n.forEach(walk);return;} if(typeof n!=='object') return;
+    if(n.text && n.bbox && Number.isFinite(n.bbox.x0) && Number.isFinite(n.bbox.y0) && !n.words && !n.lines && !n.paragraphs && !n.blocks) out.push(n);
+    ['blocks','paragraphs','lines','words','symbols'].forEach(k=>{if(n[k]) walk(n[k]);});
+  }; walk(data?.blocks||data?.words||[]); return out;
+}
+function scannerBuildSelectableLayer(words,w,h){
+  const layer=document.getElementById('scannerTextLayer'); if(!layer) return 0; layer.innerHTML=''; layer.style.width=w+'px';layer.style.height=h+'px';
+  words.forEach(word=>{const b=word.bbox,t=(word.text||'').trim();if(!b||!t)return;const sp=document.createElement('span');sp.className='scannerTextWord';sp.textContent=t;sp.style.left=b.x0+'px';sp.style.top=b.y0+'px';sp.style.width=Math.max(2,b.x1-b.x0)+'px';sp.style.height=Math.max(6,b.y1-b.y0)+'px';sp.style.fontSize=Math.max(7,(b.y1-b.y0)*.9)+'px';layer.appendChild(sp);});
+  return words.length;
+}
+
+let scannerCropMode=false, scannerCropStart=null, scannerCropRect=null;
+function scannerCropEl(){return document.getElementById('scannerCropBox');}
+function scannerSetCropMode(on){
+  scannerCropMode=!!on; const wrap=document.getElementById('scannerPageWrap'); const b=document.getElementById('scannerCaptureBtn');
+  if(wrap) wrap.classList.toggle('scannerCropMode',scannerCropMode);
+  if(b) b.textContent=scannerCropMode?'Arraste sobre a chave…':'Capturar chave';
+  if(!on){scannerCropStart=null;}
+}
+function scannerPoint(ev){
+  const img=document.getElementById('scannerImg'), r=img.getBoundingClientRect();
+  return {x:Math.max(0,Math.min(img.naturalWidth,(ev.clientX-r.left)*(img.naturalWidth/r.width))), y:Math.max(0,Math.min(img.naturalHeight,(ev.clientY-r.top)*(img.naturalHeight/r.height))), r};
+}
+function scannerCropDown(ev){if(!scannerCropMode)return; ev.preventDefault(); scannerCropStart=scannerPoint(ev); scannerCropRect=null; const box=scannerCropEl(); if(box){box.style.display='block';box.style.left=(ev.offsetX)+'px';box.style.top=(ev.offsetY)+'px';box.style.width='0';box.style.height='0';}}
+function scannerCropMove(ev){if(!scannerCropMode||!scannerCropStart)return; ev.preventDefault(); const img=document.getElementById('scannerImg'), rr=img.getBoundingClientRect(), p=scannerPoint(ev); const x=Math.min(scannerCropStart.x,p.x),y=Math.min(scannerCropStart.y,p.y),w=Math.abs(p.x-scannerCropStart.x),h=Math.abs(p.y-scannerCropStart.y); scannerCropRect={x,y,w,h}; const box=scannerCropEl(); if(box){box.style.left=(x/img.naturalWidth*img.clientWidth)+'px';box.style.top=(y/img.naturalHeight*img.clientHeight)+'px';box.style.width=(w/img.naturalWidth*img.clientWidth)+'px';box.style.height=(h/img.naturalHeight*img.clientHeight)+'px';}}
+async function scannerCropUp(ev){if(!scannerCropMode||!scannerCropStart)return; scannerCropMove(ev); scannerCropStart=null; if(scannerCropRect&&scannerCropRect.w>30&&scannerCropRect.h>15){scannerSetCropMode(false); await scannerOCRSelectedArea();}}
+function scannerNormalizeOCRText(txt){return String(txt||'').replace(/[OoQ]/g,'0').replace(/[Il|!]/g,'1').replace(/[Ss]/g,'5').replace(/[Bb]/g,'8');}
+function scannerKeysFromOCR(txt){const norm=scannerNormalizeOCRText(txt),out=[...new Set(findKeys(norm))],d=onlyDigits(norm);for(let i=0;i+44<=d.length;i++){const k=d.slice(i,i+44);if(isRealAccessKey(k)&&!out.includes(k))out.push(k);}return out;}
+async function scannerRecognizeFastRegion(region,timeoutMs=4200){const w=await getWorker();try{await w.setParameters({tessedit_char_whitelist:'0123456789 ',preserve_interword_spaces:'1',tessedit_pageseg_mode:'7'});}catch(e){}const factor=Math.max(1.5,Math.min(2.6,1500/Math.max(1,region.width)));const jobs=[upscaleCanvas(enhanceCanvas(region),factor),upscaleCanvas(thresholdCanvas(region,190),factor)];for(const prepared of jobs){try{const res=await Promise.race([w.recognize(prepared),new Promise((_,rej)=>setTimeout(()=>rej(new Error('OCR_TIMEOUT')),timeoutMs))]);const found=scannerKeysFromOCR(res?.data?.text||'');if(found.length)return found;}catch(e){}}return [];}
+async function scannerAutoLocalizedKey(){if(scannerOCRBusy)return;const img=document.getElementById('scannerImg'),btn=document.getElementById('scannerAutoKeyBtn'),cand=document.getElementById('scannerCandidates');if(!img||!img.complete)return;scannerOCRBusy=true;if(btn){btn.disabled=true;btn.textContent='Procurando chave…';}if(cand)cand.innerHTML='<b>Leitura localizada:</b> procurando somente na região da chave, sem OCR da página inteira.';try{const src=makeCanvas(img.naturalWidth,img.naturalHeight),ctx=src.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);const current=((scannerDeg%360)+360)%360,rotations=[current,...[0,270,90,180].filter(x=>x!==current)];for(let ri=0;ri<rotations.length;ri++){const rot=rotations[ri],base=rotateCanvas(src,rot),W=base.width,H=base.height;if(btn)btn.textContent=`Lendo região ${ri+1}/${rotations.length}…`;const regions=[cropCanvas(base,W*.34,H*.045,W*.64,H*.17),cropCanvas(base,W*.18,H*.02,W*.80,H*.25)];for(const reg of regions){try{const bk=await tryNativeBarcode(upscaleCanvas(enhanceCanvas(reg),1.35));if(bk.length){document.getElementById('scannerKey').value=bk[0];if(cand)cand.innerHTML='<b>Chave localizada rapidamente pelo código de barras.</b> Confira e clique em Salvar e avançar.';return;}}catch(e){}}for(const reg of regions){const found=await scannerRecognizeFastRegion(reg,4200);if(found.length){document.getElementById('scannerKey').value=found[0];if(cand)cand.innerHTML='<b>Chave reconhecida pela leitura localizada:</b> '+found[0]+' — confira e clique em Salvar e avançar.';return;}}}if(cand)cand.innerHTML='<b>Não consegui fechar uma chave válida automaticamente.</b> Clique em “Selecionar faixa” e marque somente os 44 números da chave.';}finally{scannerOCRBusy=false;if(btn){btn.disabled=false;btn.textContent='Ler chave rápido';}}}
+function scannerSelectKeyArea(){if(scannerOCRBusy)return;scannerSetCropMode(true);const cand=document.getElementById('scannerCandidates');if(cand)cand.innerHTML='<b>Seleção manual:</b> arraste um retângulo bem justo somente sobre os 44 números da CHAVE DE ACESSO.';}
+
+async function scannerCaptureKey(){
+  if(scannerOCRBusy)return; const img=document.getElementById('scannerImg'); if(!img||!img.complete)return;
+  // Primeiro tenta código de barras na página atual: rápido e sem OCR.
+  scannerOCRBusy=true; const btn=document.getElementById('scannerCaptureBtn'); if(btn){btn.disabled=true;btn.textContent='Tentando código de barras…';}
+  try{
+    const c=makeCanvas(img.naturalWidth,img.naturalHeight),ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
+    const br=await tryBarcodes(c); if(br.keys&&br.keys.length){document.getElementById('scannerKey').value=br.keys[0]; const cand=document.getElementById('scannerCandidates');if(cand)cand.innerHTML='<b>Chave localizada pelo código de barras.</b>'; return;}
+  }catch(e){} finally{scannerOCRBusy=false;if(btn){btn.disabled=false;btn.textContent='Capturar chave';}}
+  scannerSetCropMode(true);
+  const cand=document.getElementById('scannerCandidates'); if(cand)cand.innerHTML='<b>Marque somente a linha da CHAVE DE ACESSO.</b> Arraste um retângulo sobre os números; o OCR vai processar apenas essa faixa.';
+}
+async function scannerOCRSelectedArea(){
+  if(scannerOCRBusy||!scannerCropRect)return; const img=document.getElementById('scannerImg'), btn=document.getElementById('scannerCaptureBtn'), cand=document.getElementById('scannerCandidates');
+  scannerOCRBusy=true;if(btn){btn.disabled=true;btn.textContent='Lendo somente a faixa…';}
+  try{
+    const src=makeCanvas(img.naturalWidth,img.naturalHeight),sx=src.getContext('2d',{willReadFrequently:true});sx.drawImage(img,0,0);
+    const r=scannerCropRect, crop=cropCanvas(src,r.x,r.y,r.w,r.h); let prep=upscaleCanvas(thresholdCanvas(crop,185),Math.max(2,Math.min(4,1800/Math.max(1,crop.width))));
+    const w=await getWorker(); try{await w.setParameters({tessedit_char_whitelist:'0123456789 ',preserve_interword_spaces:'1'});}catch(e){}
+    const res=await Promise.race([w.recognize(prep),new Promise((_,rej)=>setTimeout(()=>rej(new Error('OCR_TIMEOUT')),7000))]);
+    const txt=(res?.data?.text||'').replace(/[Oo]/g,'0').replace(/[Il|]/g,'1').replace(/[Ss]/g,'5');
+    let found=[...new Set(findKeys(txt))];
+    if(!found.length){ const d=onlyDigits(txt); for(let i=0;i+44<=d.length;i++){const k=d.slice(i,i+44);if(validKey(k))found.push(k);} }
+    if(found.length){document.getElementById('scannerKey').value=found[0]; if(cand)cand.innerHTML='<b>Chave reconhecida:</b> '+found[0]+' — confira e clique em Salvar e avançar.';}
+    else {if(cand)cand.innerHTML='<b>Não fechou 44 dígitos válidos.</b> Tente marcar a faixa mais justa em volta dos números ou cole/digite no campo.'; scannerSetCropMode(true);}
+  }catch(e){if(cand)cand.innerHTML='OCR da faixa não conseguiu concluir. Tente marcar somente os números da chave.'; scannerSetCropMode(true);}
+  finally{scannerOCRBusy=false;if(btn){btn.disabled=false;btn.textContent=scannerCropMode?'Arraste sobre a chave…':'Capturar chave';}}
+}
+
+async function scannerReadText(){
+  if(scannerOCRBusy) return;
+  const r = orderedPages[scannerIndex] || reviewImages[scannerIndex];
+  if(!r) return;
+  const btn=document.getElementById('scannerOCRBtn');
+  const out=document.getElementById('scannerOCRText');
+  const candidates=document.getElementById('scannerCandidates');
+  scannerOCRBusy=true; if(btn){btn.disabled=true;btn.textContent='Lendo imagem...';}
+  if(out) out.value=''; if(candidates) candidates.innerHTML='';
+  try{
+    const img=document.getElementById('scannerImg');
+    const c=makeCanvas(img.naturalWidth||1200,img.naturalHeight||1600);
+    const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0,c.width,c.height);
+    const rot=((scannerDeg%360)+360)%360;
+    const base=rotateCanvas(c,rot);
+    const prepared=upscaleCanvas(enhanceCanvas(base),1.35);
+    const w=await getWorker();
+    const res=await w.recognize(prepared, {}, {text:true, blocks:true});
+    const txt=res?.data?.text||'';
+    if(out) out.value=txt;
+    const found=[...new Set(findKeys(txt))];
+    if(found.length){
+      candidates.innerHTML='<b>Chaves encontradas:</b> '+found.map(k=>`<button class="candidateKey" onclick="useScannerCandidate(\'${k}\')">${k}</button>`).join(' ');
+      if(found.length===1) document.getElementById('scannerKey').value=found[0];
+    }else{
+      candidates.innerHTML='<span class="hint">Texto reconhecido abaixo. Selecione/copiar qualquer trecho; você também pode colar a chave no campo.</span>';
+    }
+  }catch(e){ if(out) out.value='Não foi possível reconhecer automaticamente esta imagem.'; }
+  finally{scannerOCRBusy=false;if(btn){btn.disabled=false;btn.textContent='Ler texto da imagem';}}
+}
+async function scannerActivateSelectableOCR(){
+  if(scannerOCRBusy) return; const btn=document.getElementById('scannerSelectOCRBtn'); const img=document.getElementById('scannerImg'); if(!img||!img.complete) return;
+  scannerOCRBusy=true; if(btn){btn.disabled=true;btn.textContent='Gerando texto selecionável...';}
+  try{
+    const c=makeCanvas(img.naturalWidth||1200,img.naturalHeight||1600),ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,c.width,c.height);
+    const rot=((scannerDeg%360)+360)%360, base=rotateCanvas(c,rot), prepared=upscaleCanvas(enhanceCanvas(base),1.6);
+    const w=await getWorker(); const res=await w.recognize(prepared, {}, {text:true,blocks:true});
+    let words=scannerCollectWords(res?.data);
+    if(!words.length && res?.data?.tsv){ /* reservado para versões do Tesseract que retornem TSV */ }
+    const display=document.getElementById('scannerImg'); display.src=prepared.toDataURL('image/jpeg',.94); display.style.width=prepared.width+'px';display.style.height=prepared.height+'px';display.style.transform='none';scannerDeg=0;scannerScale=1;
+    const n=scannerBuildSelectableLayer(words,prepared.width,prepared.height);
+    const txt=res?.data?.text||''; const found=[...new Set(findKeys(txt))]; if(found.length===1) document.getElementById('scannerKey').value=found[0];
+    const cand=document.getElementById('scannerCandidates'); if(cand) cand.innerHTML=n?`<b>Leitura ativada:</b> ${n} bloco(s) selecionáveis. Arraste o mouse diretamente sobre os números da imagem e use Ctrl+C; depois cole no campo da chave.`:'<span class="hint">O OCR não devolveu posições dos textos nesta página. Use o campo manual.</span>';
+  }catch(e){const cand=document.getElementById('scannerCandidates');if(cand)cand.innerHTML='<span class="hint">Não foi possível criar a camada selecionável nesta página.</span>';}
+  finally{scannerOCRBusy=false;if(btn){btn.disabled=false;btn.textContent='Ativar copiar da imagem';}}
+}
+function useScannerCandidate(k){ document.getElementById('scannerKey').value=k; }
+async function copyScannerOCRText(){
+  const el=document.getElementById('scannerOCRText'); if(!el||!el.value) return;
+  try{await navigator.clipboard.writeText(el.value);}catch(e){el.focus();el.select();document.execCommand('copy');}
+}
+
 function openScannerOrdered(i){
   scannerIndex = i;
   scannerScale = 1;
@@ -1019,6 +1217,7 @@ function openScannerOrdered(i){
   document.getElementById('scannerTitle').textContent = `Página ${r.page} — preencher chave de acesso`;
   document.getElementById('scannerImg').src = r.full || r.thumb;
   document.getElementById('scannerKey').value = r.key || '';
+  document.getElementById('scannerOCRText').value=''; document.getElementById('scannerCandidates').innerHTML=''; scannerClearTextLayer(); scannerSetCropMode(false); scannerCropRect=null; const cb=scannerCropEl(); if(cb) cb.style.display='none';
   document.getElementById('scannerModal').style.display = 'flex';
   scannerFit();
   setTimeout(()=>document.getElementById('scannerKey').focus(),150);
@@ -1034,6 +1233,7 @@ function openScanner(i){
   document.getElementById('scannerTitle').textContent = `${r.file} — página ${r.page} sem leitura`;
   document.getElementById('scannerImg').src = r.full || r.img;
   document.getElementById('scannerKey').value = '';
+  document.getElementById('scannerOCRText').value=''; document.getElementById('scannerCandidates').innerHTML=''; scannerClearTextLayer(); scannerSetCropMode(false); scannerCropRect=null; const cb=scannerCropEl(); if(cb) cb.style.display='none';
   document.getElementById('scannerModal').style.display = 'flex';
   scannerFit();
   setTimeout(()=>document.getElementById('scannerKey').focus(),150);
@@ -1044,8 +1244,7 @@ function closeScanner(){
 }
 
 function applyScannerTransform(){
-  const img = document.getElementById('scannerImg');
-  img.style.transform = `scale(${scannerScale}) rotate(${scannerDeg}deg)`;
+  const wrap=document.getElementById('scannerPageWrap'); if(wrap) wrap.style.transform=`scale(${scannerScale}) rotate(${scannerDeg}deg)`;
 }
 
 function scannerZoom(delta){
@@ -1913,12 +2112,16 @@ function downloadFile(content, name, type){
       </div>
     </div>
     <div class="scannerView">
-      <img id="scannerImg" alt="Página para conferência">
+      <div id="scannerPageWrap" class="scannerPageWrap"><img id="scannerImg" alt="Página para conferência" onmousedown="scannerCropDown(event)" onmousemove="scannerCropMove(event)" onmouseup="scannerCropUp(event)"><div id="scannerTextLayer" class="scannerTextLayer"></div><div id="scannerCropBox" class="scannerCropBox"></div></div>
     </div>
-    <div class="scannerBottom">
+    <div class="scannerBottom" style="flex-wrap:wrap">
       <input id="scannerKey" placeholder="Digite ou cole a chave de acesso desta página">
       <button class="ok" onclick="saveScannerKey()">Salvar e avançar</button>
       <button class="primary" onclick="nextScanner()">Pular</button>
+      <button id="scannerAutoKeyBtn" class="light" onclick="scannerAutoLocalizedKey()">Ler chave rápido</button>
+      <button id="scannerCaptureBtn" class="light" onclick="scannerSelectKeyArea()">Selecionar faixa</button>
+      <div id="scannerCandidates" style="width:100%;font-size:12px;padding:4px 0"></div>
+      <textarea id="scannerOCRText" style="display:none"></textarea>
     </div>
   </div>
 </div>

@@ -40,6 +40,8 @@
     <span id="lastUpdateAgo">Aguardando atualização</span>
   </div>
   <div class="sideUpdateDate" id="lastUpdateDate">Importe ou sincronize a base</div>
+  <span class="excelGuideSep" aria-hidden="true">•</span>
+  <span id="excelImportGuideText" class="excelGuideInline" title="Orientação para a próxima extração do Excel 902">📅 Próximo Excel: período ainda não registrado</span>
 </div>
 </div>
 <div class="actions">
@@ -132,8 +134,11 @@
 <div class="tableWrap"><table id="tbExpo"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Tratativa</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab hidden" id="tab-finalizados">
-<div class="summaryLine"><button class="btn-red" id="btnLimparFinalizados">Excluir lote local</button></div>
-<h3 class="sectionTitle">Finalizados</h3>
+<div class="summaryLine" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="mesExcluirFinalizados" class="mini" style="min-width:170px"></select><button class="btn-red" id="btnLimparFinalizados">Excluir finalizados do mês</button><span id="qtdExcluirFinalizados" class="small"></span></div>
+<div class="filters">
+<div class="field" style="min-width:320px;flex:1"><small>Busca nos finalizados</small><input id="buscaFim" placeholder="PC/PV, documento, cavalo, cliente, referência, origem, destino..." autocomplete="off"/></div>
+</div>
+<h3 class="sectionTitle">Finalizados <span id="qtdFimFiltrada" class="small"></span></h3>
 <div class="tableWrap"><table id="tbFim"><thead><tr><th>Cavalo</th><th>Data PC</th><th>Posição</th><th>Pagador</th><th>Remetente / UF</th><th>Destinatário / UF</th><th>Motorista</th><th>Talhão</th><th>Referência</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
 </section>
 <section class="panel tab hidden" id="tab-config">
@@ -142,7 +147,7 @@
 <div>
 <h3 class="sectionTitle">Controle mensal</h3>
 <div class="cfgGroup">
-<div class="small" style="margin-bottom:8px">Aqui o admin vê quais competências já podem ser zeradas.</div>
+<div class="small" style="margin-bottom:8px">Limpe somente os finalizados de uma competência concluída. Ao limpar, o mês fica bloqueado e não volta em importações futuras.</div>
 <div id="mesesBox"><div class="monthCard"><div><div style="font-size:30px;font-weight:900;line-height:1">2026-05</div><div class="small" style="margin-top:8px">Abertos: 23 | Finalizados: 0</div></div><div class="monthStatus warn">Ainda com PV em aberto</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('2026-05')">Exportar</button><button class="mini btn-red" disabled="" onclick="zerarCompetenciaSupabase('2026-05')">Zerar Supabase</button></div></div><div class="monthCard"><div><div style="font-size:30px;font-weight:900;line-height:1">2026-06</div><div class="small" style="margin-top:8px">Abertos: 213 | Finalizados: 0</div></div><div class="monthStatus warn">Ainda com PV em aberto</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('2026-06')">Exportar</button><button class="mini btn-red" disabled="" onclick="zerarCompetenciaSupabase('2026-06')">Zerar Supabase</button></div></div></div>
 </div>
 </div>
