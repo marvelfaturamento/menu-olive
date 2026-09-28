@@ -285,6 +285,7 @@ button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18
   body .app > aside .tab:nth-of-type(2)::before{content:'🖼️'!important;}
   body .app > aside .tab:nth-of-type(3)::before{content:'📋'!important;}
   body .app > aside .tab:nth-of-type(4)::before{content:'🧾'!important;}
+  body .app > aside .tab:nth-of-type(5)::before{content:'🧾'!important;}
   body .app > aside:hover .tab{
     justify-content:flex-start!important;
     padding:0 14px!important;
@@ -305,6 +306,7 @@ button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18
     <button class="tab" onclick="openTab('img')">🖼️ Ler Imagem</button>
     <button class="tab" onclick="openTab('paste')">📋 Colar Print</button>
     <button class="tab" onclick="openTab('txt')">🧾 Ler TXT</button>
+    <button class="tab" onclick="window.location.href='xml-nfe-v12.html'">🧾 Ler XML NF-e</button>
   </aside>
 
   <main>
@@ -432,7 +434,26 @@ button,.tab{transition:transform .18s ease, box-shadow .18s ease, background .18
       </div>
     </section>
 
-    <section id="txt" class="panel">
+    <section id="xmlnfe" class="panel">
+  <div class="hero">
+    <h1>Leitor XML NF-e</h1>
+    <div class="hint">Importe um ou vários XMLs de NF-e. A leitura acontece diretamente nesta tela.</div>
+  </div>
+  <div class="card">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input id="xmlNfeInput" type="file" accept=".xml,text/xml,application/xml" multiple style="display:none">
+      <button type="button" class="primary" id="xmlNfePick">Selecionar XMLs</button>
+      <button type="button" id="xmlNfeClear">Limpar</button>
+      <span id="xmlNfeStatus" class="hint">Nenhum XML carregado.</span>
+    </div>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Notas carregadas</h2>
+    <div id="xmlNfeResults"><div class="hint">Selecione um ou mais XMLs de NF-e.</div></div>
+  </div>
+</section>
+
+<section id="txt" class="panel">
       <div class="hero">
         <h1>Leitor de TXT por viagem</h1>
         <div class="hint">
@@ -2125,6 +2146,83 @@ function downloadFile(content, name, type){
     </div>
   </div>
 </div>
+
+
+<script>
+(function(){
+  const $x=id=>document.getElementById(id);
+  function txt(node, tag){
+    const el=node.getElementsByTagName(tag)[0];
+    return el ? String(el.textContent||'').trim() : '';
+  }
+  function money(v){
+    const n=Number(String(v||'0').replace(',','.'));
+    return Number.isFinite(n)?n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):v||'-';
+  }
+  function escx(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function parseNFe(xmlText,fileName){
+    const doc=new DOMParser().parseFromString(xmlText,'application/xml');
+    if(doc.querySelector('parsererror')) throw new Error('XML inválido');
+    const inf=doc.getElementsByTagName('infNFe')[0];
+    if(!inf) throw new Error('Não encontrei infNFe neste XML');
+    const ide=doc.getElementsByTagName('ide')[0]||doc;
+    const emit=doc.getElementsByTagName('emit')[0]||doc;
+    const dest=doc.getElementsByTagName('dest')[0]||doc;
+    const total=doc.getElementsByTagName('ICMSTot')[0]||doc;
+    const transp=doc.getElementsByTagName('transporta')[0]||doc;
+    let chave=(inf.getAttribute('Id')||'').replace(/^NFe/,'').replace(/\D/g,'');
+    if(!chave) chave=txt(doc,'chNFe').replace(/\D/g,'');
+    return {
+      arquivo:fileName, chave, numero:txt(ide,'nNF'), serie:txt(ide,'serie'),
+      emissao:txt(ide,'dhEmi')||txt(ide,'dEmi'),
+      emitente:txt(emit,'xNome'), cnpjEmit:txt(emit,'CNPJ')||txt(emit,'CPF'),
+      destinatario:txt(dest,'xNome'), cnpjDest:txt(dest,'CNPJ')||txt(dest,'CPF'),
+      valor:txt(total,'vNF'), peso:txt(doc,'pesoB'), transportador:txt(transp,'xNome')
+    };
+  }
+  function copyx(v){
+    if(navigator.clipboard?.writeText) navigator.clipboard.writeText(v);
+    else {const t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();}
+  }
+  function render(rows){
+    const box=$x('xmlNfeResults');
+    if(!rows.length){box.innerHTML='<div class="hint">Selecione um ou mais XMLs de NF-e.</div>';return;}
+    box.innerHTML=rows.map((r,i)=>`<div style="border:1px solid #d7dfeb;border-radius:12px;padding:14px;margin-bottom:10px;background:#fff">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <strong>NF-e ${escx(r.numero||'-')} <span class="hint">Série ${escx(r.serie||'-')}</span></strong>
+        <span class="hint">${escx(r.arquivo)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px">
+        <div><b>Emitente</b><br>${escx(r.emitente||'-')}<br><span class="hint">${escx(r.cnpjEmit||'')}</span></div>
+        <div><b>Destinatário</b><br>${escx(r.destinatario||'-')}<br><span class="hint">${escx(r.cnpjDest||'')}</span></div>
+        <div><b>Valor NF-e</b><br>${escx(money(r.valor))}</div>
+        <div><b>Peso bruto</b><br>${escx(r.peso||'-')}</div>
+        <div><b>Transportador</b><br>${escx(r.transportador||'-')}</div>
+      </div>
+      <div style="margin-top:12px"><b>Chave de acesso</b><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><code style="word-break:break-all">${escx(r.chave||'-')}</code>${r.chave?`<button type="button" data-copykey="${i}">Copiar chave</button>`:''}</div></div>
+    </div>`).join('');
+    box.querySelectorAll('[data-copykey]').forEach(b=>b.onclick=()=>copyx(rows[Number(b.dataset.copykey)].chave));
+  }
+  let rows=[];
+  const input=$x('xmlNfeInput'), pick=$x('xmlNfePick'), clear=$x('xmlNfeClear'), status=$x('xmlNfeStatus');
+  if(!input||!pick) return;
+  pick.onclick=()=>input.click();
+  input.onchange=async()=>{
+    const files=[...input.files];
+    if(!files.length)return;
+    status.textContent=`Lendo ${files.length} arquivo(s)...`;
+    const next=[];
+    for(const f of files){
+      try{next.push(parseNFe(await f.text(),f.name));}
+      catch(e){next.push({arquivo:f.name,numero:'ERRO',serie:'-',chave:'',emitente:e.message,destinatario:'',valor:'',peso:'',transportador:''});}
+    }
+    rows=next; render(rows);
+    status.textContent=`${files.length} XML(s) processado(s).`;
+    input.value='';
+  };
+  clear.onclick=()=>{rows=[];render(rows);status.textContent='Nenhum XML carregado.';input.value='';};
+})();
+</script>
 
 </body>
 </html>

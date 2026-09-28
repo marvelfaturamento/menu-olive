@@ -25,7 +25,8 @@ const state = {
   coletaMonitor: {},
   competenciasZeradas: new Set(),
   competenciasZeradasMeta: {},
-  lastExcelImport: null
+  lastExcelImport: null,
+  auditFinalizacoes: {}
 };
 
 function norm(v){ return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
@@ -1042,7 +1043,10 @@ function currentSets(){ return { ativo: state.rows.filter(r => r.bucket === 'ati
 function fillSelect(el, items, current=''){ const keep = current || el.value || ''; el.innerHTML = '<option value="">Todos</option>' + [...new Set(items.filter(Boolean))].sort().map(v => `<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join(''); if([...el.options].some(o => o.value === keep)) el.value = keep; }
 function filterRows(rows, {q='', client='', status='', ufOrigem='', ufDestino=''}={}){ const text = norm(q); return rows.filter(r => { if(client && norm(r.pagador) !== norm(client)) return false; if(status && r.status !== status) return false; if(ufOrigem && norm(r.ufRem) !== norm(ufOrigem)) return false; if(ufDestino && norm(r.ufDest) !== norm(ufDestino)) return false; const hay = norm([r.id,r.pv,r.numeroDocumento,r.numero_documento,r.documento,r.cte,r.cavalo,r.pagador,r.posicao,r.motorista,r.referencia,r.talhao,r.destinatario,r.remetente,r.cidadeOrigem,r.cidadeDestino,r.ufRem,r.ufDest].join(' ')); return !text || hay.includes(text); }); }
 function statusSelect(row, fromFinalizados=false){ const opts = ['Coleta','AG Nota','Aduana','Faturar','Finalizado']; return `<select onchange="alterarStatus('${encodeURIComponent(row.id)}', this.value, ${fromFinalizados ? 'true' : 'false'})">${opts.map(s => `<option value="${s}" ${row.status===s?'selected':''}>${s}</option>`).join('')}</select>`; }
-function rowButtons(row, fromFinalizados=false){ if(fromFinalizados){ return `<div class="rowActions"><button class="mini btn-green" onclick="reabrirRegistro('${encodeURIComponent(row.id)}')">Reabrir</button></div>`; } return `<div class="rowActions"><button class="mini btn-fat" onclick="marcarFaturar('${encodeURIComponent(row.id)}')">Faturar</button><button class="mini btn-fin" onclick="marcarFinalizado('${encodeURIComponent(row.id)}')">Finalizado</button></div>`; }
+function rowButtons(row, fromFinalizados=false){
+  if(fromFinalizados){ const ev=state.auditFinalizacoes?.[row.id], meta=ev?origemAuditoriaLabel(ev):null; const badge=meta?`<span class="small" style="white-space:nowrap">${meta.icone} ${escHtml(meta.quem)}</span>`:'<span class="small" style="white-space:nowrap">Log anterior</span>'; return `<div class="rowActions" style="gap:5px;align-items:center">${badge}<button class="mini" onclick="abrirHistoricoFinalizacao('${encodeURIComponent(row.id)}')">Histórico</button><button class="mini btn-green" onclick="reabrirRegistro('${encodeURIComponent(row.id)}')">Reabrir</button></div>`; }
+  return `<div class="rowActions"><button class="mini btn-fat" onclick="marcarFaturar('${encodeURIComponent(row.id)}')">Faturar</button><button class="mini btn-fin" onclick="marcarFinalizado('${encodeURIComponent(row.id)}')">Finalizado</button></div>`;
+}
 function columns(includeFrete=false, fromFinalizados=false, alertMode=false){
   const cols = [
     ['Cavalo', r => copyable(r.cavalo || '-', 'cavalo/frota')],
@@ -1495,6 +1499,7 @@ async function parseExcelRows(matrix){
   await new Promise(resolve => requestAnimationFrame(resolve));
 
   await carregarHistoricoFinalizadosSupabase();
+  await carregarAuditoriaFinalizacoes();
 
   // COMPATIBILIDADE 902:
   // O painel historicamente usa a coluna PC como o campo exibido/armazenado em `pv`
@@ -1666,9 +1671,45 @@ function referencia902Valida624(ref){
   return true;
 }
 
+async function carregarAuditoriaFinalizacoes(){
+  const out={};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i)||'', prefix=`${STORE}_audit_finalizacao_`;
+      if(!k.startsWith(prefix)) continue;
+      try{ const ev=JSON.parse(localStorage.getItem(k)||'null'); if(ev?.id) out[ev.id]=ev; }catch(e){}
+    }
+    if(state.supabase){
+      const rows=await fetchAllRows('configuracoes_902','chave,valor,updated_at','chave',true,1000);
+      (rows||[]).filter(x=>String(x.chave||'').startsWith('audit_finalizacao:')).forEach(x=>{
+        try{ const ev=JSON.parse(x.valor||'{}'); const id=ev.id||String(x.chave).slice('audit_finalizacao:'.length); if(id) out[id]={...ev,id,em:ev.em||x.updated_at||''}; }catch(e){}
+      });
+    }
+  }catch(e){ console.warn('Falha ao carregar auditoria de finalizações:',e); }
+  state.auditFinalizacoes=out; return out;
+}
+function origemAuditoriaLabel(ev){
+  const o=String(ev?.origem||'');
+  if(o==='MANUAL') return {icone:'👤',quem:ev.usuario||'Usuário',regra:'Finalização manual'};
+  if(o==='902_NUMERO_DOCUMENTO') return {icone:'🤖',quem:'Robô 902',regra:'NUMERO_DOCUMENTO preenchido no relatório 902'};
+  if(o==='624_REFERENCIA_OBSERVACAO') return {icone:'🤖',quem:'Robô 902',regra:'Vínculo com observação do relatório 624'};
+  return {icone:'•',quem:ev?.usuario||'Não identificado',regra:o||'Origem não registrada'};
+}
+function formatAuditDate902(iso){ if(!iso)return '-'; const d=new Date(iso); return Number.isNaN(d.getTime())?iso:d.toLocaleString('pt-BR'); }
+async function abrirHistoricoFinalizacao(idEnc){
+  const id=decodeURIComponent(idEnc); if(!state.auditFinalizacoes?.[id]) await carregarAuditoriaFinalizacoes(); const ev=state.auditFinalizacoes?.[id];
+  if(!ev){ alert('Este registro é anterior à implantação da auditoria ou não possui log de finalização.'); return; }
+  const meta=origemAuditoriaLabel(ev); let modal=document.getElementById('auditModal902'); if(modal)modal.remove(); modal=document.createElement('div'); modal.id='auditModal902';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(2,8,23,.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML=`<div style="width:min(620px,96vw);background:#0d1b36;border:1px solid #31518d;border-radius:14px;padding:18px;color:#fff;box-shadow:0 20px 60px #0008"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><strong style="font-size:18px">Histórico da finalização</strong><button id="auditClose902" class="mini">Fechar</button></div><div style="display:grid;grid-template-columns:150px 1fr;gap:9px 12px;line-height:1.35;margin-top:14px"><b>PC / PV</b><span>${escHtml(ev.pv||'-')}</span><b>Cavalo</b><span>${escHtml(ev.cavalo||'-')}</span><b>Finalizado por</b><span>${meta.icone} ${escHtml(meta.quem)}</span><b>Regra / origem</b><span>${escHtml(meta.regra)}</span><b>Data e hora</b><span>${escHtml(formatAuditDate902(ev.em))}</span><b>Detalhe</b><span>${escHtml(ev.detalhe||'-')}</span></div></div>`;
+  document.body.appendChild(modal); modal.querySelector('#auditClose902').onclick=()=>modal.remove(); modal.onclick=e=>{if(e.target===modal)modal.remove();};
+}
+window.abrirHistoricoFinalizacao=abrirHistoricoFinalizacao;
+
 async function registrarAuditoriaFinalizacao(row, origem, detalhe=''){
   if(!row?.id) return;
-  const evento={id:row.id,pv:row.pv||'',dataPC:row.dataPC||'',cavalo:row.cavalo||'',origem,detalhe,em:new Date().toISOString()};
+  const evento={id:row.id,pv:row.pv||'',dataPC:row.dataPC||'',cavalo:row.cavalo||'',origem,detalhe,usuario:origem==='MANUAL'?usuarioAtual902():'Robô 902',em:new Date().toISOString()};
+  state.auditFinalizacoes[row.id]=evento;
   try{
     localStorage.setItem(`${STORE}_audit_finalizacao_${row.id}`, JSON.stringify(evento));
     if(state.supabase){
