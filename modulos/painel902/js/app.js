@@ -1618,6 +1618,7 @@ async function parseExcelRows(matrix){
       });
       remoteFinalizedIds.add(id);
       autoFinalizadas++;
+      await registrarAuditoriaFinalizacao(importedFinalMap.get(id), '902_NUMERO_DOCUMENTO', `NUMERO_DOCUMENTO=${numeroDocumento}`);
       continue;
     }
 
@@ -1655,7 +1656,26 @@ function getHeaderIndex624(headers){
 
 function referencia902Valida624(ref){
   const texto = String(ref || '').trim();
-  return texto.length >= 5;
+  const n = norm(texto);
+  if(texto.length < 5) return false;
+  // Não usar descrições genéricas como chave de vínculo do 624. Ex.: "Duas coletas".
+  // A referência precisa ter algum identificador objetivo (número) e conteúdo suficiente.
+  if(!/\d/.test(n)) return false;
+  const genericas = ['DUAS COLETAS','COLETA','RETORNO','EXPORTACAO','IMPORTACAO','NACIONAL','CARGA','VIAGEM'];
+  if(genericas.includes(n)) return false;
+  return true;
+}
+
+async function registrarAuditoriaFinalizacao(row, origem, detalhe=''){
+  if(!row?.id) return;
+  const evento={id:row.id,pv:row.pv||'',dataPC:row.dataPC||'',cavalo:row.cavalo||'',origem,detalhe,em:new Date().toISOString()};
+  try{
+    localStorage.setItem(`${STORE}_audit_finalizacao_${row.id}`, JSON.stringify(evento));
+    if(state.supabase){
+      const chave=`audit_finalizacao:${row.id}`;
+      await state.supabase.from('configuracoes_902').upsert({chave,valor:JSON.stringify(evento),updated_at:evento.em},{onConflict:'chave'});
+    }
+  }catch(e){ console.warn('Falha ao registrar auditoria de finalização:',e); }
 }
 
 function extrairObservacoes624(ws){
@@ -1741,6 +1761,7 @@ async function processarImportacao624(file){
       if(idsParaFinalizar.has(row.id)){
         row.status = 'Finalizado';
         row.finalizadoEm = row.finalizadoEm || new Date().toISOString();
+        row.origemFinalizacao = '624_REFERENCIA_OBSERVACAO';
         if(!finalizadosAntes.has(row.id)) novosFinalizados.push(row);
       }else{
         remainingRows.push(row);
@@ -1752,6 +1773,9 @@ async function processarImportacao624(file){
 
     reclassify();
     await saveLocal();
+    for(const row of novosFinalizados){
+      await registrarAuditoriaFinalizacao(row, '624_REFERENCIA_OBSERVACAO', `Referência 902 localizada no campo Observação do 624: ${row.referencia||''}`);
+    }
     renderAll(true);
 
     setStatusText(`624: ${idsParaFinalizar.size} programação(ões) finalizada(s)`);
@@ -1856,6 +1880,7 @@ reclassify();
       }
       renderAll(true);
       await autoSaveSingleRow(row, 'finalização da PC');
+      await registrarAuditoriaFinalizacao(row, 'MANUAL', 'Finalizado pelo botão/status do painel');
       return;
     }
 
