@@ -1719,38 +1719,59 @@ async function registrarAuditoriaFinalizacao(row, origem, detalhe=''){
   }catch(e){ console.warn('Falha ao registrar auditoria de finalização:',e); }
 }
 
-function extrairObservacoes624(ws){
-  const matrix = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
-  let headerRowIndex = -1;
-  let obsIndex = -1;
-
-  for(let i = 0; i < matrix.length; i++){
-    const cols = matrix[i] || [];
-    const found = getHeaderIndex624(cols);
-    if(found >= 0){
-      headerRowIndex = i;
-      obsIndex = found;
-      break;
-    }
+function uf624Valor(v){
+  const s=norm(v);
+  if(!s) return '';
+  if(s==='EX' || s.includes('EXTERIOR') || s.includes('INTERNACIONAL')) return 'EX';
+  const ufs=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+  if(ufs.includes(s)) return s;
+  // Aceita campos como "ARARAQUARA / SP", "PALMARES-PE" ou "... UF SP".
+  const tokens=s.replace(/[^A-Z0-9]+/g,' ').trim().split(/\s+/);
+  for(let i=tokens.length-1;i>=0;i--) if(ufs.includes(tokens[i])) return tokens[i];
+  return '';
+}
+function indice624(headers, nomes){
+  const hs=(headers||[]).map(h=>norm(h));
+  for(const nome of nomes){
+    const n=norm(nome);
+    let i=hs.findIndex(h=>h===n);
+    if(i>=0) return i;
   }
-
-  if(obsIndex < 0){
-    const jsonRows = XLSX.utils.sheet_to_json(ws, {defval:''});
-    return jsonRows.map(linha => String(
-      linha.Observação ||
-      linha.Observacao ||
-      linha.OBSERVAÇÃO ||
-      linha.OBSERVACAO ||
-      linha.OBS ||
-      linha.obs ||
-      ''
-    )).filter(Boolean);
+  for(const nome of nomes){
+    const n=norm(nome);
+    let i=hs.findIndex(h=>h.includes(n));
+    if(i>=0) return i;
   }
+  return -1;
+}
+function extrairRegistros624(ws){
+  const matrix=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+  let header=-1, idxObs=-1;
+  for(let i=0;i<matrix.length;i++){
+    const found=getHeaderIndex624(matrix[i]||[]);
+    if(found>=0){header=i;idxObs=found;break;}
+  }
+  if(header<0) return [];
 
-  return matrix
-    .slice(headerRowIndex + 1)
-    .map(row => String((row || [])[obsIndex] || ''))
-    .filter(Boolean);
+  const headers=matrix[header]||[];
+  const idxUfOrig=indice624(headers,['UF_ORIGEM','UF ORIGEM','UF REMETENTE','UF_REMETENTE','UF INICIO','UF_INICIO']);
+  const idxUfDest=indice624(headers,['UF_DESTINO','UF DESTINO','UF DESTINATARIO','UF_DESTINATARIO','UF ENTREGA','UF_ENTREGA']);
+  const idxOrig=indice624(headers,['ORIGEM','MUNICIPIO ORIGEM','MUNICÍPIO ORIGEM','CIDADE ORIGEM','REMETENTE / ORIGEM']);
+  const idxDest=indice624(headers,['DESTINO','MUNICIPIO DESTINO','MUNICÍPIO DESTINO','CIDADE DESTINO','DESTINATARIO / DESTINO','DESTINATÁRIO / DESTINO']);
+
+  return matrix.slice(header+1).map(row=>{
+    const obs=String((row||[])[idxObs]||'').trim();
+    if(!obs) return null;
+    const origemBruta=idxUfOrig>=0?(row[idxUfOrig]||''):(idxOrig>=0?(row[idxOrig]||''):'');
+    const destinoBruto=idxUfDest>=0?(row[idxUfDest]||''):(idxDest>=0?(row[idxDest]||''):'');
+    return {obs,ufOrigem:uf624Valor(origemBruta),ufDestino:uf624Valor(destinoBruto),origemBruta:String(origemBruta||''),destinoBruto:String(destinoBruto||'')};
+  }).filter(Boolean);
+}
+function rota624Compativel(pc, reg){
+  const o=norm(pc.ufRem||''), d=norm(pc.ufDest||'');
+  // Trava de segurança: sem as duas UFs nos dois lados, não baixa automaticamente.
+  if(!o || !d || !reg.ufOrigem || !reg.ufDestino) return false;
+  return o===norm(reg.ufOrigem) && d===norm(reg.ufDestino);
 }
 
 async function processarImportacao624(file){
@@ -1762,16 +1783,16 @@ async function processarImportacao624(file){
   try{
     const buffer = await file.arrayBuffer();
     const wb = XLSX.read(new Uint8Array(buffer), {type:'array'});
-    const observacoes = [];
+    const registros624 = [];
 
     wb.SheetNames.forEach(name => {
       const ws = wb.Sheets[name];
-      observacoes.push(...extrairObservacoes624(ws));
+      registros624.push(...extrairRegistros624(ws));
     });
 
-    const obsNormalizadas = observacoes.map(obs => norm(obs)).filter(Boolean);
+    const registrosValidos = registros624.map(r => ({...r,obsNorm:norm(r.obs)})).filter(r => r.obsNorm);
 
-    if(!obsNormalizadas.length){
+    if(!registrosValidos.length){
       alert('Nenhuma observação foi encontrada no 624.');
       return;
     }
@@ -1788,12 +1809,13 @@ async function processarImportacao624(file){
       const referenciaNormalizada = norm(referenciaOriginal);
       if(!referenciaNormalizada || referenciaNormalizada.length < 5) return;
 
-      const achouNo624 = obsNormalizadas.some(obs => obs.includes(referenciaNormalizada));
-      if(achouNo624) idsParaFinalizar.add(row.id);
+      const candidatos = registrosValidos.filter(reg => reg.obsNorm.includes(referenciaNormalizada));
+      const compativel = candidatos.find(reg => rota624Compativel(row, reg));
+      if(compativel) idsParaFinalizar.add(row.id);
     });
 
     if(!idsParaFinalizar.size){
-      alert('Importação 624 concluída. Nenhuma referência do 902 foi localizada nas observações do 624.');
+      alert('Importação 624 concluída. Nenhum vínculo seguro foi encontrado. Agora o robô exige Pedido/Referência + UF origem + UF destino iguais entre 902 e 624.');
       return;
     }
 
@@ -1815,7 +1837,7 @@ async function processarImportacao624(file){
     reclassify();
     await saveLocal();
     for(const row of novosFinalizados){
-      await registrarAuditoriaFinalizacao(row, '624_REFERENCIA_OBSERVACAO', `Referência 902 localizada no campo Observação do 624: ${row.referencia||''}`);
+      await registrarAuditoriaFinalizacao(row, '624_REFERENCIA_OBSERVACAO', `Referência + rota confirmadas no 624: ${row.referencia||''} | ${row.ufRem||'-'} → ${row.ufDest||'-'}`);
     }
     renderAll(true);
 
