@@ -582,6 +582,13 @@ function isAduanaPosition(pos){
 
 }
 function isInBrazil(pos){ return norm(pos).includes('BRASIL'); }
+function isPosicaoExterior(pos){
+  const t = norm(pos);
+  if(!t) return false;
+  // Só considera exterior quando o rastreador informa país/contexto inequívoco.
+  // "Sem BRASIL" sozinho não basta, pois posições nacionais podem vir só com cidade/UF.
+  return /\b(ARGENTINA|CHILE|PARAGUAI|PARAGUAY|URUGUAI|URUGUAY|BOLIVIA|PERU|EXTERIOR)\b/.test(t);
+}
 function ufPosicaoBrasil(pos){
   const t = norm(pos);
   if(!t.includes('BRASIL')) return '';
@@ -747,7 +754,8 @@ function rowInDestinationCity(row){
   return posicao.includes(cidade);
 }
 function checkpointNaoConfirmadoSuspeito(row){
-  if(!row || row.status === 'Finalizado' || checkpointColetaConfirmado(row) || !temCheckpointCidadeOrigem(row)) return false;
+  // Fluxo já avançado não deve coexistir com pendência de checkpoint.
+  if(!row || ['AG Nota','Aduana','Faturar','Finalizado'].includes(row.status) || checkpointColetaConfirmado(row) || !temCheckpointCidadeOrigem(row)) return false;
 
   const key = checkpointStateKey(row);
   const m = state.coletaMonitor[key] || state.coletaMonitor[row.id] || {};
@@ -980,6 +988,20 @@ function reclassify(){
       return;
     }
 
+    /* EXPORTAÇÃO BR -> EX — AVANÇO INEQUÍVOCO
+       Na exportação a NF já existe na origem. Se a posição já informa outro país,
+       o veículo necessariamente deixou a coleta no Brasil. A ausência de checkpoint
+       não pode manter o PC em Ativas. */
+    if(
+      !isUFEx(row.ufRem) &&
+      isUFEx(row.ufDest) &&
+      isPosicaoExterior(row.posicao)
+    ){
+      row.bucket = 'alertaExpo';
+      row.status = 'Faturar';
+      return;
+    }
+
     /* REGRAS AUTOMATICAS PARA CASOS SEM REGRA PADRAO
        1) Origem EX sem regra: ao registrar BRASIL, sobe para alerta internacional impo.
        2) Exportação sem regra: se UF da posição divergir da UF do remetente, sobe para alerta expo.
@@ -1077,6 +1099,34 @@ function showActionToast902(message, undoFn=null){
 
 
 function plural902(n, singular, plural){ return `${n} ${Number(n)===1?singular:plural}`; }
+
+
+const operacoes902EmAndamento=new Set();
+function iniciarOperacao902(chave){
+  if(operacoes902EmAndamento.has(chave)) return false;
+  operacoes902EmAndamento.add(chave); return true;
+}
+function finalizarOperacao902(chave){ operacoes902EmAndamento.delete(chave); }
+
+async function registrarHistorico902(row, acao, detalhe=''){
+  if(!row || !row.id) return;
+  const evento={id:row.id,pv:row.pv||'',cavalo:row.cavalo||'',dataPC:row.dataPC||'',acao,detalhe,
+    usuario:usuarioAtual902(),em:new Date().toISOString()};
+  try{
+    const k=`historico_902:${row.id}:${Date.now()}`;
+    localStorage.setItem(`${STORE}_${k}`,JSON.stringify(evento));
+    if(state.supabase) await state.supabase.from('configuracoes_902').upsert(
+      {chave:k,valor:JSON.stringify(evento),updated_at:evento.em},{onConflict:'chave'});
+  }catch(e){ console.warn('Falha ao registrar histórico 902:',e); }
+}
+function resumoImportacao902(d={}){
+  const partes=[];
+  for(const [k,label] of [['ativos','ativos'],['atualizados','atualizados'],['finalizados','finalizados'],
+    ['bloqueados','ignorados por competência encerrada'],['rotaDivergente','com rota divergente']]){
+    if(Number(d[k]||0)>0) partes.push(`${Number(d[k])} ${label}`);
+  }
+  if(partes.length) showActionToast902(`Importação concluída: ${partes.join(' · ')}`);
+}
 
 function rowButtons(row, fromFinalizados=false){
   if(fromFinalizados){ const ev=state.auditFinalizacoes?.[row.id], meta=ev?origemAuditoriaLabel(ev):null; const badge=meta?`<span class="small" style="white-space:nowrap">${meta.icone} ${escHtml(meta.quem)}</span>`:'<span class="small" style="white-space:nowrap">Log anterior</span>'; return `<div class="rowActions" style="gap:5px;align-items:center">${badge}<button class="mini" onclick="abrirHistoricoFinalizacao('${encodeURIComponent(row.id)}')">Histórico</button><button class="mini btn-green" onclick="reabrirRegistro('${encodeURIComponent(row.id)}')">Reabrir</button></div>`; }

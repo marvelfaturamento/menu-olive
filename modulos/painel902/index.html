@@ -31,6 +31,30 @@ button:focus-visible,select:focus-visible,input:focus-visible{
 }
 </style>
 
+
+<style id="polimento-v35">
+/* v3.5 — polimento visual sem alterar a lógica do painel */
+:root{--v35-radius:14px;--v35-shadow:0 6px 18px rgba(15,23,42,.07)}
+.cards .card,.stats .stat,.summaryCards .summaryCard,.kpis .kpi{
+  border-radius:var(--v35-radius)!important;box-shadow:var(--v35-shadow)!important;
+  transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease;
+}
+.cards .card:hover,.stats .stat:hover,.summaryCards .summaryCard:hover,.kpis .kpi:hover{
+  transform:translateY(-1px);box-shadow:0 9px 24px rgba(15,23,42,.10)!important
+}
+table{font-size:12px!important}
+tbody tr:nth-child(even){background:rgba(148,163,184,.045)}
+tbody tr:hover{background:rgba(59,130,246,.065)!important}
+th{font-size:11px!important;letter-spacing:.015em}
+td,th{vertical-align:middle}
+.tableWrap{border-radius:12px;box-shadow:0 3px 12px rgba(15,23,42,.045)}
+.filters input,.filters select,.filterGrid input,.filterGrid select{width:100%!important;box-sizing:border-box}
+.empty,.emptyState{padding:34px 16px!important;text-align:center!important;color:#64748b!important}
+button{transition:transform .12s ease,filter .12s ease,opacity .12s ease}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.55!important;cursor:wait!important}
+</style>
+
 </head>
 <body>
 <div class="app">
