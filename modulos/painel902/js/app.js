@@ -720,12 +720,24 @@ function atualizarMonitorColeta(row){
   const d = distanciaReferenciadaOrigem(row);
   const stateKey = checkpointStateKey(row);
   const atual = state.coletaMonitor[stateKey] || state.coletaMonitor[row.id] || {};
+
+  // Depois que o caso virou pendência de checkpoint ele fica TRAVADO para
+  // conferência manual. Uma posição posterior não pode fazê-lo desaparecer.
+  if(atual.pendenteCheckpoint){
+    persistirMonitorColeta(row,{lastDistKm:d,ultimaPosicao:row.posicao||'',pendenteCheckpoint:true});
+    return;
+  }
+
   if(d !== null){
     const min = atual.minDistKm == null ? d : Math.min(Number(atual.minDistKm), d);
-    persistirMonitorColeta(row,{minDistKm:min,lastDistKm:d,viuAproximacao: min <= RAIO_APROXIMACAO_KM, ultimaPosicao:row.posicao||''});
-    if(d <= RAIO_CHECKPOINT_KM) persistirCheckpointColeta(row,'automatico');
+    const viuAproximacao = min <= RAIO_APROXIMACAO_KM;
+    const afastou = viuAproximacao && d >= min + AFASTAMENTO_MIN_KM;
+    persistirMonitorColeta(row,{minDistKm:min,lastDistKm:d,viuAproximacao,afastouDaReferencia:!!afastou,pendenteCheckpoint:!!afastou,pendenteDesde:afastou?(atual.pendenteDesde||new Date().toISOString()):(atual.pendenteDesde||null),ultimaPosicao:row.posicao||''});
+    // Confirmação automática só ocorre ANTES de o caso virar pendência.
+    if(d <= RAIO_CHECKPOINT_KM && !afastou) persistirCheckpointColeta(row,'automatico');
   }else if(atual.viuAproximacao){
-    persistirMonitorColeta(row,{afastouDaReferencia:true,ultimaPosicao:row.posicao||''});
+    // Saiu da referência depois de ter se aproximado: vira pendência persistente.
+    persistirMonitorColeta(row,{afastouDaReferencia:true,pendenteCheckpoint:true,pendenteDesde:atual.pendenteDesde||new Date().toISOString(),ultimaPosicao:row.posicao||''});
   }
 }
 function rowInDestinationCity(row){
@@ -737,17 +749,21 @@ function rowInDestinationCity(row){
 function checkpointNaoConfirmadoSuspeito(row){
   if(!row || row.status === 'Finalizado' || checkpointColetaConfirmado(row) || !temCheckpointCidadeOrigem(row)) return false;
 
-  // Evidência forte: o veículo já aparece na própria cidade de destino e não há
-  // passagem registrada pela coleta. Mesmo que o polling tenha "pulado" o raio
-  // da origem entre duas leituras, o caso precisa ser revisado e não pode ficar
-  // silenciosamente em PCs ativas.
-  if(rowInDestinationCity(row)) return true;
+  const key = checkpointStateKey(row);
+  const m = state.coletaMonitor[key] || state.coletaMonitor[row.id] || {};
+  // Uma vez pendente, permanece no quadro até confirmação manual ou finalização do PC.
+  if(m.pendenteCheckpoint) return true;
 
-  const m = state.coletaMonitor[checkpointStateKey(row)] || state.coletaMonitor[row.id];
-  if(!m?.viuAproximacao) return false;
+  if(rowInDestinationCity(row)){
+    persistirMonitorColeta(row,{pendenteCheckpoint:true,pendenteDesde:m.pendenteDesde||new Date().toISOString(),motivoPendente:'destino_sem_checkpoint',ultimaPosicao:row.posicao||''});
+    return true;
+  }
+
+  if(!m.viuAproximacao) return false;
   const d = distanciaReferenciadaOrigem(row);
-  if(d === null) return !!m.afastouDaReferencia;
-  return Number(m.minDistKm) <= RAIO_APROXIMACAO_KM && d >= Number(m.minDistKm) + AFASTAMENTO_MIN_KM;
+  const suspeito = d === null ? !!m.afastouDaReferencia : Number(m.minDistKm) <= RAIO_APROXIMACAO_KM && d >= Number(m.minDistKm) + AFASTAMENTO_MIN_KM;
+  if(suspeito) persistirMonitorColeta(row,{pendenteCheckpoint:true,pendenteDesde:m.pendenteDesde||new Date().toISOString(),motivoPendente:'aproximou_e_afastou',ultimaPosicao:row.posicao||''});
+  return suspeito;
 }
 function diagnosticoCheckpoint(row){
   const key = checkpointStateKey(row);
@@ -1040,9 +1056,28 @@ function reclassify(){
   });
 }
 function currentSets(){ return { ativo: state.rows.filter(r => r.bucket === 'ativo'), agNota: state.rows.filter(r => r.bucket === 'agNota'), aduana: state.rows.filter(r => r.bucket === 'aduana'), alertaNac: state.rows.filter(r => r.bucket === 'alertaNac'), alertaInt: state.rows.filter(r => r.bucket === 'alertaInt'), alertaExpo: state.rows.filter(r => r.bucket === 'alertaExpo'), checkpoint: state.rows.filter(checkpointNaoConfirmadoSuspeito) }; }
-function fillSelect(el, items, current=''){ const keep = current || el.value || ''; el.innerHTML = '<option value="">Todos</option>' + [...new Set(items.filter(Boolean))].sort().map(v => `<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join(''); if([...el.options].some(o => o.value === keep)) el.value = keep; }
+function fillSelect(el, items, current=''){ const keep = current || el.value || ''; el.innerHTML = '<option value="">Todos</option>' + [...new Set(items.filter(Boolean))].sort().map(v => `<option value="${String(v).replace(/"/g,'&quot;')}">${escHtml(v)}</option>`).join(''); if([...el.options].some(o => o.value === keep)) el.value = keep; }
 function filterRows(rows, {q='', client='', status='', ufOrigem='', ufDestino=''}={}){ const text = norm(q); return rows.filter(r => { if(client && norm(r.pagador) !== norm(client)) return false; if(status && r.status !== status) return false; if(ufOrigem && norm(r.ufRem) !== norm(ufOrigem)) return false; if(ufDestino && norm(r.ufDest) !== norm(ufDestino)) return false; const hay = norm([r.id,r.pv,r.numeroDocumento,r.numero_documento,r.documento,r.cte,r.cavalo,r.pagador,r.posicao,r.motorista,r.referencia,r.talhao,r.destinatario,r.remetente,r.cidadeOrigem,r.cidadeDestino,r.ufRem,r.ufDest].join(' ')); return !text || hay.includes(text); }); }
 function statusSelect(row, fromFinalizados=false){ const opts = ['Coleta','AG Nota','Aduana','Faturar','Finalizado']; return `<select onchange="alterarStatus('${encodeURIComponent(row.id)}', this.value, ${fromFinalizados ? 'true' : 'false'})">${opts.map(s => `<option value="${s}" ${row.status===s?'selected':''}>${s}</option>`).join('')}</select>`; }
+
+let undo902Timer=null, undo902Action=null;
+function showActionToast902(message, undoFn=null){
+  let el=document.getElementById('actionToast902');
+  if(!el){
+    el=document.createElement('div'); el.id='actionToast902';
+    el.style.cssText='position:fixed;right:18px;bottom:18px;z-index:99999;background:#0f172a;color:#fff;border:1px solid #334155;border-radius:12px;padding:11px 14px;box-shadow:0 14px 40px #0005;display:flex;align-items:center;gap:12px;max-width:min(520px,calc(100vw - 36px));font-size:13px';
+    document.body.appendChild(el);
+  }
+  undo902Action=undoFn;
+  el.innerHTML=`<span>${escHtml(message)}</span>${undoFn?'<button id="undo902Btn" class="mini" style="background:#fff;color:#0f172a;font-weight:900">Desfazer</button>':''}`;
+  el.style.display='flex';
+  if(undoFn) el.querySelector('#undo902Btn').onclick=async()=>{const fn=undo902Action;undo902Action=null;clearTimeout(undo902Timer);el.style.display='none';try{await fn();}catch(e){console.error(e);alert('Não foi possível desfazer: '+(e?.message||e));}};
+  clearTimeout(undo902Timer); undo902Timer=setTimeout(()=>{el.style.display='none';undo902Action=null;},10000);
+}
+
+
+function plural902(n, singular, plural){ return `${n} ${Number(n)===1?singular:plural}`; }
+
 function rowButtons(row, fromFinalizados=false){
   if(fromFinalizados){ const ev=state.auditFinalizacoes?.[row.id], meta=ev?origemAuditoriaLabel(ev):null; const badge=meta?`<span class="small" style="white-space:nowrap">${meta.icone} ${escHtml(meta.quem)}</span>`:'<span class="small" style="white-space:nowrap">Log anterior</span>'; return `<div class="rowActions" style="gap:5px;align-items:center">${badge}<button class="mini" onclick="abrirHistoricoFinalizacao('${encodeURIComponent(row.id)}')">Histórico</button><button class="mini btn-green" onclick="reabrirRegistro('${encodeURIComponent(row.id)}')">Reabrir</button></div>`; }
   return `<div class="rowActions"><button class="mini btn-fat" onclick="marcarFaturar('${encodeURIComponent(row.id)}')">Faturar</button><button class="mini btn-fin" onclick="marcarFinalizado('${encodeURIComponent(row.id)}')">Finalizado</button></div>`;

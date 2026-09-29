@@ -10,7 +10,28 @@
 
 
 
-<link href="css/painel902.css" rel="stylesheet"/></head>
+<link href="css/painel902.css" rel="stylesheet"/>
+<style id="stability-v34">
+/* v3.4: correções pontuais de responsividade/acessibilidade, sem alterar regras operacionais */
+@media (max-width: 861px){
+  .hover-label{display:none!important}
+  .cards,.stats,.summaryCards,.kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .card,.stat,.summaryCard,.kpi{min-width:0!important}
+  .sidebar button,.side button,.tabs button{touch-action:manipulation}
+}
+@media (max-width: 520px){
+  .cards,.stats,.summaryCards,.kpis{grid-template-columns:1fr!important}
+}
+button:focus-visible,select:focus-visible,input:focus-visible{
+  outline:3px solid rgba(59,130,246,.55)!important;
+  outline-offset:2px!important;
+}
+.tableWrap .pager,.tableWrap .pagination{
+  position:sticky!important;bottom:0!important;z-index:5;background:inherit;padding:8px 0!important;
+}
+</style>
+
+</head>
 <body>
 <div class="app">
 <aside class="side">
