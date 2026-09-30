@@ -1839,10 +1839,27 @@ function extrairRegistros624(ws){
   if(header<0) return [];
 
   const headers=matrix[header]||[];
-  const idxUfOrig=indice624(headers,['UF_ORIGEM','UF ORIGEM','UF REMETENTE','UF_REMETENTE','UF INICIO','UF_INICIO']);
-  const idxUfDest=indice624(headers,['UF_DESTINO','UF DESTINO','UF DESTINATARIO','UF_DESTINATARIO','UF ENTREGA','UF_ENTREGA']);
+  let idxUfOrig=indice624(headers,['UF_ORIGEM','UF ORIGEM','UF REMETENTE','UF_REMETENTE','UF INICIO','UF_INICIO']);
+  let idxUfDest=indice624(headers,['UF_DESTINO','UF DESTINO','UF DESTINATARIO','UF_DESTINATARIO','UF ENTREGA','UF_ENTREGA']);
   const idxOrig=indice624(headers,['ORIGEM','MUNICIPIO ORIGEM','MUNICÍPIO ORIGEM','CIDADE ORIGEM','REMETENTE / ORIGEM']);
   const idxDest=indice624(headers,['DESTINO','MUNICIPIO DESTINO','MUNICÍPIO DESTINO','CIDADE DESTINO','DESTINATARIO / DESTINO','DESTINATÁRIO / DESTINO']);
+
+  // Crystal/624 também pode repetir o cabeçalho simplesmente como "UF".
+  // Nesse layout, vinculamos a UF pela posição em relação a Origem/Destino:
+  // ... UF | Origem | UF | Destino | UF ...
+  // Para Origem usamos primeiro a UF imediatamente à direita; se não existir,
+  // a imediatamente à esquerda. Para Destino, a UF imediatamente à direita.
+  const hs624=(headers||[]).map(h=>norm(h));
+  const ufSimples=[];
+  hs624.forEach((h,i)=>{ if(h==='UF') ufSimples.push(i); });
+  const escolherUfProxima=(idxCampo, preferirDireita=true)=>{
+    if(idxCampo<0 || !ufSimples.length) return -1;
+    const direita=ufSimples.filter(i=>i>idxCampo).sort((a,b)=>a-b)[0];
+    const esquerda=ufSimples.filter(i=>i<idxCampo).sort((a,b)=>b-a)[0];
+    return preferirDireita ? (direita ?? esquerda ?? -1) : (esquerda ?? direita ?? -1);
+  };
+  if(idxUfOrig<0) idxUfOrig=escolherUfProxima(idxOrig,true);
+  if(idxUfDest<0) idxUfDest=escolherUfProxima(idxDest,true);
 
   return matrix.slice(header+1).map(row=>{
     const obs=String((row||[])[idxObs]||'').trim();
