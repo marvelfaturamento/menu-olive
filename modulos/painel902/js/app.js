@@ -728,8 +728,27 @@ function atualizarMonitorColeta(row){
   const stateKey = checkpointStateKey(row);
   const atual = state.coletaMonitor[stateKey] || state.coletaMonitor[row.id] || {};
 
+  // v3.12 — ESTAR NA CIDADE DE COLETA NÃO É SAÍDA DE CHECKPOINT.
+  // Se a posição atual ainda referencia a própria cidade de origem, qualquer
+  // pendência antiga/legada é anulada. Entre 20 e 40 km apenas monitoramos;
+  // até 20 km a confirmação automática continua sendo tratada abaixo.
+  if(rowInOriginCity(row)){
+    persistirMonitorColeta(row,{
+      lastDistKm:d,
+      minDistKm:d === null ? atual.minDistKm : (atual.minDistKm == null ? d : Math.min(Number(atual.minDistKm), d)),
+      viuAproximacao:d !== null ? d <= RAIO_APROXIMACAO_KM : !!atual.viuAproximacao,
+      afastouDaReferencia:false,
+      pendenteCheckpoint:false,
+      pendenteDesde:null,
+      motivoPendente:null,
+      ultimaPosicao:row.posicao||''
+    });
+    if(d !== null && d <= RAIO_CHECKPOINT_KM) persistirCheckpointColeta(row,'automatico');
+    return;
+  }
+
   // Depois que o caso virou pendência de checkpoint ele fica TRAVADO para
-  // conferência manual. Uma posição posterior não pode fazê-lo desaparecer.
+  // conferência manual. Uma posição posterior fora da origem não pode fazê-lo desaparecer.
   if(atual.pendenteCheckpoint){
     persistirMonitorColeta(row,{lastDistKm:d,ultimaPosicao:row.posicao||'',pendenteCheckpoint:true});
     return;
@@ -855,6 +874,21 @@ function reclassify(){
       row.bucket = 'aduana';
       row.status = 'Aduana';
       row.passouCheckpoint = true;
+      return;
+    }
+
+    /* v3.12 — TRAVA DA ORIGEM ANTES DE STATUS ANTIGO.
+       Um status Faturar salvo de uma classificação anterior não pode vencer a
+       evidência atual de que o veículo continua na cidade de coleta. Documento
+       finalizado e aduana/checkpoint específico já foram tratados acima. */
+    /* v3.13 — TRAVA DA ORIGEM SOMENTE NO FLUXO GERAL/EXPO.
+       IMPO (EX -> BR) com regra explícita de Ag. Nota/Aduana NÃO pode ser
+       devolvido para Ativas só porque ainda está na cidade de origem. Nesses
+       clientes, a regra especial continua com prioridade: Ag. Nota -> Aduana -> Faturar. */
+    const impoComRegraAduana = isUFEx(row.ufRem) && (hasPaga(row) || !!checkpointRule);
+    if(temCheckpointCidadeOrigem(row) && rowInOriginCity(row) && !impoComRegraAduana){
+      row.bucket = 'ativo';
+      row.status = 'Coleta';
       return;
     }
 
@@ -2227,14 +2261,32 @@ async function syncToSupabase(silent=false){
 
   let error = null;
 
-  // Sincronização incremental: não apaga o espelho inteiro.
-  // PCs novos entram por upsert, PCs alterados são atualizados e registros ausentes no arquivo permanecem.
+  // v3.14 — painel_902 é o ESPELHO OPERACIONAL do estado atual do painel.
+  // Primeiro grava/atualiza tudo que existe localmente. Depois remove SOMENTE do
+  // espelho operacional os IDs antigos que já não existem no estado atual.
+  // O histórico painel_902_finalizados continua preservado separadamente.
   if(!error && payload.length){
     for(let i = 0; i < payload.length; i += 500){
       const chunk = payload.slice(i, i + 500);
       const insRes = await state.supabase.from('painel_902').upsert(chunk, { onConflict: 'id' });
       error = insRes.error || error;
       if(error) break;
+    }
+  }
+
+  if(!error){
+    try{
+      const remoteSnapshot = await fetchAllRows('painel_902', 'id', 'id', true, 1000);
+      const currentIds = new Set(payload.map(x => String(x.id || '')).filter(Boolean));
+      const staleIds = (remoteSnapshot || []).map(x => String(x.id || '')).filter(id => id && !currentIds.has(id));
+      for(let i = 0; i < staleIds.length; i += 100){
+        const chunk = staleIds.slice(i, i + 100);
+        const delRes = await state.supabase.from('painel_902').delete().in('id', chunk);
+        error = delRes.error || error;
+        if(error) break;
+      }
+    }catch(cleanErr){
+      error = cleanErr;
     }
   }
 
