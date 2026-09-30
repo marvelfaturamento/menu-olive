@@ -1663,7 +1663,30 @@ async function parseExcelRows(matrix){
     const id = [ref, filial, pv].join('|');
     const old = oldActiveMap.get(id) || oldFinalMap.get(id);
 
-    const numeroDocumento = col(r, 'NUMERO_DOCUMENTO', 'NUMERO DOCUMENTO');
+    // Documento/CT-e do próprio relatório 902.
+    // O Crystal usa layouts em que o cabeçalho pode vir abreviado simplesmente como "NUM"
+    // (normalmente logo após SERIE). A regra é prioritária: documento preenchido = Finalizado.
+    let numeroDocumento = col(r,
+      'NUMERO_DOCUMENTO','NUMERO DOCUMENTO','NÚMERO_DOCUMENTO','NÚMERO DOCUMENTO',
+      'NUM_DOCUMENTO','NUM DOCUMENTO','NUM. DOCUMENTO','Nº DOCUMENTO','N° DOCUMENTO',
+      'NUMERO DO DOCUMENTO','NÚMERO DO DOCUMENTO','DOCUMENTO','DOCTO',
+      'NUM','NÚM','NUM.','NÚM.'
+    );
+
+    // Fallback estrutural seguro do 902: SERIE | NUM | REMETENTE | DESTINO.
+    // Só usa a coluna imediatamente após SERIE quando o cabeçalho dela é NUM/NUMERO
+    // e a seguinte identifica REM/REMETENTE, evitando confundir outros números do relatório.
+    if(!numeroDocumento){
+      const iSerie = idx('SERIE','SÉRIE');
+      if(iSerie >= 0 && iSerie + 2 < headers.length){
+        const hNum = norm(headers[iSerie+1]).replace(/[^A-Z0-9]/g,'');
+        const hRem = norm(headers[iSerie+2]).replace(/[^A-Z0-9]/g,'');
+        if((hNum==='NUM' || hNum==='NUMERO' || hNum==='NUMDOCUMENTO' || hNum==='NUMERODOCUMENTO') &&
+           (hRem==='REM' || hRem.includes('REMET'))){
+          numeroDocumento = String(r[iSerie+1] ?? '').trim();
+        }
+      }
+    }
     const autoFinalizar = numeroDocumento !== '';
 
     const baseRow = {
@@ -1688,7 +1711,22 @@ async function parseExcelRows(matrix){
     const candidatoComparacao = {...baseRow,status:novoStatus};
     if(!old) novos++; else if(rowFingerprint902({...old,status:old.status||''}) === rowFingerprint902(candidatoComparacao)) semAlteracao++; else atualizados++;
 
+    // Qualquer registro reconhecido como Finalizado (já histórico, remoto ou documento atual)
+    // deve limpar aliases ativos da MESMA FILIAL_PC + PC, mesmo que a REF tenha mudado
+    // (ex.: SEM DOCTO -> CRT). Isso precisa acontecer ANTES do branch de histórico,
+    // pois o CRT pode já estar em Finalizados de uma importação anterior.
+    const limparAliasesAtivosMesmoPc = () => {
+      const filialNorm = norm(filial);
+      const pcNorm = norm(pv);
+      for(const [activeId, activeRow] of importedActiveMap.entries()){
+        if(norm(activeRow?.filial) === filialNorm && norm(activeRow?.pv) === pcNorm){
+          importedActiveMap.delete(activeId);
+        }
+      }
+    };
+
     if(oldFinalMap.has(id) || remoteFinalizedIds.has(id) || old?.status === 'Finalizado'){
+      limparAliasesAtivosMesmoPc();
       importedActiveMap.delete(id);
       importedFinalMap.set(id, {
         ...baseRow,
@@ -1700,6 +1738,12 @@ async function parseExcelRows(matrix){
     }
 
     if(autoFinalizar){
+      // Quando o CT-e é gerado, o Crystal pode mudar REF de "PC - PV - SEM DOCTO"
+      // para "PC - PV - CRT". Como REF faz parte da chave histórica, a versão antiga
+      // permanecia em Ativas com outro id, embora fosse a mesma programação.
+      // Ao receber NUMERO_DOCUMENTO, removemos de Ativas qualquer alias da MESMA
+      // FILIAL + PC antes de gravar o registro finalizado.
+      limparAliasesAtivosMesmoPc();
       importedActiveMap.delete(id);
       importedFinalMap.set(id, {
         ...baseRow,
