@@ -886,7 +886,17 @@ function reclassify(){
        devolvido para Ativas só porque ainda está na cidade de origem. Nesses
        clientes, a regra especial continua com prioridade: Ag. Nota -> Aduana -> Faturar. */
     const impoComRegraAduana = isUFEx(row.ufRem) && (hasPaga(row) || !!checkpointRule);
-    if(temCheckpointCidadeOrigem(row) && rowInOriginCity(row) && !impoComRegraAduana){
+    // v3.14 — CLIENTE DE ALERTA NACIONAL TEM PRIORIDADE NO FLUXO NACIONAL.
+    // Se o cliente está cadastrado em "Clientes alerta nacional" e a carga é
+    // nacional (origem e destino BR), a trava geral de coleta/origem não pode
+    // mantê-la em PCs Ativas. A regra especial deve levá-la ao Alerta Nacional.
+    const clienteAlertaNacional = row.alerta && !isUFEx(row.ufRem) && !isUFEx(row.ufDest);
+    if(
+      temCheckpointCidadeOrigem(row) &&
+      rowInOriginCity(row) &&
+      !impoComRegraAduana &&
+      !clienteAlertaNacional
+    ){
       row.bucket = 'ativo';
       row.status = 'Coleta';
       return;
