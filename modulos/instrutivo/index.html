@@ -482,6 +482,10 @@ textarea:disabled{
     Instrutivo Complementos
   </div>
 
+  <div class="menu-btn" onclick="trocarTipo('diversos', this)">
+    Diversos
+  </div>
+
   <div class="cliente-tools">
     <div class="busca-linha">
       <input type="text" id="busca" placeholder="Buscar cliente">
@@ -543,7 +547,8 @@ const SUPABASE_KEY = "sb_publishable_bH6fPto5aBTiNaOc7A3JGg_KSJEJkjx";
 let banco = JSON.parse(localStorage.getItem("db")) || {
   nacional:{},
   comex:{},
-  complementos:{}
+  complementos:{},
+  diversos:{}
 };
 
 let tipoAtual = "nacional";
@@ -554,6 +559,7 @@ let editando = false;
 if(!banco.nacional) banco.nacional = {};
 if(!banco.comex) banco.comex = {};
 if(!banco.complementos) banco.complementos = {};
+if(!banco.diversos) banco.diversos = {};
 
 const tituloEl = document.getElementById("titulo");
 const editorEl = document.getElementById("editor");
@@ -970,7 +976,7 @@ async function carregarSupabase(){
 
     let dados = await res.json();
 
-    banco = { nacional:{}, comex:{}, complementos:{} };
+    banco = { nacional:{}, comex:{}, complementos:{}, diversos:{} };
 
     (dados || []).forEach(item => {
       let tipo = item.tipo || "nacional";
