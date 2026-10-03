@@ -88,3 +88,11 @@ test('Checkpoint: pendência permanece persistente após nova posição', () => 
 test('Checkpoint: status avançado não aparece como não confirmado', () => {
   assert.match(checkpointSuspeito, /\['AG Nota','Aduana','Faturar','Finalizado'\]\.includes\(row\.status\)/);
 });
+
+
+test('624: rota divergente nunca é compatível e não pode finalizar por esta regra', () => {
+  const fn = new Function('norm', rota624 + '; return rota624Compativel;')((v) => String(v ?? '').trim().toUpperCase());
+  assert.equal(fn({ufRem:'RO',ufDest:'EX'},{ufOrigem:'PE',ufDestino:'CE'}), false);
+  assert.equal(fn({ufRem:'PE',ufDest:'SP'},{ufOrigem:'RO',ufDestino:'EX'}), false);
+  assert.equal(fn({ufRem:'SP',ufDest:'SP'},{ufOrigem:'SP',ufDestino:'SP'}), true);
+});
