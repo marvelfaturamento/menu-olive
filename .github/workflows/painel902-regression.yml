@@ -1,0 +1,30 @@
+name: Painel 902 - Regressao
+
+on:
+  push:
+    paths:
+      - 'modulos/painel902/**'
+      - 'tests/painel902/**'
+      - '.github/workflows/painel902-regression.yml'
+  pull_request:
+    paths:
+      - 'modulos/painel902/**'
+      - 'tests/painel902/**'
+      - '.github/workflows/painel902-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Executar regressao do Painel 902
+        run: node --test tests/painel902/regression.test.js
