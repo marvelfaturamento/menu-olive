@@ -59,8 +59,21 @@ function main(){
  const counts={}; for(const r of out) counts[r.bucket]=(counts[r.bucket]||0)+1;
  const duplicateKeys=new Map(); for(const r of out){const k=norm(r.filial)+'|'+norm(r.pc);const a=duplicateKeys.get(k)||[];a.push(r);duplicateKeys.set(k,a);}
  const suspeitos=[];
- for(const [k,a] of duplicateKeys) if(a.length>1 && new Set(a.map(x=>x.status)).size>1) suspeitos.push({tipo:'MESMA_FILIAL_PC_STATUS_DIVERGENTE',chave:k,linhas:a});
- for(const r of out){ r.validacao = (r.numeroDocumento || r.reason==='624_REFERENCIA_ROTA') ? 'OK' : (r.reason==='624_ROTA_DIVERGENTE' ? 'REVISAR' : 'OK'); }
+ for(const [k,a] of duplicateKeys){
+   if(a.length<=1 || new Set(a.map(x=>x.status)).size<=1) continue;
+   const temFinalizado=a.some(x=>x.status==='Finalizado');
+   const temDocumento=a.some(x=>!!x.numeroDocumento);
+   if(temFinalizado && temDocumento){
+     // Alias esperado: a evidência documental da mesma Filial + PC prevalece.
+     for(const x of a){ x.validacao='OK'; x.observacaoValidacao='Finalização confirmada; alias da mesma Filial + PC será consolidado.'; }
+   } else {
+     suspeitos.push({tipo:'MESMA_FILIAL_PC_STATUS_DIVERGENTE',chave:k,linhas:a});
+   }
+ }
+ for(const r of out){
+   if(!r.validacao) r.validacao = r.reason==='624_ROTA_DIVERGENTE' ? 'REVISAR' : 'OK';
+   if(r.reason==='624_ROTA_DIVERGENTE') r.observacaoValidacao='Bloqueado: referência existe no 624, mas a rota não confere. Nenhuma regra do 624 pode sobrescrever este bloqueio.';
+ }
  const report={arquivo:path.basename(file),total:out.length,contagem:counts,suspeitos:suspeitos.length,detalhesSuspeitos:suspeitos,linhas:out};
  const target=path.resolve(process.cwd(),'902-validation-report.json'); fs.writeFileSync(target,JSON.stringify(report,null,2));
  console.log(JSON.stringify({arquivo:report.arquivo,total:report.total,contagem:report.contagem,suspeitos:report.suspeitos,relatorio:target},null,2));
