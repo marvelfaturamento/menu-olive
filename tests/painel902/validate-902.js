@@ -60,6 +60,7 @@ function main(){
  const duplicateKeys=new Map(); for(const r of out){const k=norm(r.filial)+'|'+norm(r.pc);const a=duplicateKeys.get(k)||[];a.push(r);duplicateKeys.set(k,a);}
  const suspeitos=[];
  for(const [k,a] of duplicateKeys) if(a.length>1 && new Set(a.map(x=>x.status)).size>1) suspeitos.push({tipo:'MESMA_FILIAL_PC_STATUS_DIVERGENTE',chave:k,linhas:a});
+ for(const r of out){ r.validacao = (r.numeroDocumento || r.reason==='624_REFERENCIA_ROTA') ? 'OK' : (r.reason==='624_ROTA_DIVERGENTE' ? 'REVISAR' : 'OK'); }
  const report={arquivo:path.basename(file),total:out.length,contagem:counts,suspeitos:suspeitos.length,detalhesSuspeitos:suspeitos,linhas:out};
  const target=path.resolve(process.cwd(),'902-validation-report.json'); fs.writeFileSync(target,JSON.stringify(report,null,2));
  console.log(JSON.stringify({arquivo:report.arquivo,total:report.total,contagem:report.contagem,suspeitos:report.suspeitos,relatorio:target},null,2));
