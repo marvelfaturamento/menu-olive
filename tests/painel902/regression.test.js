@@ -96,3 +96,13 @@ test('624: rota divergente nunca é compatível e não pode finalizar por esta r
   assert.equal(fn({ufRem:'PE',ufDest:'SP'},{ufOrigem:'RO',ufDestino:'EX'}), false);
   assert.equal(fn({ufRem:'SP',ufDest:'SP'},{ufOrigem:'SP',ufDestino:'SP'}), true);
 });
+
+
+test('Supabase: histórico finalizado deve suprimir alias ativo da mesma Filial + PC', () => {
+  assert.match(src, /painel_902_finalizados/);
+  assert.match(src, /filial/);
+  assert.match(src, /pv/);
+  // Protege a identidade canônica usada para impedir que SEM DOCTO reapareça ativo.
+  assert.match(src, /norm\([^\n]*filial[^\n]*\)/i);
+  assert.match(src, /norm\([^\n]*(pv|PC)[^\n]*\)/i);
+});
