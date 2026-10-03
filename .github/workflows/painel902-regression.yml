@@ -27,4 +27,4 @@ jobs:
         with:
           node-version: '22'
       - name: Executar regressao do Painel 902
-        run: node --test tests/painel902/regression.test.js
+        run: node --test tests/painel902/regression.test.js tests/painel902/golden-derived.test.js
