@@ -2429,21 +2429,26 @@ btnSyncSupabase.onclick = () => { if(guardBusy('sincronizar')) return; syncToSup
 btnCarregarSupabase.onclick = () => { if(guardBusy('carregar')) return; carregarDaSupabase(); };
 
 async function initApp(){
-  await loadLocal();
+  /* v3.15 — INICIALIZAÇÃO DETERMINÍSTICA
+     O navegador não participa mais da classificação quando há Supabase.
+     Primeiro inicializamos a conexão e carregamos o espelho remoto completo;
+     carregarDaSupabase() já traz configurações/tratativas, reclassifica uma única
+     vez e só então grava o espelho local como contingência.
+     O IndexedDB é usado apenas se o Supabase estiver indisponível/não configurado. */
   initSupabase();
   renderLastUpdate();
   await carregarUltimaAtualizacaoSupabase();
-  await carregarTratativasSupabase();
-  renderConfigEditors();
-  reclassify();
-  renderAll(true);
 
   if(state.supabase){
     await carregarDaSupabase(true);
     iniciarAtualizacaoAutomaticaTratativas();
-    setStatusText('Supabase: carregado • tratativas atualizam a cada 30 s');
+    setStatusText('Supabase: carregado • fonte única • tratativas atualizam a cada 30 s');
   } else {
-    setStatusText('Supabase: modo local');
+    await loadLocal();
+    renderConfigEditors();
+    reclassify();
+    renderAll(true);
+    setStatusText('Supabase indisponível • modo contingência/cache local');
   }
 }
 initApp();
