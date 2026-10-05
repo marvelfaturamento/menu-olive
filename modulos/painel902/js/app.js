@@ -470,8 +470,18 @@ async function fetchAllRows(table, columns='*', orderColumn=null, ascending=true
   let from = 0;
   let all = [];
   while(true){
-    let query = state.supabase.from(table).select(columns).range(from, from + pageSize - 1);
-    if(orderColumn) query = query.order(orderColumn, { ascending });
+    let query = state.supabase.from(table).select(columns);
+
+    // v3.17 — paginação determinística: data_pc possui muitos empates.
+    // Sem um segundo critério único, páginas diferentes podem repetir/pular linhas.
+    if(orderColumn){
+      query = query.order(orderColumn, { ascending, nullsFirst:false });
+      if(orderColumn !== 'id') query = query.order('id', { ascending:true });
+    }else{
+      query = query.order('id', { ascending:true });
+    }
+
+    query = query.range(from, from + pageSize - 1);
     const { data, error } = await query;
     if(error) throw error;
     const batch = data || [];
