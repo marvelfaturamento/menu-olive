@@ -2322,10 +2322,51 @@ async function syncToSupabase(silent=false){
     throw error;
   }
 
+  // v3.16 — VALIDAÇÃO DE INTEGRIDADE DO ESPELHO
+  // Nunca declarar a sincronização concluída sem reler o banco e comprovar
+  // que todos os IDs enviados ao painel_902 realmente estão presentes.
+  const verifyRows = await fetchAllRows('painel_902', 'id,status', 'id', true, 1000);
+  const expectedIds = new Set(payload.map(x => String(x.id || '')).filter(Boolean));
+  const remoteIds = new Set((verifyRows || []).map(x => String(x.id || '')).filter(Boolean));
+  const missingIds = [...expectedIds].filter(id => !remoteIds.has(id));
+  const unexpectedIds = [...remoteIds].filter(id => !expectedIds.has(id));
+
+  // O histórico também precisa conter todos os finalizados locais.
+  const expectedFinalIds = new Set(
+    uniqueRowsById(state.finalizados)
+      .filter(r => !state.competenciasZeradas.has(competenciaMes(r.dataPC)))
+      .map(r => String(r.id || ''))
+      .filter(Boolean)
+  );
+  const verifyFinal = await fetchAllRows('painel_902_finalizados', 'id', 'id', true, 1000);
+  const remoteFinalIds = new Set((verifyFinal || []).map(x => String(x.id || '')).filter(Boolean));
+  const missingFinalIds = [...expectedFinalIds].filter(id => !remoteFinalIds.has(id));
+
+  if(missingIds.length || unexpectedIds.length || missingFinalIds.length){
+    const msg = [
+      'Sincronização NÃO validada.',
+      missingIds.length ? `${missingIds.length} registro(s) do espelho não gravados` : '',
+      unexpectedIds.length ? `${unexpectedIds.length} registro(s) inesperados no espelho` : '',
+      missingFinalIds.length ? `${missingFinalIds.length} finalizado(s) ausentes do histórico` : ''
+    ].filter(Boolean).join(' ');
+    console.error('[902] Falha de integridade Supabase', {
+      expected: expectedIds.size,
+      remote: remoteIds.size,
+      missingIds,
+      unexpectedIds,
+      expectedFinal: expectedFinalIds.size,
+      remoteFinal: remoteFinalIds.size,
+      missingFinalIds
+    });
+    setStatusText(`Supabase: ERRO DE INTEGRIDADE • local ${expectedIds.size} / banco ${remoteIds.size}`);
+    if(!silent) alert(msg + '\\n\\nA base local foi preservada. O painel não considerará esta sincronização concluída.');
+    throw new Error(msg);
+  }
+
   await saveLocal();
-  await markLastUpdate('Sincronização Supabase');
-  setStatusText(`Supabase: espelho bruto atualizado (${state.rows.length} ativos / ${state.finalizados.length} finalizados)`);
-  if(!silent) alert('Sincronização concluída.');
+  await markLastUpdate('Sincronização Supabase validada');
+  setStatusText(`Supabase: espelho VALIDADO (${remoteIds.size} registros / ${remoteFinalIds.size} no histórico)`);
+  if(!silent) alert(`Sincronização validada: ${remoteIds.size} registros conferidos no Supabase.`);
   } finally {
     setBusyOperation('');
   }
