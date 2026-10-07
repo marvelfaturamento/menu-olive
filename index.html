@@ -1338,6 +1338,8 @@
       destino.searchParams.set("perfil", nivel);
       destino.searchParams.set("usuario", sessao.nome || sessao.usuario || "");
       destino.searchParams.set("usuarioRef", sessao.usuarioRef || "");
+      const permModulo = sessao.permissoes?.[nome]?.permissions || {};
+      destino.searchParams.set("permissoes", encodeURIComponent(JSON.stringify(permModulo)));
 
       if (nivel === "consulta") {
         if (nome === "faturamento") destino.searchParams.set("bloquearConfig", "true");
@@ -1407,6 +1409,10 @@
       document.getElementById("moduleSubtitle").textContent = info.subtitulo;
       frame.onload = () => {
         resetarRolagemModulo();
+        const permModulo = sessao.permissoes?.[nome]?.permissions || {};
+        try {
+          frame.contentWindow.postMessage({type:"marvel:permissions",module:nome,permissions:permModulo,accessLevel:nivelModulo(nome)},"*");
+        } catch (_) {}
         setTimeout(resetarRolagemModulo, 60);
       };
       frame.src = destino;
