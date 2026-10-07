@@ -788,6 +788,10 @@
       height: 100% !important;
       display: block;
     }
+
+.password-overlay{position:fixed;inset:0;background:rgba(2,8,18,.96);display:none;align-items:center;justify-content:center;z-index:10000;padding:20px}
+.password-overlay.active{display:flex}.password-card{width:100%;max-width:420px;background:linear-gradient(180deg,#0f1c36,#0a1529);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.password-card h2{font-size:21px;margin-bottom:7px}.password-card p{font-size:12px;color:#96a9c7;margin-bottom:18px;line-height:1.45}.password-card input{width:100%;margin:6px 0;padding:11px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;outline:none}.password-card button{width:100%;margin-top:12px;padding:11px;border:0;border-radius:11px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}.password-card .msg{min-height:18px;margin-top:9px;font-size:12px;color:#ffb4b4}
 </style>
 </head>
 <body>
@@ -1095,7 +1099,9 @@
     </section>
   </main>
 
-  <script>
+  <div id="passwordOverlay" class="password-overlay"><div class="password-card"><h2>🔐 Crie sua nova senha</h2><p>Este é seu primeiro acesso ao novo sistema. Por segurança, substitua a senha temporária antes de continuar.</p><input id="newPassword" type="password" autocomplete="new-password" placeholder="Nova senha"><input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirme a nova senha"><button id="btnChangePassword" type="button">Salvar nova senha</button><div id="passwordMsg" class="msg"></div></div></div>
+
+<script>
 
     // Autenticação central: Supabase Auth + perfil/permissões.
     // A senha nunca fica no código do Menu Pai.
@@ -1121,7 +1127,7 @@
     async function carregarPerfilPermissoes(user) {
       const { data: perfil, error: erroPerfil } = await sbAuth
         .from("profiles")
-        .select("id,username,nome,usuario_ref,perfil,ativo")
+        .select("id,username,nome,usuario_ref,perfil,ativo,must_change_password")
         .eq("id", user.id)
         .single();
       if (erroPerfil) throw erroPerfil;
@@ -1141,7 +1147,8 @@
         nome: perfil.nome,
         perfil: perfil.perfil,
         usuarioRef: perfil.usuario_ref || "",
-        permissoes: mapa
+        permissoes: mapa,
+        mustChangePassword: !!perfil.must_change_password
       };
       return sessaoMenuAtual;
     }
@@ -1168,6 +1175,41 @@
         const m = onclick.match(/abrirSistema\(['"]([^'"]+)['"]\)/);
         if (m) card.style.display = podeAbrirModulo(m[1]) ? "" : "none";
       });
+    }
+
+    function exigirTrocaSenha() {
+      const el = document.getElementById("passwordOverlay");
+      if (el) el.classList.add("active");
+    }
+
+    function liberarTrocaSenha() {
+      const el = document.getElementById("passwordOverlay");
+      if (el) el.classList.remove("active");
+    }
+
+    async function trocarSenhaObrigatoria() {
+      const senha = document.getElementById("newPassword").value;
+      const confirmar = document.getElementById("confirmPassword").value;
+      const msg = document.getElementById("passwordMsg");
+      const btn = document.getElementById("btnChangePassword");
+      if (senha.length < 8) { msg.textContent = "Use pelo menos 8 caracteres."; return; }
+      if (senha !== confirmar) { msg.textContent = "As senhas não conferem."; return; }
+      try {
+        btn.disabled = true; msg.textContent = "Salvando...";
+        const { error } = await sbAuth.auth.updateUser({ password: senha });
+        if (error) throw error;
+        const { error: e2 } = await sbAuth.from("profiles").update({must_change_password:false}).eq("id", sessaoMenuAtual.id);
+        if (e2) throw e2;
+        sessaoMenuAtual.mustChangePassword = false;
+        await sbAuth.from("access_logs").insert({user_id:sessaoMenuAtual.id,event:"password_changed"});
+        document.getElementById("newPassword").value = "";
+        document.getElementById("confirmPassword").value = "";
+        msg.textContent = "";
+        liberarTrocaSenha();
+        atualizarUsuarioLogado();
+      } catch(e) {
+        msg.textContent = "Não foi possível alterar a senha. Tente novamente.";
+      } finally { btn.disabled = false; }
     }
 
     function atualizarUsuarioLogado() {
@@ -1211,6 +1253,7 @@
         document.getElementById("loginPass").value = "";
         esconderLogin();
         atualizarUsuarioLogado();
+        if (sessaoMenuAtual.mustChangePassword) exigirTrocaSenha();
         sbAuth.from("access_logs").insert({user_id:data.user.id,event:"login",details:{username:user}}).then(()=>{});
       } catch (e) {
         await sbAuth.auth.signOut().catch(()=>{});
@@ -1230,6 +1273,7 @@
         await carregarPerfilPermissoes(user);
         esconderLogin();
         atualizarUsuarioLogado();
+        if (sessaoMenuAtual.mustChangePassword) exigirTrocaSenha();
       } catch (e) {
         sessaoMenuAtual = null;
         await sbAuth.auth.signOut().catch(()=>{});
@@ -1323,6 +1367,11 @@
       const sessao = getSessaoMenu();
       if (!sessao || !sessao.perfil) {
         mostrarLogin();
+        return;
+      }
+
+      if (sessao.mustChangePassword) {
+        exigirTrocaSenha();
         return;
       }
 
@@ -1947,6 +1996,7 @@
 
     document.getElementById("btnLogin")?.addEventListener("click", validarLoginMenu);
     document.getElementById("btnLogout")?.addEventListener("click", sairMenu);
+    document.getElementById("btnChangePassword")?.addEventListener("click", trocarSenhaObrigatoria);
 
     document.getElementById("loginPass")?.addEventListener("keydown", (e) => {
       if (e.key === "Enter") validarLoginMenu();
