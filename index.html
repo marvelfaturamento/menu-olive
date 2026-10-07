@@ -792,7 +792,7 @@
 .password-overlay{position:fixed;inset:0;background:rgba(2,8,18,.96);display:none;align-items:center;justify-content:center;z-index:10000;padding:20px}
 .password-overlay.active{display:flex}.password-card{width:100%;max-width:420px;background:linear-gradient(180deg,#0f1c36,#0a1529);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
 .password-card h2{font-size:21px;margin-bottom:7px}.password-card p{font-size:12px;color:#96a9c7;margin-bottom:18px;line-height:1.45}.password-card input{width:100%;margin:6px 0;padding:11px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;outline:none}.password-card button{width:100%;margin-top:12px;padding:11px;border:0;border-radius:11px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}.password-card .msg{min-height:18px;margin-top:9px;font-size:12px;color:#ffb4b4}
-.admin-overlay{position:fixed;inset:0;background:rgba(2,8,18,.96);display:none;z-index:9000;padding:22px;overflow:auto}.admin-overlay.active{display:block}.admin-panel{max-width:1200px;margin:auto;background:#0a1529;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px}.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.admin-head h2{font-size:20px}.admin-close{border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}.admin-user{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin:10px 0;background:rgba(255,255,255,.025)}.admin-user-top{display:grid;grid-template-columns:1.3fr .8fr .8fr auto;gap:10px;align-items:center}.admin-user select{background:#142445;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px}.admin-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.admin-module{font-size:10px;color:#9db3d4}.admin-module select{width:100%;margin-top:4px}.admin-save{background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800;cursor:pointer}.admin-msg{font-size:12px;color:#9db3d4;margin:8px 0}@media(max-width:900px){.admin-user-top,.admin-modules{grid-template-columns:1fr 1fr}}
+.admin-overlay{position:fixed;inset:0;background:rgba(2,8,18,.96);display:none;z-index:9000;padding:22px;overflow:auto}.admin-overlay.active{display:block}.admin-panel{max-width:1200px;margin:auto;background:#0a1529;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px}.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.admin-head h2{font-size:20px}.admin-close{border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}.admin-user{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin:10px 0;background:rgba(255,255,255,.025)}.admin-user-top{display:grid;grid-template-columns:1.3fr .8fr .8fr auto;gap:10px;align-items:center}.admin-user select{background:#142445;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px}.admin-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.admin-module{font-size:10px;color:#9db3d4}.admin-module select{width:100%;margin-top:4px}.perm-grid{display:grid;grid-template-columns:220px 1fr;gap:0;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;margin-top:12px}.perm-row{display:contents}.perm-main,.perm-subs{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)}.perm-main{background:rgba(255,255,255,.025);font-weight:800}.perm-subs{display:flex;gap:14px;flex-wrap:wrap}.perm-check{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#cbd8ed}.perm-check input{accent-color:#2563eb;width:15px;height:15px}.perm-main .perm-check{font-size:12px;color:#fff}.perm-row:last-child .perm-main,.perm-row:last-child .perm-subs{border-bottom:0}.admin-save{background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800;cursor:pointer}.admin-msg{font-size:12px;color:#9db3d4;margin:8px 0}@media(max-width:900px){.admin-user-top,.admin-modules{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -1412,23 +1412,48 @@
       setMenuAtivo(nome);
     }
 
-    const ADMIN_MODULES = {
-      dados:"Passar Dados", instrutivo:"Instrutivo", refaturamento:"Refaturamento", faturamento:"Faturamento",
-      painel902:"Painel 902", agrupaPdf:"Agrupa/remove PDF", leitor:"Leitor Scanner", assistenteCiot:"Assistente CIOT"
+    const ADMIN_STRUCTURE = {
+      dados:{label:"Passar Dados",subs:["Dados","Rateio"]},
+      instrutivo:{label:"Instrutivo",subs:["Nacional","Comex","Complementos"]},
+      refaturamento:{label:"Refaturamento",subs:["Resumo","Análises","Cadastro Manual","Performance Usuários","Config"]},
+      faturamento:{label:"Faturamento",subs:["Painel","Metas","Config"]},
+      painel902:{label:"Painel 902",subs:["Painel Ativo","Em Aduana","Alertas","Faturar","Finalizados","Config"]},
+      agrupaPdf:{label:"Agrupa/remove PDF",subs:["Agrupar PDF","Remover páginas"]},
+      leitor:{label:"Leitor Scanner",subs:["Leitor","Chaves","Ferramentas"]},
+      assistenteCiot:{label:"Assistente CIOT",subs:["Leitura CT-e","Agrupamento","Resumo CIOT"]}
     };
-    const ACCESS_LEVELS = ["admin","operacional","consulta","bloqueado"];
     function esc(v){return String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
     async function abrirAdminUsuarios(){
       if(getSessaoMenu()?.perfil!=="admin") return;
       document.getElementById("adminOverlay").classList.add("active");
-      document.getElementById("adminUsersList").innerHTML='<div class="admin-msg">Carregando usuários...</div>';
+      const root=document.getElementById("adminUsersList"); root.innerHTML='<div class="admin-msg">Carregando usuários...</div>';
       const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"list"}});
-      if(error||data?.error){document.getElementById("adminUsersList").innerHTML='<div class="admin-msg">Erro ao carregar usuários.</div>';return;}
-      document.getElementById("adminUsersList").innerHTML=(data.users||[]).map(u=>{
-        const mods=Object.entries(ADMIN_MODULES).map(([k,label])=>'<div class="admin-module">'+label+'<select data-mod="'+k+'">'+ACCESS_LEVELS.map(l=>'<option value="'+l+'" '+((u.modules?.[k]||"bloqueado")===l?"selected":"")+'>'+l+'</option>').join("")+'</select></div>').join("");
-        return '<div class="admin-user" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><select data-global>'+ACCESS_LEVELS.map(l=>'<option value="'+l+'" '+(u.perfil===l?"selected":"")+'>'+l+'</option>').join("")+'</select><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Bloqueado</option></select><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="admin-modules">'+mods+'</div></div>';
+      if(error||data?.error){root.innerHTML='<div class="admin-msg">Erro ao carregar usuários.</div>';return;}
+      root.innerHTML=(data.users||[]).map(u=>{
+        const rows=Object.entries(ADMIN_STRUCTURE).map(([k,m])=>{
+          const allowed=(u.modules?.[k]||"bloqueado")!=="bloqueado";
+          const subs=(m.subs||[]).map(s=>'<label class="perm-check"><input type="checkbox" data-sub="'+esc(s)+'" '+(allowed?'checked':'')+'>'+esc(s)+'</label>').join("");
+          return '<div class="perm-row"><div class="perm-main"><label class="perm-check"><input type="checkbox" data-mod="'+k+'" '+(allowed?'checked':'')+' onchange="toggleModuloPerm(this)">'+m.label+'</label></div><div class="perm-subs">'+subs+'</div></div>';
+        }).join("");
+        return '<div class="admin-user" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><div></div><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
       }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
     }
+    function toggleModuloPerm(chk){
+      const row=chk.closest(".perm-row"); row.querySelectorAll("[data-sub]").forEach(x=>x.checked=chk.checked);
+    }
+    async function salvarAcessoUsuario(btn){
+      const box=btn.closest(".admin-user"); btn.disabled=true; btn.textContent="Salvando...";
+      const modules={}; const permissions={};
+      box.querySelectorAll("[data-mod]").forEach(chk=>{
+        modules[chk.dataset.mod]=chk.checked?"operacional":"bloqueado";
+        const row=chk.closest(".perm-row"); permissions[chk.dataset.mod]={};
+        row.querySelectorAll("[data-sub]").forEach(s=>permissions[chk.dataset.mod][s.dataset.sub]=s.checked);
+      });
+      const body={action:"update",id:box.dataset.id,ativo:box.querySelector("[data-active]").value==="true",modules,permissions};
+      const {data,error}=await sbAuth.functions.invoke("admin-access",{body});
+      btn.disabled=false; btn.textContent=(error||data?.error)?"Erro":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1400);
+    }
+
     function fecharAdminUsuarios(){document.getElementById("adminOverlay").classList.remove("active");}
     async function salvarAcessoUsuario(btn){
       const box=btn.closest(".admin-user"); btn.disabled=true; btn.textContent="Salvando...";
