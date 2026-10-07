@@ -796,7 +796,7 @@
   .admin-user.collapsed .perm-grid{display:none}
   .admin-user.collapsed{padding-bottom:12px}
   #adminUsersList .admin-user{transition:.15s ease}
-  .admin-save-compact{width:auto!important;min-width:92px!important;padding:8px 18px!important;flex:none!important}\n</style>
+  .admin-save-compact{width:auto!important;min-width:92px!important;padding:8px 18px!important;flex:none!important}\n  .user-box-bottom{margin-top:auto}\n  .user-config-btn{margin-left:auto;width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.10);background:#13213d;color:#fff;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}\n  .user-config-btn:hover{background:#1a2d52}\n</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -839,24 +839,18 @@
       <button data-menu="agrupaPdf" onclick="abrirSistema(&#39;agrupaPdf&#39;)">🧩 Agrupa/remove PDF</button>
       <button data-menu="leitor" onclick="abrirSistema(&#39;leitor&#39;)">🔎 Leitor Scanner</button>
       <button data-menu="assistenteCiot" onclick="abrirSistema(&#39;assistenteCiot&#39;)">🪪 Assistente CIOT</button>
-      <div class="menu-divider admin-only" style="display:none"></div>
-      <button id="btnAdminUsers" class="admin-only" style="display:none" data-menu="adminUsers" onclick="abrirAdminUsuarios()">⚙️ Usuários e Acessos</button>
     </div>
 
-    <div class="user-box">
+    <div class="user-box user-box-bottom">
       <div class="user-compact">
         <div class="user-avatar">👤</div>
         <div class="user-meta">
           <strong id="usuarioLogado">Tiago</strong>
           <span>Perfil: <span id="perfilLogado">admin</span></span>
         </div>
+        <button id="btnAdminUsers" class="user-config-btn admin-only" style="display:none" type="button" title="Usuários e Acessos" onclick="abrirAdminUsuarios()">⚙️</button>
       </div>
       <button class="logout-btn" id="btnLogout" type="button">Sair</button>
-    </div>
-
-    <div class="sidebar-footer">
-      Sistema unificado em módulos.<br>
-      O menu permanece aberto durante o uso.
     </div>
   </aside>
 
