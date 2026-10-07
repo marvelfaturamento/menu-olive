@@ -1102,7 +1102,7 @@
     </section>
   </main>
 
-  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere ou bloqueie menus e submenus por usuário.</div></div><div style="display:flex;gap:8px"><button class="admin-save" onclick="abrirNovoUsuario()">＋ Criar usuário</button><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div></div><div id="newUserBox" class="admin-user" style="display:none;margin-bottom:14px"><div class="admin-user-top"><input id="nuUser" placeholder="Usuário" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuPass" type="password" placeholder="Senha inicial (mín. 8)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><button class="admin-save" onclick="criarNovoUsuario(this)">Criar</button></div><div class="admin-msg">No primeiro login o usuário será obrigado a criar uma nova senha.</div></div><div id="adminUsersList"></div></div></div>
+  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere ou bloqueie menus e submenus por usuário.</div></div><div style="display:flex;gap:8px"><button class="admin-save" onclick="abrirNovoUsuario()">＋ Criar usuário</button><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div></div><div id="newUserBox" class="admin-user" style="display:none;margin-bottom:14px"><div class="admin-user-top"><input id="nuEmail" type="email" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuUser" placeholder="Usuário" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuPass" type="password" placeholder="Senha inicial (mín. 8)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><button class="admin-save" onclick="criarNovoUsuario(this)">Criar</button></div><div class="admin-msg">No primeiro login o usuário será obrigado a criar uma nova senha.</div></div><div id="adminUsersList"></div></div></div>
   <div id="passwordOverlay" class="password-overlay"><div class="password-card"><h2>🔐 Crie sua nova senha</h2><p>Este é seu primeiro acesso ao novo sistema. Por segurança, substitua a senha temporária antes de continuar.</p><input id="newPassword" type="password" autocomplete="new-password" placeholder="Nova senha"><input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirme a nova senha"><button id="btnChangePassword" type="button">Salvar nova senha</button><div id="passwordMsg" class="msg"></div></div></div>
 
 <script>
@@ -1467,17 +1467,17 @@
       const b=document.getElementById("newUserBox"); b.style.display=b.style.display==="none"?"block":"none";
     }
     async function criarNovoUsuario(btn){
-      const username=document.getElementById("nuUser").value.trim().toLowerCase(), nome=username, password=document.getElementById("nuPass").value;
-      if(!username||password.length<8){btn.textContent="Preencha os campos";setTimeout(()=>btn.textContent="Criar",1800);return;}
+      const email=document.getElementById("nuEmail").value.trim().toLowerCase(), username=document.getElementById("nuUser").value.trim().toLowerCase(), nome=username, password=document.getElementById("nuPass").value;
+      if(!email||!email.includes("@")||!username||password.length<8){btn.textContent="Preencha os campos";setTimeout(()=>btn.textContent="Criar",1800);return;}
       btn.disabled=true;btn.textContent="Criando...";
       try{
-        const email=emailInternoLogin(username);
+        
         const {data,error}=await sbAuth.auth.signUp({email,password,options:{data:{username,nome}}});
         if(error) throw error;
         if(!data?.user?.id) throw new Error("Conta não criada.");
         const {error:e2}=await sbAuth.rpc("initialize_new_user",{p_user_id:data.user.id});
         if(e2) throw e2;
-        document.getElementById("nuUser").value="";document.getElementById("nuPass").value="";
+        document.getElementById("nuEmail").value="";document.getElementById("nuUser").value="";document.getElementById("nuPass").value="";
         document.getElementById("newUserBox").style.display="none";
         btn.textContent="Criado ✓";
         await abrirAdminUsuarios();
