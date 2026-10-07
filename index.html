@@ -1440,7 +1440,7 @@
           const subs=(m.subs||[]).map(s=>'<label class="perm-check"><input type="checkbox" data-sub="'+esc(s)+'" '+(allowed?'checked':'')+'>'+esc(s)+'</label>').join("");
           return '<div class="perm-row"><div class="perm-main"><label class="perm-check"><input type="checkbox" data-mod="'+k+'" '+(allowed?'checked':'')+' onchange="toggleModuloPerm(this)">'+m.label+'</label></div><div class="perm-subs">'+subs+'</div></div>';
         }).join("");
-        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
+        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
       }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
     }
     function toggleUsuarioAcessos(btn){
@@ -1471,6 +1471,24 @@
         data=resp.data; error=resp.error;
       }catch(e){ error=e; }
       btn.disabled=false; btn.textContent=(error||data?.error)?"Erro ao salvar":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1800);
+    }
+
+    async function resetarSenhaUsuario(btn){
+      const box=btn.closest(".admin-user");
+      const username=box.querySelector(".admin-msg")?.textContent?.replace("@","")||"usuário";
+      const nova=prompt("Informe a nova senha temporária para @"+username+" (mínimo 8 caracteres):");
+      if(nova===null) return;
+      if(nova.length<8){alert("A senha precisa ter no mínimo 8 caracteres.");return;}
+      const confirma=prompt("Confirme a nova senha temporária:");
+      if(confirma!==nova){alert("As senhas não conferem.");return;}
+      btn.disabled=true; const original=btn.textContent; btn.textContent="Resetando...";
+      try{
+        const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"reset_password",id:box.dataset.id,password:nova}});
+        if(error||data?.error) throw new Error(data?.error||error?.message||"Erro ao resetar");
+        btn.textContent="Senha resetada ✓";
+        alert("Senha temporária definida. No próximo login, @"+username+" será obrigado a criar uma nova senha.");
+      }catch(e){console.error(e);btn.textContent="Erro ao resetar";}
+      finally{btn.disabled=false;setTimeout(()=>btn.textContent=original,2500);}
     }
 
     function abrirNovoUsuario(){
