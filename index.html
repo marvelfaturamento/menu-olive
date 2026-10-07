@@ -793,6 +793,9 @@
 .password-overlay.active{display:flex}.password-card{width:100%;max-width:420px;background:linear-gradient(180deg,#0f1c36,#0a1529);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
 .password-card h2{font-size:21px;margin-bottom:7px}.password-card p{font-size:12px;color:#96a9c7;margin-bottom:18px;line-height:1.45}.password-card input{width:100%;margin:6px 0;padding:11px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;outline:none}.password-card button{width:100%;margin-top:12px;padding:11px;border:0;border-radius:11px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}.password-card .msg{min-height:18px;margin-top:9px;font-size:12px;color:#ffb4b4}
 .admin-overlay{position:fixed;inset:0;background:rgba(2,8,18,.96);display:none;z-index:9000;padding:22px;overflow:auto}.admin-overlay.active{display:block}.admin-panel{max-width:1200px;margin:auto;background:#0a1529;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px}.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.admin-head h2{font-size:20px}.admin-close{border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}.admin-user{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin:10px 0;background:rgba(255,255,255,.025)}.admin-user-top{display:grid;grid-template-columns:1.3fr .8fr .8fr auto;gap:10px;align-items:center}.admin-user select{background:#142445;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px}.admin-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.admin-module{font-size:10px;color:#9db3d4}.admin-module select{width:100%;margin-top:4px}.perm-grid{display:grid;grid-template-columns:220px 1fr;gap:0;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;margin-top:12px}.perm-row{display:contents}.perm-main,.perm-subs{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)}.perm-main{background:rgba(255,255,255,.025);font-weight:800}.perm-subs{display:flex;gap:14px;flex-wrap:wrap}.perm-check{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#cbd8ed}.perm-check input{accent-color:#2563eb;width:15px;height:15px}.perm-main .perm-check{font-size:12px;color:#fff}.perm-row:last-child .perm-main,.perm-row:last-child .perm-subs{border-bottom:0}.admin-save{background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800;cursor:pointer}.admin-msg{font-size:12px;color:#9db3d4;margin:8px 0}@media(max-width:900px){.admin-user-top,.admin-modules{grid-template-columns:1fr 1fr}}
+  .admin-user.collapsed .perm-grid{display:none}
+  .admin-user.collapsed{padding-bottom:12px}
+  #adminUsersList .admin-user{transition:.15s ease}
 </style>
 </head>
 <body>
@@ -1437,10 +1440,17 @@
           const subs=(m.subs||[]).map(s=>'<label class="perm-check"><input type="checkbox" data-sub="'+esc(s)+'" '+(allowed?'checked':'')+'>'+esc(s)+'</label>').join("");
           return '<div class="perm-row"><div class="perm-main"><label class="perm-check"><input type="checkbox" data-mod="'+k+'" '+(allowed?'checked':'')+' onchange="toggleModuloPerm(this)">'+m.label+'</label></div><div class="perm-subs">'+subs+'</div></div>';
         }).join("");
-        return '<div class="admin-user" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><div></div><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
+        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
       }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
     }
-    function toggleModuloPerm(chk){
+    function toggleUsuarioAcessos(btn){
+      const box=btn.closest(".admin-user");
+      const abrir=box.classList.contains("collapsed");
+      document.querySelectorAll("#adminUsersList .admin-user").forEach(x=>x.classList.add("collapsed"));
+      if(abrir) box.classList.remove("collapsed");
+      btn.textContent=abrir?"▲ Recolher":"⚙ Acessos";
+    }
+        function toggleModuloPerm(chk){
       const row=chk.closest(".perm-row"); row.querySelectorAll("[data-sub]").forEach(x=>x.checked=chk.checked);
     }
     async function salvarAcessoUsuario(btn){
