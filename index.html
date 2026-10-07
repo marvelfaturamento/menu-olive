@@ -1467,22 +1467,18 @@
       const b=document.getElementById("newUserBox"); b.style.display=b.style.display==="none"?"block":"none";
     }
     async function criarNovoUsuario(btn){
-      const email=document.getElementById("nuEmail").value.trim().toLowerCase(), username=document.getElementById("nuUser").value.trim().toLowerCase(), nome=username, password=document.getElementById("nuPass").value;
+      const email=document.getElementById("nuEmail").value.trim().toLowerCase(), username=document.getElementById("nuUser").value.trim().toLowerCase(), password=document.getElementById("nuPass").value;
       if(!email||!email.includes("@")||!username||password.length<8){btn.textContent="Preencha os campos";setTimeout(()=>btn.textContent="Criar",1800);return;}
       btn.disabled=true;btn.textContent="Criando...";
       try{
-        
-        const {data,error}=await sbAuth.auth.signUp({email,password,options:{data:{username,nome}}});
-        if(error) throw error;
-        if(!data?.user?.id) throw new Error("Conta não criada.");
-        const {error:e2}=await sbAuth.rpc("initialize_new_user",{p_user_id:data.user.id});
-        if(e2) throw e2;
+        const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"create",email,username,password}});
+        if(error||data?.error) throw new Error(data?.error||error?.message||"Erro ao criar");
         document.getElementById("nuEmail").value="";document.getElementById("nuUser").value="";document.getElementById("nuPass").value="";
         document.getElementById("newUserBox").style.display="none";
         btn.textContent="Criado ✓";
         await abrirAdminUsuarios();
       }catch(e){
-        console.error(e); btn.textContent="Erro ao criar"; setTimeout(()=>btn.textContent="Criar",2200);
+        console.error(e); btn.textContent=e?.message||"Erro ao criar"; setTimeout(()=>btn.textContent="Criar",3500);
       } finally{btn.disabled=false;}
     }
 
