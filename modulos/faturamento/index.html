@@ -10,7 +10,7 @@
 
 
 <meta id="dcngeagmmhegagicpcmpinaoklddcgon">  <link rel="stylesheet" href="css/faturamento.css">
-</head>
+<style id="marvel-permission-style">[data-permission-blocked="true"]{display:none!important}</style></head>
 <body>
 <div class="app">
   <aside class="sidebar">
@@ -472,7 +472,7 @@
 <script id="marvel-submenu-permissions">
 (function(){
  const labels={"dashboard":"Dashboard Real","dashboardOperacional":"Dashboard Operacional","diario":"Diário","graficos":"Gráficos","anual":"Gráfico anual","config":"Config"};
- function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".navbtn[data-page]").forEach(b=>{const label=labels[b.dataset.page]||b.textContent.replace(/^\s*[^A-Za-zÀ-ÿ]+/,"").trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false)b.style.display="none";});}
+ function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".navbtn[data-page]").forEach(b=>{const label=labels[b.dataset.page]||b.textContent.replace(/^\s*[^A-Za-zÀ-ÿ]+/,"").trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false){b.hidden=true;b.setAttribute("aria-hidden","true");b.style.setProperty("display","none","important");b.dataset.permissionBlocked="true";}});}
  function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
  window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
 })();
