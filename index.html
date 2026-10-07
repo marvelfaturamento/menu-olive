@@ -792,6 +792,7 @@
 .password-overlay{position:fixed;inset:0;background:rgba(2,8,18,.96);display:none;align-items:center;justify-content:center;z-index:10000;padding:20px}
 .password-overlay.active{display:flex}.password-card{width:100%;max-width:420px;background:linear-gradient(180deg,#0f1c36,#0a1529);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
 .password-card h2{font-size:21px;margin-bottom:7px}.password-card p{font-size:12px;color:#96a9c7;margin-bottom:18px;line-height:1.45}.password-card input{width:100%;margin:6px 0;padding:11px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;outline:none}.password-card button{width:100%;margin-top:12px;padding:11px;border:0;border-radius:11px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}.password-card .msg{min-height:18px;margin-top:9px;font-size:12px;color:#ffb4b4}
+.admin-overlay{position:fixed;inset:0;background:rgba(2,8,18,.96);display:none;z-index:9000;padding:22px;overflow:auto}.admin-overlay.active{display:block}.admin-panel{max-width:1200px;margin:auto;background:#0a1529;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px}.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.admin-head h2{font-size:20px}.admin-close{border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}.admin-user{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin:10px 0;background:rgba(255,255,255,.025)}.admin-user-top{display:grid;grid-template-columns:1.3fr .8fr .8fr auto;gap:10px;align-items:center}.admin-user select{background:#142445;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px}.admin-modules{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.admin-module{font-size:10px;color:#9db3d4}.admin-module select{width:100%;margin-top:4px}.admin-save{background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800;cursor:pointer}.admin-msg{font-size:12px;color:#9db3d4;margin:8px 0}@media(max-width:900px){.admin-user-top,.admin-modules{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -835,6 +836,8 @@
       <button data-menu="agrupaPdf" onclick="abrirSistema(&#39;agrupaPdf&#39;)">🧩 Agrupa/remove PDF</button>
       <button data-menu="leitor" onclick="abrirSistema(&#39;leitor&#39;)">🔎 Leitor Scanner</button>
       <button data-menu="assistenteCiot" onclick="abrirSistema(&#39;assistenteCiot&#39;)">🪪 Assistente CIOT</button>
+      <div class="menu-divider admin-only" style="display:none"></div>
+      <button id="btnAdminUsers" class="admin-only" style="display:none" data-menu="adminUsers" onclick="abrirAdminUsuarios()">⚙️ Usuários e Acessos</button>
     </div>
 
     <div class="user-box">
@@ -1099,6 +1102,7 @@
     </section>
   </main>
 
+  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere, bloqueie e defina o nível de acesso por módulo.</div></div><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div><div id="adminUsersList"></div></div></div>
   <div id="passwordOverlay" class="password-overlay"><div class="password-card"><h2>🔐 Crie sua nova senha</h2><p>Este é seu primeiro acesso ao novo sistema. Por segurança, substitua a senha temporária antes de continuar.</p><input id="newPassword" type="password" autocomplete="new-password" placeholder="Nova senha"><input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirme a nova senha"><button id="btnChangePassword" type="button">Salvar nova senha</button><div id="passwordMsg" class="msg"></div></div></div>
 
 <script>
@@ -1168,8 +1172,10 @@
       document.querySelectorAll(".menu button[data-menu]").forEach(btn => {
         const nome = btn.dataset.menu;
         if (!nome || nome === "home") return;
+        if (nome === "adminUsers") return;
         btn.style.display = podeAbrirModulo(nome) ? "" : "none";
       });
+      document.querySelectorAll(".admin-only").forEach(el => el.style.display = getSessaoMenu()?.perfil === "admin" ? "" : "none");
       document.querySelectorAll(".module-card").forEach(card => {
         const onclick = card.getAttribute("onclick") || "";
         const m = onclick.match(/abrirSistema\(['"]([^'"]+)['"]\)/);
@@ -1198,7 +1204,7 @@
         btn.disabled = true; msg.textContent = "Salvando...";
         const { error } = await sbAuth.auth.updateUser({ password: senha });
         if (error) throw error;
-        const { error: e2 } = await sbAuth.from("profiles").update({must_change_password:false}).eq("id", sessaoMenuAtual.id);
+        const { error: e2 } = await sbAuth.rpc("complete_password_change");
         if (e2) throw e2;
         sessaoMenuAtual.mustChangePassword = false;
         await sbAuth.from("access_logs").insert({user_id:sessaoMenuAtual.id,event:"password_changed"});
@@ -1404,6 +1410,32 @@
       wrap.classList.add("active");
       document.body.classList.add("module-open");
       setMenuAtivo(nome);
+    }
+
+    const ADMIN_MODULES = {
+      dados:"Passar Dados", instrutivo:"Instrutivo", refaturamento:"Refaturamento", faturamento:"Faturamento",
+      painel902:"Painel 902", agrupaPdf:"Agrupa/remove PDF", leitor:"Leitor Scanner", assistenteCiot:"Assistente CIOT"
+    };
+    const ACCESS_LEVELS = ["admin","operacional","consulta","bloqueado"];
+    function esc(v){return String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
+    async function abrirAdminUsuarios(){
+      if(getSessaoMenu()?.perfil!=="admin") return;
+      document.getElementById("adminOverlay").classList.add("active");
+      document.getElementById("adminUsersList").innerHTML='<div class="admin-msg">Carregando usuários...</div>';
+      const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"list"}});
+      if(error||data?.error){document.getElementById("adminUsersList").innerHTML='<div class="admin-msg">Erro ao carregar usuários.</div>';return;}
+      document.getElementById("adminUsersList").innerHTML=(data.users||[]).map(u=>{
+        const mods=Object.entries(ADMIN_MODULES).map(([k,label])=>'<div class="admin-module">'+label+'<select data-mod="'+k+'">'+ACCESS_LEVELS.map(l=>'<option value="'+l+'" '+((u.modules?.[k]||"bloqueado")===l?"selected":"")+'>'+l+'</option>').join("")+'</select></div>').join("");
+        return '<div class="admin-user" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><select data-global>'+ACCESS_LEVELS.map(l=>'<option value="'+l+'" '+(u.perfil===l?"selected":"")+'>'+l+'</option>').join("")+'</select><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Bloqueado</option></select><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="admin-modules">'+mods+'</div></div>';
+      }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
+    }
+    function fecharAdminUsuarios(){document.getElementById("adminOverlay").classList.remove("active");}
+    async function salvarAcessoUsuario(btn){
+      const box=btn.closest(".admin-user"); btn.disabled=true; btn.textContent="Salvando...";
+      const modules={}; box.querySelectorAll("[data-mod]").forEach(s=>modules[s.dataset.mod]=s.value);
+      const body={action:"update",id:box.dataset.id,perfil:box.querySelector("[data-global]").value,ativo:box.querySelector("[data-active]").value==="true",modules};
+      const {data,error}=await sbAuth.functions.invoke("admin-access",{body});
+      btn.disabled=false; btn.textContent=(error||data?.error)?"Erro":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1400);
     }
 
     function abrirHome() {
