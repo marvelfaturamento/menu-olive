@@ -1493,13 +1493,6 @@
     }
 
     function fecharAdminUsuarios(){document.getElementById("adminOverlay").classList.remove("active");}
-    async function salvarAcessoUsuario(btn){
-      const box=btn.closest(".admin-user"); btn.disabled=true; btn.textContent="Salvando...";
-      const modules={}; box.querySelectorAll("[data-mod]").forEach(s=>modules[s.dataset.mod]=s.value);
-      const body={action:"update",id:box.dataset.id,perfil:box.querySelector("[data-global]").value,ativo:box.querySelector("[data-active]").value==="true",modules};
-      const {data,error}=await sbAuth.functions.invoke("admin-access",{body});
-      btn.disabled=false; btn.textContent=(error||data?.error)?"Erro":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1400);
-    }
 
     function abrirHome() {
       const frame = document.getElementById("moduleFrame");
