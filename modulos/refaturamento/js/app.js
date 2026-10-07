@@ -4310,7 +4310,8 @@ console.log('USERS AGG FINAL', allUsersAgg);
 }
 function renderPerformanceView(){
   const select = document.getElementById('performanceUserSelect');
-  const rowsAll = aggregateProd();
+  const rowsOriginais = aggregateProd();
+  const rowsAll = __filterByUsuarioRefFinal(rowsOriginais, x => x.usuario);
   const allUsers = rowsAll.map(x => x.usuario).filter(Boolean);
   let selected = __setOptionsPreserveFinal(select, allUsers, 'Todos');
   __applyUsuarioLockFinal(select);
