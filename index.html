@@ -1471,12 +1471,19 @@
       if(!nome||!username||password.length<8){btn.textContent="Preencha os campos";setTimeout(()=>btn.textContent="Criar",1800);return;}
       btn.disabled=true;btn.textContent="Criando...";
       try{
-        const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"create",nome,username,password}});
-        if(error||data?.error) throw new Error(data?.error||"Erro");
+        const email=emailInternoLogin(username);
+        const {data,error}=await sbAuth.auth.signUp({email,password,options:{data:{username,nome}}});
+        if(error) throw error;
+        if(!data?.user?.id) throw new Error("Conta não criada.");
+        const {error:e2}=await sbAuth.rpc("initialize_new_user",{p_user_id:data.user.id});
+        if(e2) throw e2;
         document.getElementById("nuNome").value="";document.getElementById("nuUser").value="";document.getElementById("nuPass").value="";
-        document.getElementById("newUserBox").style.display="none"; await abrirAdminUsuarios();
-      }catch(e){btn.textContent="Erro ao criar";setTimeout(()=>btn.textContent="Criar",1800);}
-      finally{btn.disabled=false;}
+        document.getElementById("newUserBox").style.display="none";
+        btn.textContent="Criado ✓";
+        await abrirAdminUsuarios();
+      }catch(e){
+        console.error(e); btn.textContent="Erro ao criar"; setTimeout(()=>btn.textContent="Criar",2200);
+      } finally{btn.disabled=false;}
     }
 
     function fecharAdminUsuarios(){document.getElementById("adminOverlay").classList.remove("active");}
