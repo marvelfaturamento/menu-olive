@@ -1105,7 +1105,7 @@
     </section>
   </main>
 
-  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere ou bloqueie menus e submenus por usuário.</div></div><div style="display:flex;gap:8px"><button class="admin-save" onclick="abrirNovoUsuario()">＋ Criar usuário</button><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div></div><div id="newUserBox" class="admin-user" style="display:none;margin-bottom:14px"><div class="admin-user-top"><input id="nuEmail" type="email" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuUser" placeholder="Usuário" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuPass" type="password" placeholder="Senha inicial (mín. 8)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><button class="admin-save" onclick="criarNovoUsuario(this)">Criar</button></div><div class="admin-msg">No primeiro login o usuário será obrigado a criar uma nova senha.</div></div><div id="adminUsersList"></div></div></div>
+  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere ou bloqueie menus e submenus por usuário.</div></div><div style="display:flex;gap:8px"><button class="admin-save" onclick="abrirNovoUsuario()">＋ Criar usuário</button><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div></div><div id="newUserBox" class="admin-user" style="display:none;margin-bottom:14px"><div class="admin-user-top"><input id="nuEmail" type="email" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuUser" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuPass" type="password" placeholder="Senha inicial (mín. 8)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><button class="admin-save" onclick="criarNovoUsuario(this)">Criar</button></div><div class="admin-msg">No primeiro login o usuário será obrigado a criar uma nova senha.</div></div><div id="adminUsersList"></div></div></div>
   <div id="passwordOverlay" class="password-overlay"><div class="password-card"><h2>🔐 Crie sua nova senha</h2><p>Este é seu primeiro acesso ao novo sistema. Por segurança, substitua a senha temporária antes de continuar.</p><input id="newPassword" type="password" autocomplete="new-password" placeholder="Nova senha"><input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirme a nova senha"><button id="btnChangePassword" type="button">Salvar nova senha</button><div id="passwordMsg" class="msg"></div></div></div>
 
 <script>
@@ -1253,7 +1253,7 @@
         if (btn) btn.disabled = true;
         if (msg) msg.textContent = "Entrando...";
         const { data, error } = await sbAuth.auth.signInWithPassword({
-          email: emailInternoLogin(user),
+          email: user,
           password: pass
         });
         if (error || !data?.user) throw error || new Error("Falha no login");
