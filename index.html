@@ -1097,62 +1097,86 @@
 
   <script>
 
-    const MENU_USERS = [
-      // Admin: acesso total
-      { usuario: "matheus", senha: "matheusdevise2026", perfil: "admin", nome: "Mateus", usuarioRef: "matheus.devise" },
-      { usuario: "tiago", senha: "tiago1992", perfil: "admin", nome: "Tiago", usuarioRef: "tiago.carniel" },
-      { usuario: "vinicius", senha: "vinicius2010", perfil: "admin", nome: "vinicius", usuarioRef: "vinicius.pereira" },
+    // Autenticação central: Supabase Auth + perfil/permissões.
+    // A senha nunca fica no código do Menu Pai.
+    const AUTH_SUPABASE = {
+      url: "https://rqwmhywgckuwhbidqves.supabase.co",
+      key: "sb_publishable_r4Ftl_7kEjwZVTOlY04pKg_Jp03aBH1"
+    };
+    const sbAuth = supabase.createClient(AUTH_SUPABASE.url, AUTH_SUPABASE.key, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
 
-      // Operacional: antigo intermediário
-      { usuario: "adenilson", senha: "adenilson2025", perfil: "operacional", nome: "Adenilson", usuarioRef: "adenilson.filho" },
-      { usuario: "carolina", senha: "carolina514687", perfil: "operacional", nome: "Carolina", usuarioRef: "carolina.pasquali" },
+    let sessaoMenuAtual = null;
 
-      // Consulta: todos os demais usuários individuais
-      { usuario: "ademir", senha: "marvel2026", perfil: "consulta", nome: "Ademir", usuarioRef: "ademir.fernandes" },
-       { usuario: "ana.viana", senha: "marvel2026", perfil: "consulta", nome: "Ademir", usuarioRef: "ademir.fernandes" },
-      { usuario: "angelita", senha: "ange@2026", perfil: "consulta", nome: "Angelita", usuarioRef: "angelita.santos" },
-      { usuario: "elisangela", senha: "elisangela2026", perfil: "consulta", nome: "Elisangela", usuarioRef: "elisangela.vieira" },
-      { usuario: "geovana", senha: "geo@2026", perfil: "consulta", nome: "Geovana", usuarioRef: "geovana.silva" },
-      { usuario: "ghizzi", senha: "ghizzi@2026", perfil: "consulta", nome: "Jhonatan", usuarioRef: "jhonatan.ghizzi" },
-      { usuario: "balestrin", senha: "bale@800", perfil: "consulta", nome: "Jonathan", usuarioRef: "jonatan.balestrin" },
-      { usuario: "josete", senha: "josete@2026", perfil: "consulta", nome: "Josete", usuarioRef: "josete.gabriel" },
-      { usuario: "karllin", senha: "karllin2026", perfil: "consulta", nome: "Karllin", usuarioRef: "karllin" },
-      { usuario: "karoline", senha: "karol@165816", perfil: "consulta", nome: "Karoline", usuarioRef: "karoline.romanini" },
-      { usuario: "silvana", senha: "silvanawiedenhoft", perfil: "consulta", nome: "silvana", usuarioRef: "silvana.wiedenhoft" },
-      { usuario: "angelica", senha: "angelica@2026@", perfil: "consulta", nome: "Angelica", usuarioRef: "angelica.lucca" },
-      { usuario: "leia", senha: "leia@comex", perfil: "consulta", nome: "Leia", usuarioRef: "leia.mattos" },
-      { usuario: "gabriel", senha: "gabrielbellei", perfil: "consulta", nome: "gabriel", usuarioRef: "gabriel.bellei" },
-      { usuario: "rafaela", senha: "rafaelamartini26", perfil: "consulta", nome: "rafaela", usuarioRef: "rafaela.martini" },
-      { usuario: "jacson", senha: "jacson26", perfil: "consulta", nome: "jacson", usuarioRef: "jacson.gabi" },
-
-      // Acessos setoriais sem filtro individual
-      { usuario: "comex", senha: "comex2026", perfil: "consulta", nome: "Comex", usuarioRef: "" },
-      { usuario: "faturamento", senha: "faturamento2026", perfil: "consulta", nome: "Faturamento", usuarioRef: "" }
-    ];
+    function emailInternoLogin(usuario) {
+      const u = String(usuario || "").trim().toLowerCase();
+      return u.includes("@") ? u : `${u}@login.marvel.local`;
+    }
 
     function getSessaoMenu() {
-      try {
-        return JSON.parse(sessionStorage.getItem("menu_login_session") || "null");
-      } catch {
-        return null;
-      }
+      return sessaoMenuAtual;
     }
 
-    function salvarSessaoMenu(sessao) {
-      sessionStorage.setItem("menu_login_session", JSON.stringify(sessao));
+    async function carregarPerfilPermissoes(user) {
+      const { data: perfil, error: erroPerfil } = await sbAuth
+        .from("profiles")
+        .select("id,username,nome,usuario_ref,perfil,ativo")
+        .eq("id", user.id)
+        .single();
+      if (erroPerfil) throw erroPerfil;
+      if (!perfil?.ativo || perfil.perfil === "bloqueado") throw new Error("Usuário bloqueado.");
+
+      const { data: permissoes, error: erroPerm } = await sbAuth
+        .from("user_module_permissions")
+        .select("module_key,access_level,permissions")
+        .eq("user_id", user.id);
+      if (erroPerm) throw erroPerm;
+
+      const mapa = {};
+      (permissoes || []).forEach(p => { mapa[p.module_key] = p; });
+      sessaoMenuAtual = {
+        id: user.id,
+        usuario: perfil.username,
+        nome: perfil.nome,
+        perfil: perfil.perfil,
+        usuarioRef: perfil.usuario_ref || "",
+        permissoes: mapa
+      };
+      return sessaoMenuAtual;
     }
 
-    function limparSessaoMenu() {
-      sessionStorage.removeItem("menu_login_session");
+    function nivelModulo(nome) {
+      const s = getSessaoMenu();
+      if (!s) return "bloqueado";
+      if (s.perfil === "admin") return "admin";
+      return s.permissoes?.[nome]?.access_level || s.perfil || "bloqueado";
+    }
+
+    function podeAbrirModulo(nome) {
+      return nivelModulo(nome) !== "bloqueado";
+    }
+
+    function atualizarVisibilidadeModulos() {
+      document.querySelectorAll(".menu button[data-menu]").forEach(btn => {
+        const nome = btn.dataset.menu;
+        if (!nome || nome === "home") return;
+        btn.style.display = podeAbrirModulo(nome) ? "" : "none";
+      });
+      document.querySelectorAll(".module-card").forEach(card => {
+        const onclick = card.getAttribute("onclick") || "";
+        const m = onclick.match(/abrirSistema\(['"]([^'"]+)['"]\)/);
+        if (m) card.style.display = podeAbrirModulo(m[1]) ? "" : "none";
+      });
     }
 
     function atualizarUsuarioLogado() {
       const sessao = getSessaoMenu();
       const nomeEl = document.getElementById("usuarioLogado");
       const perfilEl = document.getElementById("perfilLogado");
-
       if (nomeEl) nomeEl.textContent = sessao?.nome || "-";
       if (perfilEl) perfilEl.textContent = sessao?.perfil || "-";
+      atualizarVisibilidadeModulos();
     }
 
     function mostrarLogin() {
@@ -1165,43 +1189,58 @@
       if (overlay) overlay.style.display = "none";
     }
 
-    function validarLoginMenu() {
-      const user = document.getElementById("loginUser").value.trim();
-      const pass = document.getElementById("loginPass").value.trim();
+    async function validarLoginMenu() {
+      const user = document.getElementById("loginUser").value.trim().toLowerCase();
+      const pass = document.getElementById("loginPass").value;
       const msg = document.getElementById("loginMsg");
-
-      const encontrado = MENU_USERS.find(u => u.usuario === user && u.senha === pass);
-
-      if (!encontrado) {
-        if (msg) msg.textContent = "Usuário ou senha inválidos.";
+      const btn = document.getElementById("btnLogin");
+      if (!user || !pass) {
+        if (msg) msg.textContent = "Informe usuário e senha.";
         return;
       }
-
-      salvarSessaoMenu({
-        usuario: encontrado.usuario,
-        nome: encontrado.nome,
-        perfil: encontrado.perfil,
-        usuarioRef: encontrado.usuarioRef || ""
-      });
-
-      if (msg) msg.textContent = "";
-      esconderLogin();
-      atualizarUsuarioLogado();
+      try {
+        if (btn) btn.disabled = true;
+        if (msg) msg.textContent = "Entrando...";
+        const { data, error } = await sbAuth.auth.signInWithPassword({
+          email: emailInternoLogin(user),
+          password: pass
+        });
+        if (error || !data?.user) throw error || new Error("Falha no login");
+        await carregarPerfilPermissoes(data.user);
+        if (msg) msg.textContent = "";
+        document.getElementById("loginPass").value = "";
+        esconderLogin();
+        atualizarUsuarioLogado();
+        sbAuth.from("access_logs").insert({user_id:data.user.id,event:"login",details:{username:user}}).then(()=>{});
+      } catch (e) {
+        await sbAuth.auth.signOut().catch(()=>{});
+        sessaoMenuAtual = null;
+        if (msg) msg.textContent = e?.message === "Usuário bloqueado." ? e.message : "Usuário ou senha inválidos.";
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
-    function validarSessaoInicialMenu() {
-      const sessao = getSessaoMenu();
-      if (!sessao || !sessao.perfil) {
+    async function validarSessaoInicialMenu() {
+      mostrarLogin();
+      try {
+        const { data } = await sbAuth.auth.getSession();
+        const user = data?.session?.user;
+        if (!user) return;
+        await carregarPerfilPermissoes(user);
+        esconderLogin();
+        atualizarUsuarioLogado();
+      } catch (e) {
+        sessaoMenuAtual = null;
+        await sbAuth.auth.signOut().catch(()=>{});
         mostrarLogin();
-        return;
       }
-
-      esconderLogin();
-      atualizarUsuarioLogado();
     }
 
-    function sairMenu() {
-      limparSessaoMenu();
+    async function sairMenu() {
+      await sbAuth.auth.signOut();
+      sessaoMenuAtual = null;
+      abrirHome();
       mostrarLogin();
       atualizarUsuarioLogado();
     }
@@ -1242,11 +1281,12 @@
       if (!url || url.includes("SEU-")) return null;
 
       const destino = new URL(url, window.location.href);
-      destino.searchParams.set("perfil", sessao.perfil);
+      const nivel = nivelModulo(nome);
+      destino.searchParams.set("perfil", nivel);
       destino.searchParams.set("usuario", sessao.nome || sessao.usuario || "");
       destino.searchParams.set("usuarioRef", sessao.usuarioRef || "");
 
-      if (sessao.perfil === "consulta") {
+      if (nivel === "consulta") {
         if (nome === "faturamento") destino.searchParams.set("bloquearConfig", "true");
         if (nome === "painel902") {
           destino.searchParams.set("bloquearConfig", "true");
@@ -1283,6 +1323,11 @@
       const sessao = getSessaoMenu();
       if (!sessao || !sessao.perfil) {
         mostrarLogin();
+        return;
+      }
+
+      if (!podeAbrirModulo(nome)) {
+        alert("Seu usuário não possui acesso a este módulo.");
         return;
       }
 
@@ -1907,14 +1952,14 @@
       if (e.key === "Enter") validarLoginMenu();
     });
 
-    validarSessaoInicialMenu();
-
-    const ultimoModulo = localStorage.getItem("menu_modulo_ativo") || "home";
-    if (ultimoModulo && ultimoModulo !== "home" && LINKS[ultimoModulo]) {
-      setTimeout(() => abrirSistema(ultimoModulo), 80);
-    } else {
-      abrirHome();
-    }
+    validarSessaoInicialMenu().then(() => {
+      const ultimoModulo = localStorage.getItem("menu_modulo_ativo") || "home";
+      if (getSessaoMenu() && ultimoModulo && ultimoModulo !== "home" && LINKS[ultimoModulo] && podeAbrirModulo(ultimoModulo)) {
+        abrirSistema(ultimoModulo);
+      } else {
+        abrirHome();
+      }
+    });
 
     carregarTudo();
     ativarTempoReal();
