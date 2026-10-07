@@ -796,7 +796,7 @@
   .admin-user.collapsed .perm-grid{display:none}
   .admin-user.collapsed{padding-bottom:12px}
   #adminUsersList .admin-user{transition:.15s ease}
-</style>
+  .admin-save-compact{width:auto!important;min-width:92px!important;padding:8px 18px!important;flex:none!important}\n</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -1450,7 +1450,7 @@
           }).join("");
           return '<div class="perm-row"><div class="perm-main"><label class="perm-check"><input type="checkbox" data-mod="'+k+'" '+(allowed?'checked':'')+' onchange="toggleModuloPerm(this)">'+m.label+'</label></div><div class="perm-subs">'+subs+'</div></div>';
         }).join("");
-        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
+        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-profile><option value="operacional" '+(u.perfil==="operacional"||u.perfil==="consulta"?"selected":"")+'>Operador</option><option value="admin" '+(u.perfil==="admin"?"selected":"")+'>Administrador</option></select><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><button class="admin-save admin-save-compact" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
       }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
     }
     function toggleUsuarioAcessos(btn){
@@ -1471,7 +1471,7 @@
         const row=chk.closest(".perm-row"); permissions[chk.dataset.mod]={};
         row.querySelectorAll("[data-sub]").forEach(s=>permissions[chk.dataset.mod][s.dataset.sub]=s.checked);
       });
-      const body={action:"update",id:box.dataset.id,ativo:box.querySelector("[data-active]").value==="true",modules,permissions};
+      const body={action:"update",id:box.dataset.id,perfil:box.querySelector("[data-profile]").value,ativo:box.querySelector("[data-active]").value==="true",modules,permissions};
       let data=null,error=null;
       try{
         const resp=await Promise.race([
