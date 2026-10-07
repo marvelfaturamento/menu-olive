@@ -1450,7 +1450,7 @@
           }).join("");
           return '<div class="perm-row"><div class="perm-main"><label class="perm-check"><input type="checkbox" data-mod="'+k+'" '+(allowed?'checked':'')+' onchange="toggleModuloPerm(this)">'+m.label+'</label></div><div class="perm-subs">'+subs+'</div></div>';
         }).join("");
-        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-profile><option value="operacional" '+(u.perfil==="operacional"||u.perfil==="consulta"?"selected":"")+'>Operador</option><option value="admin" '+(u.perfil==="admin"?"selected":"")+'>Administrador</option></select><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><button class="admin-save admin-save-compact" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
+        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-profile><option value="operacional" '+(u.perfil==="operacional"||u.perfil==="consulta"?"selected":"")+'>Operador</option><option value="admin" '+(u.perfil==="admin"?"selected":"")+'>Administrador</option></select><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="alterarEmailUsuario(this)">✉ E-mail</button><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><button class="admin-save admin-save-compact" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
       }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
     }
     function toggleUsuarioAcessos(btn){
@@ -1481,6 +1481,23 @@
         data=resp.data; error=resp.error;
       }catch(e){ error=e; }
       btn.disabled=false; btn.textContent=(error||data?.error)?"Erro ao salvar":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1800);
+    }
+
+    async function alterarEmailUsuario(btn){
+      const box=btn.closest(".admin-user");
+      const username=box.querySelector(".admin-msg")?.textContent?.replace("@","")||"usuário";
+      const email=prompt("Informe o novo e-mail de login para @"+username+":");
+      if(email===null)return;
+      const novo=email.trim().toLowerCase();
+      if(!novo.includes("@")){alert("Informe um e-mail válido.");return;}
+      btn.disabled=true;const original=btn.textContent;btn.textContent="Alterando...";
+      try{
+        const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"change_email",id:box.dataset.id,email:novo}});
+        if(error||data?.error)throw new Error(data?.error||error?.message||"Erro ao alterar e-mail");
+        btn.textContent="E-mail alterado ✓";
+        alert("E-mail de login alterado para "+novo+".");
+      }catch(e){console.error(e);alert(e?.message||"Erro ao alterar e-mail");btn.textContent="Erro";}
+      finally{btn.disabled=false;setTimeout(()=>btn.textContent=original,2500);}
     }
 
     async function resetarSenhaUsuario(btn){
