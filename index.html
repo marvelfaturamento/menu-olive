@@ -1102,7 +1102,7 @@
     </section>
   </main>
 
-  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere, bloqueie e defina o nível de acesso por módulo.</div></div><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div><div id="adminUsersList"></div></div></div>
+  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere ou bloqueie menus e submenus por usuário.</div></div><div style="display:flex;gap:8px"><button class="admin-save" onclick="abrirNovoUsuario()">＋ Criar usuário</button><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div></div><div id="newUserBox" class="admin-user" style="display:none;margin-bottom:14px"><div class="admin-user-top"><input id="nuNome" placeholder="Nome" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuUser" placeholder="Usuário" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuPass" type="password" placeholder="Senha inicial (mín. 8)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><button class="admin-save" onclick="criarNovoUsuario(this)">Criar</button></div><div class="admin-msg">No primeiro login o usuário será obrigado a criar uma nova senha.</div></div><div id="adminUsersList"></div></div></div>
   <div id="passwordOverlay" class="password-overlay"><div class="password-card"><h2>🔐 Crie sua nova senha</h2><p>Este é seu primeiro acesso ao novo sistema. Por segurança, substitua a senha temporária antes de continuar.</p><input id="newPassword" type="password" autocomplete="new-password" placeholder="Nova senha"><input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirme a nova senha"><button id="btnChangePassword" type="button">Salvar nova senha</button><div id="passwordMsg" class="msg"></div></div></div>
 
 <script>
@@ -1452,8 +1452,31 @@
         row.querySelectorAll("[data-sub]").forEach(s=>permissions[chk.dataset.mod][s.dataset.sub]=s.checked);
       });
       const body={action:"update",id:box.dataset.id,ativo:box.querySelector("[data-active]").value==="true",modules,permissions};
-      const {data,error}=await sbAuth.functions.invoke("admin-access",{body});
-      btn.disabled=false; btn.textContent=(error||data?.error)?"Erro":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1400);
+      let data=null,error=null;
+      try{
+        const resp=await Promise.race([
+          sbAuth.functions.invoke("admin-access",{body}),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),12000))
+        ]);
+        data=resp.data; error=resp.error;
+      }catch(e){ error=e; }
+      btn.disabled=false; btn.textContent=(error||data?.error)?"Erro ao salvar":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1800);
+    }
+
+    function abrirNovoUsuario(){
+      const b=document.getElementById("newUserBox"); b.style.display=b.style.display==="none"?"block":"none";
+    }
+    async function criarNovoUsuario(btn){
+      const nome=document.getElementById("nuNome").value.trim(), username=document.getElementById("nuUser").value.trim().toLowerCase(), password=document.getElementById("nuPass").value;
+      if(!nome||!username||password.length<8){btn.textContent="Preencha os campos";setTimeout(()=>btn.textContent="Criar",1800);return;}
+      btn.disabled=true;btn.textContent="Criando...";
+      try{
+        const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"create",nome,username,password}});
+        if(error||data?.error) throw new Error(data?.error||"Erro");
+        document.getElementById("nuNome").value="";document.getElementById("nuUser").value="";document.getElementById("nuPass").value="";
+        document.getElementById("newUserBox").style.display="none"; await abrirAdminUsuarios();
+      }catch(e){btn.textContent="Erro ao criar";setTimeout(()=>btn.textContent="Criar",1800);}
+      finally{btn.disabled=false;}
     }
 
     function fecharAdminUsuarios(){document.getElementById("adminOverlay").classList.remove("active");}
