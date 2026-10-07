@@ -55,7 +55,7 @@ button:active{transform:translateY(1px)}
 button:disabled{opacity:.55!important;cursor:wait!important}
 </style>
 
-</head>
+<style id="marvel-permission-style">[data-permission-blocked="true"]{display:none!important}</style></head>
 <body>
 <div class="app">
 <aside class="side">
@@ -298,7 +298,7 @@ button:disabled{opacity:.55!important;cursor:wait!important}
 
 <script id="marvel-submenu-permissions">
 (function(){
- function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".side .navbtn[data-title]").forEach(b=>{const label=b.getAttribute("data-title")||b.textContent.trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false)b.style.display="none";});}
+ function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".side .navbtn[data-title]").forEach(b=>{const label=b.getAttribute("data-title")||b.textContent.trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false){b.hidden=true;b.setAttribute("aria-hidden","true");b.style.setProperty("display","none","important");b.dataset.permissionBlocked="true";}});}
  function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
  window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
 })();
