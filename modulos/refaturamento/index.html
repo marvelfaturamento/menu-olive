@@ -473,4 +473,11 @@ create table if not exists manual (
     <div id="detailsModalBody" class="details-modal-body"></div>
   </div>
 </div>
-</body></html>
+<script id="marvel-submenu-permissions">
+(function(){
+ const labels=undefined;
+ function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".menu button[data-label]").forEach(b=>{const label=labels[b.dataset.page]||b.textContent.replace(/^\s*[^A-Za-zÀ-ÿ]+/,"").trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false)b.style.display="none";});}
+ function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
+ window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
+})();
+</script></body></html>
