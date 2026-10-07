@@ -15,7 +15,7 @@
 @keyframes perfAnnualSpin{to{transform:rotate(360deg)}}
 .perf-annual-spinner{width:24px;height:24px;border:3px solid rgba(125,180,255,.22);border-top-color:#63a9ff;border-radius:50%;display:inline-block;flex:0 0 auto;animation:perfAnnualSpin .8s linear infinite}
 </style>
-</head>
+<style id="marvel-permission-style">[data-permission-blocked="true"]{display:none!important}</style></head>
 <body>
 <div class="app">
 <aside class="sidebar">
@@ -476,7 +476,7 @@ create table if not exists manual (
 <script id="marvel-submenu-permissions">
 (function(){
  const labels=undefined;
- function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".menu button[data-label]").forEach(b=>{const label=labels[b.dataset.page]||b.textContent.replace(/^\s*[^A-Za-zÀ-ÿ]+/,"").trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false)b.style.display="none";});}
+ function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".menu button[data-label]").forEach(b=>{const label=labels[b.dataset.page]||b.textContent.replace(/^\s*[^A-Za-zÀ-ÿ]+/,"").trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false){b.hidden=true;b.setAttribute("aria-hidden","true");b.style.setProperty("display","none","important");b.dataset.permissionBlocked="true";}});}
  function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
  window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
 })();
