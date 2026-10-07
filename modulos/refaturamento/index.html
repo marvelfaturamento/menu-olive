@@ -475,8 +475,7 @@ create table if not exists manual (
 </div>
 <script id="marvel-submenu-permissions">
 (function(){
- const labels=undefined;
- function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".menu button[data-label]").forEach(b=>{const label=labels[b.dataset.page]||b.textContent.replace(/^\s*[^A-Za-zÀ-ÿ]+/,"").trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false){b.hidden=true;b.setAttribute("aria-hidden","true");b.style.setProperty("display","none","important");b.dataset.permissionBlocked="true";}});}
+ function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".menu button[data-label]").forEach(b=>{const label=b.getAttribute("data-label")||b.textContent.trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false){b.hidden=true;b.setAttribute("aria-hidden","true");b.style.setProperty("display","none","important");b.dataset.permissionBlocked="true";}});}
  function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
  window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
 })();
