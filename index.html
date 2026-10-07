@@ -1413,14 +1413,16 @@
     }
 
     const ADMIN_STRUCTURE = {
-      dados:{label:"Passar Dados",subs:["Dados","Rateio"]},
-      instrutivo:{label:"Instrutivo",subs:["Nacional","Comex","Complementos"]},
-      refaturamento:{label:"Refaturamento",subs:["Resumo","Análises","Cadastro Manual","Performance Usuários","Config"]},
-      faturamento:{label:"Faturamento",subs:["Painel","Metas","Config"]},
-      painel902:{label:"Painel 902",subs:["Painel Ativo","Em Aduana","Alertas","Faturar","Finalizados","Config"]},
-      agrupaPdf:{label:"Agrupa/remove PDF",subs:["Agrupar PDF","Remover páginas"]},
-      leitor:{label:"Leitor Scanner",subs:["Leitor","Chaves","Ferramentas"]},
-      assistenteCiot:{label:"Assistente CIOT",subs:["Leitura CT-e","Agrupamento","Resumo CIOT"]}
+      inicio:{label:"Início",subs:[]},
+      dados:{label:"Passar Dados",subs:["Painel de Dados","Rateio de Faturas"]},
+      instrutivo:{label:"Instrutivo",subs:["Instrutivo Nacional","Instrutivo Comex","Complementos"]},
+      refaturamento:{label:"Refaturamento",subs:["Dashboard","Registros","Conciliação","Análise de Motivos","Análise de Usuários","Performance Usuários","Performance Anual","Análise de Clientes","Análise por Setor","Análise Anual","Cadastro Manual","Configuração"]},
+      faturamento:{label:"Faturamento",subs:["Dashboard Real","Dashboard Operacional","Diário","Gráficos","Gráfico anual","Config"]},
+      painel902:{label:"Painel 902",subs:["Painel Ativo","Ag nota","Aduana","Clientes alerta nacional","Clientes alerta internacional impo","Clientes alerta internacional expo","Finalizados","Configurações"]},
+      agrupaPdf:{label:"Agrupa/remove PDF",subs:["Agrupar documentos do mesmo conjunto","Agrupar documentos geral","Separar PDF","Remover páginas"]},
+      leitor:{label:"Leitor Scanner",subs:["Ler PDF","Ler Imagem","Colar Print","Ler TXT","Ler XML NF-e","Scanner"]},
+      assistenteCiot:{label:"Assistente CIOT",subs:["Importar","Agrupamento","Resumo","Exportar CSV"]},
+      config:{label:"Config",subs:["Usuários e Acessos"]}
     };
     function esc(v){return String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
     async function abrirAdminUsuarios(){
