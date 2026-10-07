@@ -296,4 +296,10 @@ button:disabled{opacity:.55!important;cursor:wait!important}
 })();
 </script>
 
-</body></html>
+<script id="marvel-submenu-permissions">
+(function(){
+ function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".side .navbtn[data-title]").forEach(b=>{const label=b.getAttribute("data-title")||b.textContent.trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false)b.style.display="none";});}
+ function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
+ window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
+})();
+</script></body></html>
