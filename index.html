@@ -1443,7 +1443,11 @@
       root.innerHTML=(data.users||[]).map(u=>{
         const rows=Object.entries(ADMIN_STRUCTURE).map(([k,m])=>{
           const allowed=(u.modules?.[k]||"bloqueado")!=="bloqueado";
-          const subs=(m.subs||[]).map(s=>'<label class="perm-check"><input type="checkbox" data-sub="'+esc(s)+'" '+(allowed?'checked':'')+'>'+esc(s)+'</label>').join("");
+          const savedPerms=u.permissions?.[k]||{};
+          const subs=(m.subs||[]).map(s=>{
+            const subAllowed=Object.prototype.hasOwnProperty.call(savedPerms,s)?savedPerms[s]:allowed;
+            return '<label class="perm-check"><input type="checkbox" data-sub="'+esc(s)+'" '+(subAllowed?'checked':'')+'>'+esc(s)+'</label>';
+          }).join("");
           return '<div class="perm-row"><div class="perm-main"><label class="perm-check"><input type="checkbox" data-mod="'+k+'" '+(allowed?'checked':'')+' onchange="toggleModuloPerm(this)">'+m.label+'</label></div><div class="perm-subs">'+subs+'</div></div>';
         }).join("");
         return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><button class="admin-save" onclick="salvarAcessoUsuario(this)">Salvar</button></div><div class="perm-grid">'+rows+'</div></div>';
