@@ -2518,12 +2518,22 @@ function renderAnnualView(){
 
 
 function renderPerformanceView(){
-  const rows = aggregateProd().filter(x => x.totalDocs > 0 || x.erros > 0);
+  const isOperador = String(perfil).toLowerCase() !== 'admin';
+  const usuarioAtual = prodNorm(usuarioRef || usuario || '');
+  const allRows = aggregateProd().filter(x => x.totalDocs > 0 || x.erros > 0);
+  const rows = isOperador ? allRows.filter(x => prodNorm(x.usuario) === usuarioAtual) : allRows;
   const select = document.getElementById('performanceUserSelect');
   if(select){
     const cur = select.value || 'TODOS';
-    select.innerHTML = '<option value="TODOS">Todos</option>' + rows.map(x => `<option value="${esc(x.usuario)}">${esc(x.usuario)}</option>`).join('');
-    select.value = rows.some(x => x.usuario === cur) || cur === 'TODOS' ? cur : 'TODOS';
+    if(isOperador){
+      select.innerHTML = rows.map(x => `<option value="${esc(x.usuario)}">${esc(x.usuario)}</option>`).join('');
+      if(rows[0]) select.value = rows[0].usuario;
+      select.disabled = true;
+    }else{
+      select.disabled = false;
+      select.innerHTML = '<option value="TODOS">Todos</option>' + rows.map(x => `<option value="${esc(x.usuario)}">${esc(x.usuario)}</option>`).join('');
+      select.value = rows.some(x => x.usuario === cur) || cur === 'TODOS' ? cur : 'TODOS';
+    }
   }
   const selectedUser = select?.value || 'TODOS';
   const selected = selectedUser === 'TODOS' ? null : (rows.find(x => x.usuario === selectedUser) || null);
@@ -5230,7 +5240,9 @@ function __renderPerfAnualRankingChart(rows){
 }
 function renderPerformanceAnualView(){
   const data = __perfAnualAggregate();
-  const rows = data.rows;
+  const isOperador = String(perfil).toLowerCase() !== 'admin';
+  const usuarioAtual = prodNorm(usuarioRef || usuario || '');
+  const rows = isOperador ? data.rows.filter(r => prodNorm(r.usuario) === usuarioAtual) : data.rows;
   const totalDocs = rows.reduce((s,r)=>s+Number(r.baseDocs||0),0);
   const totalErros = rows.reduce((s,r)=>s+Number(r.erros||0),0);
   const impacto = rows.reduce((s,r)=>s+Number(r.impacto||0),0);
@@ -5250,8 +5262,15 @@ function renderPerformanceAnualView(){
   if(select){
     const cur = select.value || 'TODOS';
     const sortedUsers = rows.slice().sort((a,b)=>a.usuario.localeCompare(b.usuario));
-    select.innerHTML = '<option value="TODOS">Todos</option>' + sortedUsers.map(r => `<option value="${esc(r.usuario)}">${esc(r.usuario)}</option>`).join('');
-    select.value = cur === 'TODOS' || rows.some(r => r.usuario === cur) ? cur : 'TODOS';
+    if(isOperador){
+      select.innerHTML = sortedUsers.map(r => `<option value="${esc(r.usuario)}">${esc(r.usuario)}</option>`).join('');
+      if(sortedUsers[0]) select.value = sortedUsers[0].usuario;
+      select.disabled = true;
+    }else{
+      select.disabled = false;
+      select.innerHTML = '<option value="TODOS">Todos</option>' + sortedUsers.map(r => `<option value="${esc(r.usuario)}">${esc(r.usuario)}</option>`).join('');
+      select.value = cur === 'TODOS' || rows.some(r => r.usuario === cur) ? cur : 'TODOS';
+    }
   }
   const selected = select?.value || 'TODOS';
   const baseRows = selected === 'TODOS' ? rows : rows.filter(r => r.usuario === selected);
