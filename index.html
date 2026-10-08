@@ -796,7 +796,11 @@
   .admin-user.collapsed .perm-grid{display:none}
   .admin-user.collapsed{padding-bottom:12px}
   #adminUsersList .admin-user{transition:.15s ease}
-  .admin-save-compact{width:auto!important;min-width:92px!important;padding:8px 18px!important;flex:none!important}\n  .user-box-bottom{margin-top:auto}\n  .user-config-btn{margin-left:auto;width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.10);background:#13213d;color:#fff;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}\n  .user-config-btn:hover{background:#1a2d52}\n</style>
+  .admin-save-compact{width:auto!important;min-width:92px!important;padding:8px 18px!important;flex:none!important}\n  .user-box-bottom{margin-top:auto}\n  .user-config-btn{margin-left:auto;width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.10);background:#13213d;color:#fff;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}\n  .user-config-btn:hover{background:#1a2d52}
+  #btnAdminUsers{width:42px;height:42px;min-width:42px;flex-shrink:0;color:#dceaff;border:1px solid #31599a;background:linear-gradient(145deg,#1b3766,#102342);box-shadow:0 2px 10px #0003}
+  #btnAdminUsers svg{width:25px;height:25px}
+  #btnAdminUsers:hover{background:#23518d;border-color:#66aaff}
+  #btnAdminUsers[hidden]{display:none!important}\n</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -848,7 +852,7 @@
           <strong id="usuarioLogado">Tiago</strong>
           <span>Perfil: <span id="perfilLogado">admin</span></span>
         </div>
-        <button id="btnAdminUsers" class="user-config-btn admin-only" style="display:none" type="button" title="Usuários e Acessos" onclick="abrirAdminUsuarios()">⚙️</button>
+        <button id="btnAdminUsers" class="user-config-btn admin-only" style="display:none" type="button" title="Usuários e Acessos" onclick="abrirAdminUsuarios()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.88 1.88-.06-.06A1.7 1.7 0 0 0 16 18.4a1.7 1.7 0 0 0-1 1.55V20h-6v-.05A1.7 1.7 0 0 0 8 18.4a1.7 1.7 0 0 0-1.88.34l-.06.06-1.88-1.88.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3.05 14H3v-4h.05A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88L4.2 7.06l1.88-1.88.06.06A1.7 1.7 0 0 0 8 5.6 1.7 1.7 0 0 0 9 4.05V4h6v.05A1.7 1.7 0 0 0 16 5.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 1.88 1.88-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21v4h-.05A1.7 1.7 0 0 0 19.4 15Z"/></svg></button>
       </div>
       <button class="logout-btn" id="btnLogout" type="button">Sair</button>
     </div>
@@ -1172,7 +1176,7 @@
         if (nome === "adminUsers") return;
         btn.style.display = podeAbrirModulo(nome) ? "" : "none";
       });
-      document.querySelectorAll(".admin-only").forEach(el => el.style.display = getSessaoMenu()?.perfil === "admin" ? "" : "none");
+      document.querySelectorAll(".admin-only").forEach(el => { const isAdmin = getSessaoMenu()?.perfil === "admin"; el.hidden = !isAdmin; el.style.setProperty("display", isAdmin ? "inline-flex" : "none", "important"); });
       document.querySelectorAll(".module-card").forEach(card => {
         const onclick = card.getAttribute("onclick") || "";
         const m = onclick.match(/abrirSistema\(['"]([^'"]+)['"]\)/);
