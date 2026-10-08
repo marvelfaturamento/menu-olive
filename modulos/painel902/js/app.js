@@ -476,7 +476,7 @@ async function fetchAllRows(table, columns='*', orderColumn=null, ascending=true
     // Sem um segundo critério único, páginas diferentes podem repetir/pular linhas.
     if(orderColumn){
       query = query.order(orderColumn, { ascending, nullsFirst:false });
-      if(orderColumn !== 'id') query = query.order('id', { ascending:true });
+      if(orderColumn !== 'id' && table !== 'configuracoes_902') query = query.order('id', { ascending:true });
     }else{
       query = query.order('id', { ascending:true });
     }
