@@ -797,9 +797,10 @@
   .admin-user.collapsed{padding-bottom:12px}
   #adminUsersList .admin-user{transition:.15s ease}
   .admin-save-compact{width:auto!important;min-width:92px!important;padding:8px 18px!important;flex:none!important}\n  .user-box-bottom{margin-top:auto}\n  .user-config-btn{margin-left:auto;width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.10);background:#13213d;color:#fff;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}\n  .user-config-btn:hover{background:#1a2d52}
-  #btnAdminUsers{width:42px;height:42px;min-width:42px;flex-shrink:0;color:#dceaff;border:1px solid #31599a;background:linear-gradient(145deg,#1b3766,#102342);box-shadow:0 2px 10px #0003}
-  #btnAdminUsers svg{width:25px;height:25px}
-  #btnAdminUsers:hover{background:#23518d;border-color:#66aaff}
+  #btnAdminUsers{margin-left:auto!important;width:36px;height:36px;min-width:36px;flex-shrink:0;color:#a9c9ff;border:0!important;outline:0!important;border-radius:50%;background:transparent!important;box-shadow:none!important;padding:5px;cursor:pointer;transition:color .2s,transform .2s}
+  #btnAdminUsers svg{width:28px;height:28px;filter:drop-shadow(0 0 3px #4b89ed66)}
+  #btnAdminUsers:hover{color:#fff;transform:rotate(25deg);background:transparent!important}
+  #btnAdminUsers:focus-visible{outline:2px solid #5d9cff!important;outline-offset:2px}
   #btnAdminUsers[hidden]{display:none!important}\n</style>
 </head>
 <body>
@@ -852,7 +853,7 @@
           <strong id="usuarioLogado">Tiago</strong>
           <span>Perfil: <span id="perfilLogado">admin</span></span>
         </div>
-        <button id="btnAdminUsers" class="user-config-btn admin-only" style="display:none" type="button" title="Usuários e Acessos" onclick="abrirAdminUsuarios()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.88 1.88-.06-.06A1.7 1.7 0 0 0 16 18.4a1.7 1.7 0 0 0-1 1.55V20h-6v-.05A1.7 1.7 0 0 0 8 18.4a1.7 1.7 0 0 0-1.88.34l-.06.06-1.88-1.88.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3.05 14H3v-4h.05A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88L4.2 7.06l1.88-1.88.06.06A1.7 1.7 0 0 0 8 5.6 1.7 1.7 0 0 0 9 4.05V4h6v.05A1.7 1.7 0 0 0 16 5.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 1.88 1.88-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21v4h-.05A1.7 1.7 0 0 0 19.4 15Z"/></svg></button>
+        <button id="btnAdminUsers" class="user-config-btn admin-only" style="display:none" type="button" title="Usuários e Acessos" onclick="abrirAdminUsuarios()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.67 3.7a2 2 0 0 1 4.66 0l.32 1.16c.42.16.82.39 1.19.68l1.18-.3a2 2 0 0 1 2.33 4.04l-.86.85c.07.45.07.91 0 1.36l.86.85a2 2 0 0 1-2.33 4.04l-1.18-.3c-.37.29-.77.52-1.19.68l-.32 1.16a2 2 0 0 1-4.66 0l-.32-1.16a7 7 0 0 1-1.19-.68l-1.18.3a2 2 0 0 1-2.33-4.04l.86-.85a7 7 0 0 1 0-1.36l-.86-.85a2 2 0 0 1 2.33-4.04l1.18.3c.37-.29.77-.52 1.19-.68l.32-1.16Z" transform="translate(0 1.1)"/><circle cx="12" cy="11.9" r="3.1"/></svg></button>
       </div>
       <button class="logout-btn" id="btnLogout" type="button">Sair</button>
     </div>
