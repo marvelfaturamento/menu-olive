@@ -2355,15 +2355,8 @@ function renderDashboardCharts(){
 }
 
 function aggregateReducedQuantities(){
-  const sectors = allSectorNames();
-  const counts = Object.fromEntries(sectors.map(s => [s, 0]));
-  for(const r of [...state.refaturados, ...state.substitutos]){
-    const parts = parseReducedSectors(r.reduzido);
-    for(const p of parts){
-      if(p in counts) counts[p] += 1;
-    }
-  }
-  return sectors.map(setor => ({ setor, qty: counts[setor] || 0 }));
+  // Mesma base dos gráficos de refaturados e substitutos por setor.
+  return setoresAggregate().map(({setor, refQty, subQty}) => ({setor, qty: refQty + subQty}));
 }
 
 function setoresAggregate(){
