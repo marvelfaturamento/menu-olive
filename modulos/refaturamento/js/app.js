@@ -3009,7 +3009,13 @@ async function bootstrap(){
   connectSupabase();
   await loadManualFromSupabase();
   renderAll();
-  await fetchRemoteMonthKeys();
+  // A opção vazia "Último importado" representa o snapshot da sessão,
+  // que está vazio após recarregar. Carregar efetivamente o mês remoto.
+  const loaded = await loadLatestMonthFromSupabase();
+  if(!loaded) {
+    await fetchRemoteMonthKeys();
+    refreshMonthViewSelect();
+  }
 }
 window.addEventListener('DOMContentLoaded', function(){
   bindMenu();
