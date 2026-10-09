@@ -168,24 +168,28 @@
 </div>
 <div class="card" style="margin-top:16px;"><h3>Tabela de clientes</h3><div class="table-wrap"><table><thead><tr><th>Cliente agrupado</th><th>Qtd.</th><th>Valor refaturado</th><th>Principal motivo</th><th>Detalhes</th></tr></thead><tbody id="tbodyClientes"></tbody></table></div></div>
 </section>
-<section class="view" id="setores">
-<div class="grid grid-2">
+<section class="view" id="setores"><div class="setor-mini-tabs" role="tablist" aria-label="Tipos de análise por setor" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px">
+<button type="button" class="setor-mini active" data-setor-tab="documentos" aria-selected="true"><strong>▤ Documentos</strong><small>Refaturados e substitutos</small></button>
+<button type="button" class="setor-mini" data-setor-tab="valores" aria-selected="false"><strong>＄ Valores</strong><small>Impacto financeiro</small></button>
+<button type="button" class="setor-mini" data-setor-tab="totais" aria-selected="false"><strong>▥ Totais</strong><small>Consolidado por setor</small></button>
+<button type="button" class="setor-mini" data-setor-tab="motivos" aria-selected="false"><strong>⌕ Motivos</strong><small>Causas e documentos</small></button>
+</div><div data-setor-panel="documentos"><div class="grid grid-2" style="margin-top:16px;">
+<div class="card"><h3>Quantitativo refaturado por setor</h3><div class="sub">Total de linhas refaturadas por setor.</div><div class="chart-box"><canvas height="0" id="chartRefQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+<div class="card"><h3>Quantitativo substituto por setor</h3><div class="sub">Total de linhas substitutas por setor.</div><div class="chart-box"><canvas height="0" id="chartSubQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
+</div>
+</div><div data-setor-panel="valores" hidden><div class="grid grid-2">
 <div class="card"><h3>Setor x valor refaturado</h3><div class="sub">Soma de frete_substituto por setor do reduzido.</div><div class="chart-box"><canvas height="0" id="chartSetorRef" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 <div class="card"><h3>Setor x valor substituto</h3><div class="sub">Soma de frete_refaturado por setor do reduzido.</div><div class="chart-box"><canvas height="0" id="chartSetorSub" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 </div>
 <div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Setor x valor total</h3><div class="sub">Refaturado + substituto por setor.</div><div class="chart-box"><canvas height="0" id="chartSetorTotal" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 </div>
-<div class="card" style="margin-top:16px;"><h3>Tabela por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th><th>Detalhes</th></tr></thead><tbody id="tbodySetores"></tbody></table></div></div>
-<div class="grid grid-2" style="margin-top:16px;">
-<div class="card"><h3>Quantitativo refaturado por setor</h3><div class="sub">Total de linhas refaturadas por setor.</div><div class="chart-box"><canvas height="0" id="chartRefQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
-<div class="card"><h3>Quantitativo substituto por setor</h3><div class="sub">Total de linhas substitutas por setor.</div><div class="chart-box"><canvas height="0" id="chartSubQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
-</div>
+</div><div data-setor-panel="totais" hidden><div class="card" style="margin-top:16px;"><h3>Tabela por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th><th>Detalhes</th></tr></thead><tbody id="tbodySetores"></tbody></table></div></div>
 <div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Reduzido quantitativo dos setores</h3><div class="sub">Quantidade por setor no campo reduzido.</div><div class="chart-box"><canvas height="0" id="chartReduzidoQtdSetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 <div class="card"><h3>Observação</h3><div class="sub">Quando um registro tiver dois setores no campo reduzido, o valor do substituto é dividido igualmente entre eles.</div><div class="box-info">Exemplo: FATURAMENTO/COMERCIAL com valor 5.113,64 vira 2.556,82 para FATURAMENTO e 2.556,82 para COMERCIAL.</div></div>
 </div>
-<div class="card" style="margin-top:16px;">
+</div><div data-setor-panel="motivos" hidden><div class="card" style="margin-top:16px;">
 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
 <div>
 <h3>Motivos por setor</h3>
@@ -213,7 +217,7 @@
 </table>
 </div>
 </div>
-</section>
+</div></section>
 <section class="view" id="performance">
 <div class="grid grid-2">
 <div class="card">
@@ -569,4 +573,20 @@ create table if not exists manual (
  }
  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,700));
 })();
+</script><style>
+#setores .setor-mini{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;padding:13px 16px;border:1px solid #354b70;border-radius:11px;background:#15243d;color:#eaf2ff;cursor:pointer;min-height:72px}
+#setores .setor-mini small{color:#9eafc9;font-size:12px}
+#setores .setor-mini.active{border:2px solid #5b95ed;background:#203b64}
+#setores [data-setor-panel][hidden]{display:none!important}
+</style><script>
+document.addEventListener('DOMContentLoaded',()=>{
+ const root=document.getElementById('setores');if(!root)return;
+ root.querySelectorAll('[data-setor-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+  const id=btn.dataset.setorTab;
+  root.querySelectorAll('[data-setor-tab]').forEach(b=>{const selected=b===btn;b.classList.toggle('active',selected);b.setAttribute('aria-selected',String(selected));});
+  root.querySelectorAll('[data-setor-panel]').forEach(p=>{p.hidden=p.dataset.setorPanel!==id;});
+  // Chart.js ajusta as dimensões após o painel se tornar visível.
+  requestAnimationFrame(()=>{if(window.Chart&&Chart.instances)Object.values(Chart.instances).forEach(ch=>{if(root.contains(ch.canvas)&&ch.canvas.offsetParent!==null)ch.resize();});});
+ }));
+});
 </script></body></html>
