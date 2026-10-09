@@ -554,7 +554,7 @@ async function loadMonthFromSupabase(monthKey){
   const correctionsMap = new Map((corrections||[]).map(x=>[String(x.documento||'').trim(),x]));
   for(const row of (refData||[])){
     const fix=correctionsMap.get(String(row.documento||'').trim());
-    if(fix){if(fix.setor!==null && fix.setor!==undefined){row.setor=fix.setor;row.reduzido=fix.setor;}if(fix.operador!==null && fix.operador!==undefined)row.operador=fix.operador;}
+    if(fix){if(fix.setor!==null && fix.setor!==undefined)row.setor=fix.setor;if(fix.operador!==null && fix.operador!==undefined)row.operador=fix.operador;}
   }
   const allRef = (refData || []).slice().sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
   const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || a.usuario || '').localeCompare(String(b.operador || b.usuario || '')));
@@ -3443,20 +3443,6 @@ async function loadMonthFromSupabase(monthKey){
   ]);
   if(refError){ document.getElementById('syncStatus').textContent = 'Erro ao carregar refaturamento: ' + refError.message; return false; }
   if(prodError){ document.getElementById('syncStatus').textContent = 'Erro ao carregar produtividade: ' + prodError.message; return false; }
-  // Aplicar a camada persistente de correções antes de construir qualquer gráfico.
-  const {data: savedCorrections, error: savedCorrectionsError} = await state.supabase
-    .from('refaturamento_correcoes').select('documento,setor,operador');
-  if(savedCorrectionsError) console.warn('Falha ao consultar correções:', savedCorrectionsError);
-  const savedMap = new Map((savedCorrections || []).map(c => [String(c.documento || '').trim(), c]));
-  for(const row of (refData || [])){
-    const fix = savedMap.get(String(row.documento || '').trim());
-    if(!fix) continue;
-    if(fix.setor != null && String(fix.setor).trim()){
-      row.setor = fix.setor;
-      row.reduzido = fix.setor;
-    }
-    if(fix.operador != null && String(fix.operador).trim()) row.operador = fix.operador;
-  }
   const allRef = refData || [];
   const refRows = allRef.filter(r => r.tipo === 'refaturado');
   const subRows = allRef.filter(r => r.tipo === 'substituto');
@@ -5655,21 +5641,7 @@ function __perfAnualAggregate(){
   }
 
   function v33BuildSnapshotFromSupabase(refData, prodData, monthKey){
-    // Aplicar a camada persistente de correções antes de construir qualquer gráfico.
-  const {data: savedCorrections, error: savedCorrectionsError} = await state.supabase
-    .from('refaturamento_correcoes').select('documento,setor,operador');
-  if(savedCorrectionsError) console.warn('Falha ao consultar correções:', savedCorrectionsError);
-  const savedMap = new Map((savedCorrections || []).map(c => [String(c.documento || '').trim(), c]));
-  for(const row of (refData || [])){
-    const fix = savedMap.get(String(row.documento || '').trim());
-    if(!fix) continue;
-    if(fix.setor != null && String(fix.setor).trim()){
-      row.setor = fix.setor;
-      row.reduzido = fix.setor;
-    }
-    if(fix.operador != null && String(fix.operador).trim()) row.operador = fix.operador;
-  }
-  const allRef = (refData || []).slice().sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
+    const allRef = (refData || []).slice().sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
     const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || a.usuario || '').localeCompare(String(b.operador || b.usuario || '')));
     const refRows = allRef.filter(r => r.tipo === 'refaturado');
     const subRows = allRef.filter(r => r.tipo === 'substituto');
