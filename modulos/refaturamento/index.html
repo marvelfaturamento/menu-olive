@@ -488,7 +488,28 @@ create table if not exists manual (
   const view=document.getElementById('config');if(!view||document.getElementById('pendRef'))return;
   const panel=document.createElement('section');panel.id='pendRef';panel.className='pend-ref';
   panel.innerHTML='<h3>🔎 Pendências e correções de CT-e</h3><p>Localize um documento e corrija setor ou operador. Alterações permanecem após importar novamente.</p><div class="pend-actions"><input id="pendSearch" placeholder="CT-e ou documento"><select id="pendType"><option value="pend">Somente pendentes</option><option value="all">Todos os documentos</option></select><button id="pendRefresh">Consultar</button><strong id="pendCount"></strong></div><p id="pendStatus"><small>Carregue os registros para consultar.</small></p><div style="max-height:400px;overflow:auto"><table><thead><tr><th>Documento</th><th>Setor</th><th>Operador</th><th>Ação</th></tr></thead><tbody id="pendRows"></tbody></table></div>';
-  view.insertBefore(panel,view.firstChild);
+  panel.classList.add('config-panel-hidden');
+  view.appendChild(panel);
+  function attachCard(){
+    const hub=view.querySelector('.config-hub');
+    if(!hub)return false;
+    if(hub.querySelector('[data-pend-card]'))return true;
+    const card=document.createElement('div');
+    card.className='config-hub-card';card.dataset.pendCard='1';
+    card.innerHTML='<strong>🔎 Pendências e correções</strong><span>Localizar CT-e e ajustar setor ou operador.</span>';
+    hub.appendChild(card);
+    card.onclick=()=>{
+      hub.style.display='none';
+      view.querySelectorAll(':scope > .grid, :scope > .card, :scope > .safe-delete-panel, :scope > #pendRef').forEach(x=>x.classList.add('config-panel-hidden'));
+      panel.classList.remove('config-panel-hidden');
+    };
+    const back=document.createElement('div');back.className='config-section-head';
+    back.innerHTML='<button class="btn secondary">← Configurações</button><strong>Pendências e correções de CT-e</strong>';
+    back.querySelector('button').onclick=()=>{panel.classList.add('config-panel-hidden');hub.style.display='grid';};
+    panel.prepend(back);return true;
+  }
+  if(!attachCard()){let tries=0;const timer=setInterval(()=>{if(attachCard()||++tries>40)clearInterval(timer);},250);}
+
   const $=id=>document.getElementById(id);
   let rows=[];
   async function load(){
