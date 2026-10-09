@@ -548,6 +548,14 @@ async function loadMonthFromSupabase(monthKey){
     return false;
   }
 
+  // Correções manuais persistidas separadamente, preservadas nas reimportações.
+  const {data: corrections, error: correctionError} = await state.supabase.from('refaturamento_correcoes').select('documento,setor,operador');
+  if(correctionError) console.warn('Correções não carregadas:', correctionError);
+  const correctionsMap = new Map((corrections||[]).map(x=>[String(x.documento||'').trim(),x]));
+  for(const row of (refData||[])){
+    const fix=correctionsMap.get(String(row.documento||'').trim());
+    if(fix){if(fix.setor!==null && fix.setor!==undefined)row.setor=fix.setor;if(fix.operador!==null && fix.operador!==undefined)row.operador=fix.operador;}
+  }
   const allRef = (refData || []).slice().sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
   const allProd = (prodData || []).slice().sort((a,b) => String(a.operador || a.usuario || '').localeCompare(String(b.operador || b.usuario || '')));
   const refRows = allRef.filter(r => r.tipo === 'refaturado');
