@@ -524,7 +524,10 @@ create table if not exists manual (
    const map=new Map((fix||[]).map(x=>[x.documento,x]));
    rows=rows.map(r=>({...r,...Object.fromEntries(Object.entries(map.get(r.documento)||{}).filter(([k,v])=>k!=='documento'&&v!==null))}));
    // Apenas CT-es reais no formato filial-série-número; excluir faturas e chaves SETOR|...
-   rows=rows.filter(r=>/^\\d+-\\d{2}-\\d+$/i.test(String(r.documento||'').trim()));
+   rows=rows.filter(r=>{
+     const doc=String(r.documento||'').trim();
+     return !/^SETOR\\|/i.test(doc) && /(?:^|[^0-9])\\d+-8[01]-\\d+(?:$|[^0-9])/.test(doc);
+   });
 
    render();
   }
