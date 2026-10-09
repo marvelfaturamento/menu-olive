@@ -599,7 +599,17 @@ async function loadMonthFromSupabase(monthKey){
     originalTail: (tailDigits(r.documento_original || r.original_doc || '') || '').replace(/^0+/,'') || '0',
     debit: 0
   }));
-  state.setores = setorRows.map(r => ({
+  // A linha de setor tem identificador sintético (SETOR|...), diferente do CT-e.
+  // Vincular correções ao CT-e real referenciado, sem alterar registros não relacionados.
+  const correctedSectorRows = setorRows.map(r => {
+    const reference = String(r.documento_original || r.original_doc || '').trim();
+    const direct = correctionsMap.get(reference);
+    const matches = [...reference.matchAll(/(?:^|[^0-9])(\\d+)-(80|81)-(\\d+)(?=$|[^0-9])/g)]
+      .map(m => correctionsMap.get(m[1]+'-'+m[2]+'-'+m[3])).filter(Boolean);
+    const fix = direct || (matches.length === 1 ? matches[0] : null);
+    return fix ? {...r, setor: fix.setor ?? r.setor, operador: fix.operador ?? r.operador} : r;
+  });
+  state.setores = correctedSectorRows.map(r => ({
     data: (String(r.documento || '').split('|')[1] || ''),
     docto: (String(r.documento || '').split('|')[2] || ''),
     cliente: r.cliente || '',
