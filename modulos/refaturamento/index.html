@@ -523,6 +523,9 @@ create table if not exists manual (
    if(fixErr){$('pendStatus').textContent='Erro ao recuperar correções: '+fixErr.message;return;}
    const map=new Map((fix||[]).map(x=>[x.documento,x]));
    rows=rows.map(r=>({...r,...Object.fromEntries(Object.entries(map.get(r.documento)||{}).filter(([k,v])=>k!=='documento'&&v!==null))}));
+   // Apenas CT-es reais no formato filial-série-número; excluir faturas e chaves SETOR|...
+   rows=rows.filter(r=>/^\\d+-\\d{2}-\\d+$/i.test(String(r.documento||'').trim()));
+
    render();
   }
   function render(){
