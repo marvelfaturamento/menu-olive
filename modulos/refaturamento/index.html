@@ -516,8 +516,10 @@ create table if not exists manual (
    if(typeof ensureSupabaseConnected!=='function'||!ensureSupabaseConnected()){$('pendStatus').textContent='Supabase indisponível.';return;}
    $('pendStatus').textContent='Carregando...';rows=[];
    for(let start=0;start<100000;start+=750){
-    const {data,error}=await state.supabase.from('refaturamento_importado').select('documento,setor,operador,updated_at').order('documento').range(start,start+749);
-    if(error){$('pendStatus').textContent='Erro: '+error.message;return;}rows.push(...(data||[]));if(!data||data.length<750)break;
+    const {data,error}=await state.supabase.from('refaturamento_importado').select('documento,setor,operador').or('documento.like.%-80-%,documento.like.%-81-%').order('documento').range(start,start+749);
+    if(error){$('pendStatus').textContent='Erro: '+error.message;return;}
+    rows.push(...(data||[]));
+    if(!data||data.length<750)break;
    }
    const {data:fix,error:fixErr}=await state.supabase.from('refaturamento_correcoes').select('documento,setor,operador');
    if(fixErr){$('pendStatus').textContent='Erro ao recuperar correções: '+fixErr.message;return;}
