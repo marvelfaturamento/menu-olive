@@ -479,4 +479,52 @@ create table if not exists manual (
  function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
  window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
 })();
+</script><script>
+(function(){
+ const style=document.createElement('style');style.textContent='.pend-ref{margin:14px 0;padding:18px;background:#111f38;border:1px solid #304362;border-radius:14px;color:#eaf1ff}.pend-ref input,.pend-ref select{background:#0a1428;color:#fff;border:1px solid #354b70;border-radius:7px;padding:9px;max-width:100%}.pend-ref button{background:#2462cf;color:white;border:0;border-radius:7px;padding:9px 15px;cursor:pointer}.pend-ref table{width:100%;border-collapse:collapse}.pend-ref td,.pend-ref th{padding:9px;border-bottom:1px solid #304362;text-align:left}.pend-ref .pend-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.pend-ref small{color:#9db3d3}';document.head.appendChild(style);
+ function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ function empty(s){return !String(s||'').trim()||/^(não identificado|nao identificado|pendente|sem setor|sem usuario|não informado)$/i.test(String(s).trim());}
+ function init(){
+  const view=document.getElementById('config');if(!view||document.getElementById('pendRef'))return;
+  const panel=document.createElement('section');panel.id='pendRef';panel.className='pend-ref';
+  panel.innerHTML='<h3>🔎 Pendências e correções de CT-e</h3><p>Localize um documento e corrija setor ou operador. Alterações permanecem após importar novamente.</p><div class="pend-actions"><input id="pendSearch" placeholder="CT-e ou documento"><select id="pendType"><option value="pend">Somente pendentes</option><option value="all">Todos os documentos</option></select><button id="pendRefresh">Consultar</button><strong id="pendCount"></strong></div><p id="pendStatus"><small>Carregue os registros para consultar.</small></p><div style="max-height:400px;overflow:auto"><table><thead><tr><th>Documento</th><th>Setor</th><th>Operador</th><th>Ação</th></tr></thead><tbody id="pendRows"></tbody></table></div>';
+  view.insertBefore(panel,view.firstChild);
+  const $=id=>document.getElementById(id);
+  let rows=[];
+  async function load(){
+   if(typeof ensureSupabaseConnected!=='function'||!ensureSupabaseConnected()){$('pendStatus').textContent='Supabase indisponível.';return;}
+   $('pendStatus').textContent='Carregando...';rows=[];
+   for(let start=0;start<100000;start+=750){
+    const {data,error}=await state.supabase.from('refaturamento_importado').select('documento,setor,operador,updated_at').order('documento').range(start,start+749);
+    if(error){$('pendStatus').textContent='Erro: '+error.message;return;}rows.push(...(data||[]));if(!data||data.length<750)break;
+   }
+   const {data:fix,error:fixErr}=await state.supabase.from('refaturamento_correcoes').select('documento,setor,operador');
+   if(fixErr){$('pendStatus').textContent='Erro ao recuperar correções: '+fixErr.message;return;}
+   const map=new Map((fix||[]).map(x=>[x.documento,x]));
+   rows=rows.map(r=>({...r,...Object.fromEntries(Object.entries(map.get(r.documento)||{}).filter(([k,v])=>k!=='documento'&&v!==null))}));
+   render();
+  }
+  function render(){
+   const query=$('pendSearch').value.trim().toLowerCase(),pending=rows.filter(r=>empty(r.setor)||empty(r.operador));
+   const visible=rows.filter(r=>($('pendType').value==='all'||empty(r.setor)||empty(r.operador))&&(!query||String(r.documento).toLowerCase().includes(query))).slice(0,150);
+   $('pendCount').textContent=pending.length+' pendência(s) / '+rows.length+' registro(s)';
+   $('pendStatus').textContent=visible.length?'Exibindo até 150 documentos. Pesquise pelo CT-e para localizar.':'Nenhum documento encontrado.';
+   $('pendRows').innerHTML=visible.map((r,i)=>'<tr><td>'+safe(r.documento)+'</td><td><input data-doc="'+safe(r.documento)+'" data-field="setor" value="'+safe(r.setor)+'" placeholder="Setor"></td><td><input data-doc="'+safe(r.documento)+'" data-field="operador" value="'+safe(r.operador)+'" placeholder="Operador"></td><td><button data-save="'+safe(r.documento)+'">Salvar</button></td></tr>').join('');
+  }
+  panel.addEventListener('click',async e=>{
+   const btn=e.target.closest('[data-save]');if(!btn)return;
+   const doc=btn.dataset.save,inputs=[...panel.querySelectorAll('input[data-doc]')].filter(x=>x.dataset.doc===doc);
+   const payload={documento:doc,atualizado_por:new URLSearchParams(location.search).get('usuario')||'operador',atualizado_em:new Date().toISOString()};
+   inputs.forEach(x=>payload[x.dataset.field]=x.value.trim());
+   btn.disabled=true;btn.textContent='Salvando...';
+   const {error}=await state.supabase.from('refaturamento_correcoes').upsert(payload,{onConflict:'documento'});
+   if(error){alert('Erro ao salvar: '+error.message);btn.disabled=false;btn.textContent='Salvar';return;}
+   $('pendStatus').textContent='Correção salva. Recarregue o mês consultado para atualizar os gráficos.';
+   await load();
+  });
+  $('pendRefresh').onclick=load;$('pendSearch').oninput=render;$('pendType').onchange=render;
+  load();
+ }
+ document.addEventListener('DOMContentLoaded',()=>setTimeout(init,700));
+})();
 </script></body></html>
