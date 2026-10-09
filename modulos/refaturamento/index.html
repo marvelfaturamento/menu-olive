@@ -181,13 +181,13 @@
 <div class="card"><h3>Setor x valor refaturado</h3><div class="sub">Soma de frete_substituto por setor do reduzido.</div><div class="chart-box"><canvas height="0" id="chartSetorRef" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 <div class="card"><h3>Setor x valor substituto</h3><div class="sub">Soma de frete_refaturado por setor do reduzido.</div><div class="chart-box"><canvas height="0" id="chartSetorSub" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 </div>
-<div class="grid grid-2" style="margin-top:16px;">
+</div><div data-setor-panel="totais" hidden><div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Setor x valor total</h3><div class="sub">Refaturado + substituto por setor.</div><div class="chart-box"><canvas height="0" id="chartSetorTotal" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 </div>
-</div><div data-setor-panel="totais" hidden><div class="card" style="margin-top:16px;"><h3>Tabela por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th><th>Detalhes</th></tr></thead><tbody id="tbodySetores"></tbody></table></div></div>
+<div class="card" style="margin-top:16px;"><h3>Tabela por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th><th>Detalhes</th></tr></thead><tbody id="tbodySetores"></tbody></table></div></div>
 <div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Reduzido quantitativo dos setores</h3><div class="sub">Quantidade por setor no campo reduzido.</div><div class="chart-box"><canvas height="0" id="chartReduzidoQtdSetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
-<div class="card"><h3>Observação</h3><div class="sub">Quando um registro tiver dois setores no campo reduzido, o valor do substituto é dividido igualmente entre eles.</div><div class="box-info">Exemplo: FATURAMENTO/COMERCIAL com valor 5.113,64 vira 2.556,82 para FATURAMENTO e 2.556,82 para COMERCIAL.</div></div>
+
 </div>
 </div><div data-setor-panel="motivos" hidden><div class="card" style="margin-top:16px;">
 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
