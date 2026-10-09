@@ -1842,15 +1842,12 @@ function renderDashboardCharts(){
 }
 
 function aggregateReducedQuantities(){
-  const sectors = allSectorNames();
-  const counts = Object.fromEntries(sectors.map(s => [s, 0]));
-  for(const r of [...state.refaturados, ...state.substitutos]){
-    const parts = parseReducedSectors(r.reduzido);
-    for(const p of parts){
-      if(p in counts) counts[p] += 1;
-    }
-  }
-  return sectors.map(setor => ({ setor, qty: counts[setor] || 0 }));
+  // Consolidado quantitativo: mesma origem dos dois gráficos de quantidade
+  // acima. Não misturar state.refaturados com state.setores, pois representam
+  // classificações diferentes e geram contagens inconsistentes.
+  return setoresAggregate().map(({setor, refQty, subQty}) => ({
+    setor, qty: refQty + subQty
+  }));
 }
 
 function setoresAggregate(){
