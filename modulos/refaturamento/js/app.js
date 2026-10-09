@@ -4102,7 +4102,19 @@ async function loadMonthFromSupabase(monthKey){
   if(refError){ document.getElementById('syncStatus').textContent = 'Erro ao carregar refaturamento: ' + refError.message; console.error(refError); return false; }
   if(prodError){ document.getElementById('syncStatus').textContent = 'Erro ao carregar produtividade: ' + prodError.message; console.error(prodError); return false; }
 
-  const allRef = __dedupeRemoteRefRowsFinal(refData || []).sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
+  // A consulta mensal efetiva deve respeitar as correções manuais persistidas.
+  const {data: sectorFixes, error: sectorFixError} = await state.supabase
+    .from('refaturamento_correcoes').select('documento,setor,operador');
+  if(sectorFixError) console.warn('Correções não disponíveis:', sectorFixError);
+  const sectorFixMap = new Map((sectorFixes || []).map(f => [String(f.documento || '').trim(), f]));
+  const correctedRows = (refData || []).map(row => {
+    const fix = sectorFixMap.get(String(row.documento || '').trim());
+    if(!fix) return row;
+    const setor = String(fix.setor || '').trim();
+    const operador = String(fix.operador || '').trim();
+    return {...row, ...(setor ? {setor, reduzido:setor} : {}), ...(operador ? {operador} : {})};
+  });
+  const allRef = __dedupeRemoteRefRowsFinal(correctedRows).sort((a,b) => String(a.documento || '').localeCompare(String(b.documento || '')));
   const prodMap = new Map();
 
 (prodData || []).forEach(r => {
