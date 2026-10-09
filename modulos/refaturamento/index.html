@@ -535,7 +535,7 @@ create table if not exists manual (
    const visible=rows.filter(r=>($('pendType').value==='all'||empty(r.setor)||empty(r.operador))&&(!query||String(r.documento).toLowerCase().includes(query))).slice(0,150);
    $('pendCount').textContent=pending.length+' pendência(s) / '+rows.length+' registro(s)';
    $('pendStatus').textContent=visible.length?'Exibindo até 150 documentos. Pesquise pelo CT-e para localizar.':'Nenhum documento encontrado.';
-   $('pendRows').innerHTML=visible.map((r,i)=>'<tr><td>'+safe(r.documento)+'</td><td><input data-doc="'+safe(r.documento)+'" data-field="setor" value="'+safe(r.setor)+'" placeholder="Setor"></td><td><input data-doc="'+safe(r.documento)+'" data-field="operador" value="'+safe(r.operador)+'" placeholder="Operador"></td><td><button data-save="'+safe(r.documento)+'">Salvar</button></td></tr>').join('');
+   $('pendRows').innerHTML=visible.map((r,i)=>'<tr><td><span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap">'+safe(r.documento)+' <button type="button" data-motivo="'+i+'" title="Ver motivo da baixa" style="padding:4px 8px">🔎</button></span></td><td><input style="height:30px;padding:4px 8px;max-width:230px" data-doc="'+safe(r.documento)+'" data-field="setor" value="'+safe(r.setor)+'" placeholder="Setor"></td><td><input style="height:30px;padding:4px 8px;max-width:230px" data-doc="'+safe(r.documento)+'" data-field="operador" value="'+safe(r.operador)+'" placeholder="Operador"></td><td><button style="padding:5px 12px" data-save="'+safe(r.documento)+'">Salvar</button></td></tr>').join('');
   }
   panel.addEventListener('click',async e=>{
    const lupa=e.target.closest('[data-motivo]');
