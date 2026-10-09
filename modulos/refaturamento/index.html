@@ -516,7 +516,7 @@ create table if not exists manual (
    if(typeof ensureSupabaseConnected!=='function'||!ensureSupabaseConnected()){$('pendStatus').textContent='Supabase indisponível.';return;}
    $('pendStatus').textContent='Carregando...';rows=[];
    for(let start=0;start<100000;start+=750){
-    const {data,error}=await state.supabase.from('refaturamento_importado').select('documento,setor,operador').or('documento.like.%-80-%,documento.like.%-81-%').order('documento').range(start,start+749);
+    const {data,error}=await state.supabase.from('refaturamento_importado').select('documento,setor,operador,motivo_baixa').or('documento.like.%-80-%,documento.like.%-81-%').order('documento').range(start,start+749);
     if(error){$('pendStatus').textContent='Erro: '+error.message;return;}
     rows.push(...(data||[]));
     if(!data||data.length<750)break;
@@ -538,6 +538,14 @@ create table if not exists manual (
    $('pendRows').innerHTML=visible.map((r,i)=>'<tr><td>'+safe(r.documento)+'</td><td><input data-doc="'+safe(r.documento)+'" data-field="setor" value="'+safe(r.setor)+'" placeholder="Setor"></td><td><input data-doc="'+safe(r.documento)+'" data-field="operador" value="'+safe(r.operador)+'" placeholder="Operador"></td><td><button data-save="'+safe(r.documento)+'">Salvar</button></td></tr>').join('');
   }
   panel.addEventListener('click',async e=>{
+   const lupa=e.target.closest('[data-motivo]');
+   if(lupa){
+    const query=$('pendSearch').value.trim().toLowerCase();
+    const visible=rows.filter(r=>($('pendType').value==='all'||empty(r.setor)||empty(r.operador))&&(!query||String(r.documento).toLowerCase().includes(query))).slice(0,150);
+    const item=visible[Number(lupa.dataset.motivo)];
+    if(item){const obs=String(item.motivo_baixa||'').trim();alert('CT-e: '+item.documento+'\\n\\nMotivo da baixa / observação:\\n'+(obs||'Nenhuma observação registrada.'));}
+    return;
+   }
    const btn=e.target.closest('[data-save]');if(!btn)return;
    const doc=btn.dataset.save,inputs=[...panel.querySelectorAll('input[data-doc]')].filter(x=>x.dataset.doc===doc);
    const payload={documento:doc,atualizado_por:new URLSearchParams(location.search).get('usuario')||'operador',atualizado_em:new Date().toISOString()};
