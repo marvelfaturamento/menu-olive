@@ -869,6 +869,17 @@ function reclassify(){
       return;
     }
 
+    // Confirmação MANUAL de coleta no quadro "Checkpoint não confirmado":
+    // o operador validou a coleta e liberou a programação para faturamento.
+    // Não interfere nas confirmações automáticas nem em PCs finalizadas.
+    const coletaConfirmada = checkpointColetaAtual(row);
+    if(coletaConfirmada?.confirmado && coletaConfirmada.origem === 'manual'){
+      row.status = 'Faturar';
+      row.bucket = isUFEx(row.ufRem) ? 'alertaInt'
+        : isUFEx(row.ufDest) ? 'alertaExpo' : 'alertaNac';
+      return;
+    }
+
     /* PRIORIDADE MÁXIMA: regra de aduana/checkpoint antes de qualquer alerta.
        Correção v5: clientes cadastrados em "Clientes com regra de aduana"
        que ainda estejam em cidade/posição de aduana devem permanecer na aba Aduana,
