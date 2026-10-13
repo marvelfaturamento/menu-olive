@@ -1,0 +1,1 @@
+Extensão Chrome MV3 em homologação. Arquivo ZIP completo disponibilizado na conversa. Não grava no Supabase. Para uso: instalar sem compactação, abrir Marvel, preencher tomador/origem/destino, pesquisar e ler resultado. Não é a automação final.
