@@ -1499,7 +1499,21 @@
         }
         const mismatch=Object.entries(modules).some(([k,v])=>saved.modules?.[k]!==v||Object.entries(permissions[k]).some(([sub,enabled])=>saved.permissions?.[k]?.[sub]!==enabled));
         if(mismatch)throw new Error("A conferência encontrou permissões diferentes das selecionadas.");
-        btn.textContent="Salvo e conferido ✓";
+        // Espelhar os dados efetivamente persistidos no Supabase na própria tela.
+        // Não manter checkboxes locais como se fossem a fonte da verdade.
+        box.querySelectorAll("[data-mod]").forEach(chk=>{
+          const key=chk.dataset.mod;
+          const level=saved.modules?.[key]||"bloqueado";
+          chk.checked=level!=="bloqueado";
+          chk.closest(".perm-row").querySelectorAll("[data-sub]").forEach(sub=>{
+            sub.checked=Object.prototype.hasOwnProperty.call(saved.permissions?.[key]||{},sub.dataset.sub)
+              ? saved.permissions[key][sub.dataset.sub]===true
+              : chk.checked;
+          });
+        });
+        box.querySelector("[data-profile]").value=saved.perfil==="admin"?"admin":"operacional";
+        box.querySelector("[data-active]").value=String(!!saved.ativo);
+        btn.textContent="Salvo";
       }catch(e){
         console.error("Erro ao salvar acessos",e);
         btn.textContent="Erro ao salvar";
