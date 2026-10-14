@@ -1449,7 +1449,7 @@
           }).join("");
           return '<div class="perm-row"><div class="perm-main"><label class="perm-check"><input type="checkbox" data-mod="'+k+'" '+(allowed?'checked':'')+' onchange="toggleModuloPerm(this)">'+m.label+'</label></div><div class="perm-subs">'+subs+'</div></div>';
         }).join("");
-        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-profile><option value="operacional" '+(u.perfil==="operacional"||u.perfil==="consulta"?"selected":"")+'>Operador</option><option value="admin" '+(u.perfil==="admin"?"selected":"")+'>Administrador</option></select><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="alterarEmailUsuario(this)" style="display:inline-flex!important;visibility:visible!important">✉ Alterar e-mail</button><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><span class="admin-msg">Edite os acessos abaixo e salve ao final.</span></div><div class="perm-grid">'+rows+'</div><div style="padding:14px 0;display:flex;justify-content:flex-end"><button type="button" class="admin-save admin-save-compact" onclick="salvarAcessoUsuario(this)">Salvar acessos de '+esc(u.username)+'</button></div></div>';
+        return '<div class="admin-user collapsed" data-id="'+u.id+'"><div class="admin-user-top"><div><strong>'+esc(u.nome)+'</strong><div class="admin-msg">@'+esc(u.username)+'</div></div><button class="admin-close" type="button" onclick="toggleUsuarioAcessos(this)">⚙ Acessos</button><select data-profile><option value="operacional" '+(u.perfil==="operacional"||u.perfil==="consulta"?"selected":"")+'>Operador</option><option value="admin" '+(u.perfil==="admin"?"selected":"")+'>Administrador</option></select><select data-active><option value="true" '+(u.ativo?"selected":"")+'>Usuário ativo</option><option value="false" '+(!u.ativo?"selected":"")+'>Usuário bloqueado</option></select><button class="admin-close" type="button" onclick="alterarEmailUsuario(this)" style="display:inline-flex!important;visibility:visible!important">✉ Alterar e-mail</button><button class="admin-close" type="button" onclick="resetarSenhaUsuario(this)">🔑 Resetar senha</button><label class="admin-msg" style="display:flex;align-items:center;gap:6px">Operador dos relatórios <input data-usuario-ref type="text" value="'+esc(u.usuario_ref||"")+'" placeholder="ex.: tiago.carniel" style="padding:7px;border-radius:7px;background:#122340;color:#fff;border:1px solid #345"/></label></div><div class="perm-grid">'+rows+'</div><div style="padding:14px 0;display:flex;justify-content:flex-end"><button type="button" class="admin-save admin-save-compact" onclick="salvarAcessoUsuario(this)">Salvar acessos de '+esc(u.username)+'</button></div></div>';
       }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
     }
     function toggleUsuarioAcessos(btn){
@@ -1485,7 +1485,7 @@
           permissions[key]={};
           row.querySelectorAll("[data-sub]").forEach(sub=>{permissions[key][sub.dataset.sub]=sub.checked;});
         });
-        const body={action:"update",id:userId,perfil:box.querySelector("[data-profile]").value,ativo:box.querySelector("[data-active]").value==="true",modules,permissions};
+        const body={action:"update",id:userId,perfil:box.querySelector("[data-profile]").value,ativo:box.querySelector("[data-active]").value==="true",usuario_ref:box.querySelector("[data-usuario-ref]")?.value.trim()||"",modules,permissions};
         const {data,error}=await sbAuth.functions.invoke("admin-access",{body});
         if(error||data?.error)throw new Error(data?.error||error?.message||"Falha ao salvar no Supabase");
         if(!data?.ok)throw new Error("O servidor não confirmou a gravação.");
@@ -1497,6 +1497,7 @@
         if(displayedUser && String(saved.username||"").trim().toLowerCase()!==displayedUser){
           throw new Error("Identidade divergente: a tela mostra "+displayedUser+", mas o banco retornou "+saved.username+". Nenhuma confirmação de sucesso será exibida.");
         }
+        if(String(saved.usuario_ref||"").trim().toLowerCase()!==String(body.usuario_ref||"").trim().toLowerCase())throw new Error("O operador de referência não foi gravado.");
         const mismatch=Object.entries(modules).some(([k,v])=>saved.modules?.[k]!==v||Object.entries(permissions[k]).some(([sub,enabled])=>saved.permissions?.[k]?.[sub]!==enabled));
         if(mismatch)throw new Error("A conferência encontrou permissões diferentes das selecionadas.");
         // Espelhar os dados efetivamente persistidos no Supabase na própria tela.
