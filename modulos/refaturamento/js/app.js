@@ -2526,8 +2526,9 @@ function renderAnnualView(){
 
 
 function renderPerformanceView(){
-  const isOperador = String(perfil).toLowerCase() !== 'admin';
-  const usuarioAtual = prodNorm(usuarioRef || usuario || '');
+  const perfilSessao = __getPerfilRefFinal();
+  const isOperador = perfilSessao.perfil !== 'admin';
+  const usuarioAtual = prodNorm(perfilSessao.usuarioRef || '');
   const allRows = aggregateProd().filter(x => x.totalDocs > 0 || x.erros > 0);
   const rows = isOperador ? allRows.filter(x => prodNorm(x.usuario) === usuarioAtual) : allRows;
   const select = document.getElementById('performanceUserSelect');
@@ -4505,7 +4506,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
   window.renderPerformanceView = function(){
     const select = document.getElementById('performanceUserSelect');
-    const rowsAll = aggregateProd().filter(x => validUser(x.usuario) && (x.totalDocs > 0 || x.erros > 0));
+    const allProdRows = aggregateProd().filter(x => validUser(x.usuario) && (x.totalDocs > 0 || x.erros > 0));
+    const rowsAll = typeof __isRestritoUsuarioFinal === 'function' && __isRestritoUsuarioFinal()
+      ? allProdRows.filter(x => sameUser(x.usuario, __usuarioPermitidoFinal()))
+      : allProdRows;
     const users = uniqueUsers(rowsAll);
 
     if(select){
@@ -5267,8 +5271,9 @@ function __renderPerfAnualRankingChart(rows){
 }
 function renderPerformanceAnualView(){
   const data = __perfAnualAggregate();
-  const isOperador = String(perfil).toLowerCase() !== 'admin';
-  const usuarioAtual = prodNorm(usuarioRef || usuario || '');
+  const perfilSessao = __getPerfilRefFinal();
+  const isOperador = perfilSessao.perfil !== 'admin';
+  const usuarioAtual = prodNorm(perfilSessao.usuarioRef || '');
   const rows = isOperador ? data.rows.filter(r => prodNorm(r.usuario) === usuarioAtual) : data.rows;
   const totalDocs = rows.reduce((s,r)=>s+Number(r.baseDocs||0),0);
   const totalErros = rows.reduce((s,r)=>s+Number(r.erros||0),0);
