@@ -1466,6 +1466,14 @@
       const box=btn.closest(".admin-user");
       const userId=box?.dataset?.id;
       if(!userId){alert("Usuário não identificado. Reabra Usuários e Acessos.");return;}
+      const expectedUsername=(box.querySelector(".admin-msg")?.textContent||"").replace(/^@/,"").trim().toLowerCase();
+      const before=await sbAuth.functions.invoke("admin-access",{body:{action:"list"}});
+      if(before.error||before.data?.error){alert("Não foi possível validar a identidade do usuário antes de salvar.");return;}
+      const targetUser=(before.data?.users||[]).find(u=>u.id===userId);
+      if(!targetUser || String(targetUser.username||"").trim().toLowerCase()!==expectedUsername){
+        alert("Erro de identificação: a conta exibida não corresponde ao registro do Supabase. Feche e reabra Usuários e Acessos.");
+        return;
+      }
       const original=btn.textContent;
       btn.disabled=true;btn.textContent="Salvando...";
       try{
@@ -1485,6 +1493,10 @@
         if(check.error||check.data?.error)throw new Error("Gravado, mas não foi possível verificar as permissões: "+(check.data?.error||check.error?.message||"erro"));
         const saved=(check.data?.users||[]).find(u=>u.id===userId);
         if(!saved)throw new Error("Gravado, mas usuário não encontrado na conferência.");
+        const displayedUser=(box.querySelector(".admin-msg")?.textContent||"").replace(/^@/,"").trim().toLowerCase();
+        if(displayedUser && String(saved.username||"").trim().toLowerCase()!==displayedUser){
+          throw new Error("Identidade divergente: a tela mostra "+displayedUser+", mas o banco retornou "+saved.username+". Nenhuma confirmação de sucesso será exibida.");
+        }
         const mismatch=Object.entries(modules).some(([k,v])=>saved.modules?.[k]!==v||Object.entries(permissions[k]).some(([sub,enabled])=>saved.permissions?.[k]?.[sub]!==enabled));
         if(mismatch)throw new Error("A conferência encontrou permissões diferentes das selecionadas.");
         btn.textContent="Salvo e conferido ✓";
