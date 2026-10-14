@@ -1463,23 +1463,39 @@
       const row=chk.closest(".perm-row"); row.querySelectorAll("[data-sub]").forEach(x=>x.checked=chk.checked);
     }
     async function salvarAcessoUsuario(btn){
-      const box=btn.closest(".admin-user"); btn.disabled=true; btn.textContent="Salvando...";
-      const modules={}; const permissions={};
-      box.querySelectorAll("[data-mod]").forEach(chk=>{
-        modules[chk.dataset.mod]=chk.checked?"operacional":"bloqueado";
-        const row=chk.closest(".perm-row"); permissions[chk.dataset.mod]={};
-        row.querySelectorAll("[data-sub]").forEach(s=>permissions[chk.dataset.mod][s.dataset.sub]=s.checked);
-      });
-      const body={action:"update",id:box.dataset.id,perfil:box.querySelector("[data-profile]").value,ativo:box.querySelector("[data-active]").value==="true",modules,permissions};
-      let data=null,error=null;
+      const box=btn.closest(".admin-user");
+      const userId=box?.dataset?.id;
+      if(!userId){alert("Usuário não identificado. Reabra Usuários e Acessos.");return;}
+      const original=btn.textContent;
+      btn.disabled=true;btn.textContent="Salvando...";
       try{
-        const resp=await Promise.race([
-          sbAuth.functions.invoke("admin-access",{body}),
-          new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),12000))
-        ]);
-        data=resp.data; error=resp.error;
-      }catch(e){ error=e; }
-      btn.disabled=false; btn.textContent=(error||data?.error)?"Erro ao salvar":"Salvo ✓"; setTimeout(()=>btn.textContent="Salvar",1800);
+        const modules={},permissions={};
+        box.querySelectorAll("[data-mod]").forEach(chk=>{
+          const key=chk.dataset.mod;
+          modules[key]=chk.checked?"operacional":"bloqueado";
+          const row=chk.closest(".perm-row");
+          permissions[key]={};
+          row.querySelectorAll("[data-sub]").forEach(sub=>{permissions[key][sub.dataset.sub]=sub.checked;});
+        });
+        const body={action:"update",id:userId,perfil:box.querySelector("[data-profile]").value,ativo:box.querySelector("[data-active]").value==="true",modules,permissions};
+        const {data,error}=await sbAuth.functions.invoke("admin-access",{body});
+        if(error||data?.error)throw new Error(data?.error||error?.message||"Falha ao salvar no Supabase");
+        if(!data?.ok)throw new Error("O servidor não confirmou a gravação.");
+        const check=await sbAuth.functions.invoke("admin-access",{body:{action:"list"}});
+        if(check.error||check.data?.error)throw new Error("Gravado, mas não foi possível verificar as permissões: "+(check.data?.error||check.error?.message||"erro"));
+        const saved=(check.data?.users||[]).find(u=>u.id===userId);
+        if(!saved)throw new Error("Gravado, mas usuário não encontrado na conferência.");
+        const mismatch=Object.entries(modules).some(([k,v])=>saved.modules?.[k]!==v||Object.entries(permissions[k]).some(([sub,enabled])=>saved.permissions?.[k]?.[sub]!==enabled));
+        if(mismatch)throw new Error("A conferência encontrou permissões diferentes das selecionadas.");
+        btn.textContent="Salvo e conferido ✓";
+      }catch(e){
+        console.error("Erro ao salvar acessos",e);
+        btn.textContent="Erro ao salvar";
+        alert("Não foi possível confirmar os acessos de "+(box.querySelector("strong")?.textContent||"usuário")+": "+(e?.message||"Erro desconhecido"));
+      }finally{
+        btn.disabled=false;
+        setTimeout(()=>{btn.textContent=original},3500);
+      }
     }
 
     async function alterarEmailUsuario(btn){
