@@ -1336,7 +1336,7 @@
       const nivel = nivelModulo(nome);
       destino.searchParams.set("perfil", nivel);
       destino.searchParams.set("usuario", sessao.nome || sessao.usuario || "");
-      destino.searchParams.set("usuarioRef", sessao.usuarioRef || "");
+      destino.searchParams.set("usuarioRef", sessao.usuarioRef || sessao.usuario || "");
       const permModulo = sessao.permissoes?.[nome]?.permissions || {};
       destino.searchParams.set("permissoes", encodeURIComponent(JSON.stringify(permModulo)));
 
