@@ -4578,7 +4578,7 @@ document.addEventListener('DOMContentLoaded', function(){
             datalabels:{ color:'#fff', backgroundColor:'rgba(8,16,29,.82)', borderRadius:4, padding:{left:6,right:6,top:2,bottom:2}, anchor:'end', align:'right', offset:8, clamp:false, clip:false, formatter:v => `${Number(v || 0).toFixed(2)}%`, display:true }
           },
           scales:{
-            x:{ min:90, max:100, ticks:{ color:'#cfe0ff', callback:(v)=>`${v}%` }, grid:{ color:'rgba(255,255,255,.05)' } },
+            x:{ min:0, max:100, ticks:{ color:'#cfe0ff', callback:(v)=>`${v}%` }, grid:{ color:'rgba(255,255,255,.05)' } },
             y:{ ticks:{ color:'#cfe0ff', autoSkip:false, maxRotation:0, minRotation:0, font:{size:10}, padding:3 }, grid:{ color:'rgba(255,255,255,.05)' } }
           }
         }
