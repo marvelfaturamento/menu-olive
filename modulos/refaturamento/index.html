@@ -488,7 +488,7 @@ create table if not exists manual (
  function init(){
   const view=document.getElementById('config');if(!view||document.getElementById('pendRef'))return;
   const panel=document.createElement('section');panel.id='pendRef';panel.className='pend-ref';
-  panel.innerHTML='<h3>🔎 Pendências e correções de CT-e</h3><p>Localize um documento e corrija setor ou operador. Alterações permanecem após importar novamente.</p><div class="pend-actions"><input id="pendSearch" placeholder="CT-e ou documento"><select id="pendType"><option value="pend">Somente pendentes</option><option value="all">Todos os documentos</option></select><button id="pendRefresh">Consultar</button><strong id="pendCount"></strong></div><p id="pendStatus"><small>Carregue os registros para consultar.</small></p><div style="max-height:400px;overflow:auto"><table><thead><tr><th>Documento</th><th>Setor</th><th>Operador</th><th>Ação</th></tr></thead><tbody id="pendRows"></tbody></table></div>';
+  panel.innerHTML='<h3>🔎 Pendências e correções de documentos</h3><p>Localize um documento e corrija setor ou operador. Alterações permanecem após importar novamente.</p><div class="pend-actions"><input id="pendSearch" placeholder="CT-e refaturado ou substituto"><select id="pendType"><option value="pend">Somente pendentes</option><option value="all">Todos os documentos</option></select><button id="pendRefresh">Consultar</button><strong id="pendCount"></strong></div><p id="pendStatus"><small>Carregue os registros para consultar.</small></p><div style="max-height:400px;overflow:auto"><table><thead><tr><th>Documento</th><th>Tipo</th><th>Setor</th><th>Operador</th><th>Ação</th></tr></thead><tbody id="pendRows"></tbody></table></div>';
   const detail=document.createElement('div');
   detail.id='pendDetailOverlay';
   detail.style.cssText='display:none;position:fixed;inset:0;z-index:2147483640;background:rgba(2,8,23,.78);align-items:center;justify-content:center;padding:20px';
@@ -525,7 +525,7 @@ create table if not exists manual (
    if(typeof ensureSupabaseConnected!=='function'||!ensureSupabaseConnected()){$('pendStatus').textContent='Supabase indisponível.';return;}
    $('pendStatus').textContent='Carregando...';rows=[];
    for(let start=0;start<100000;start+=750){
-    const {data,error}=await state.supabase.from('refaturamento_importado').select('documento,setor,operador,motivo_baixa').or('documento.like.%-80-%,documento.like.%-81-%').order('documento').range(start,start+749);
+    const {data,error}=await state.supabase.from('refaturamento_importado').select('documento,tipo,setor,operador,motivo_baixa').in('tipo',['refaturado','substituto']).order('documento').range(start,start+749);
     if(error){$('pendStatus').textContent='Erro: '+error.message;return;}
     rows.push(...(data||[]));
     if(!data||data.length<750)break;
@@ -534,8 +534,8 @@ create table if not exists manual (
    if(fixErr){$('pendStatus').textContent='Erro ao recuperar correções: '+fixErr.message;return;}
    const map=new Map((fix||[]).map(x=>[x.documento,x]));
    rows=rows.map(r=>({...r,...Object.fromEntries(Object.entries(map.get(r.documento)||{}).filter(([k,v])=>k!=='documento'&&v!==null))}));
-   // Apenas CT-es reais no formato filial-série-número; excluir faturas e chaves SETOR|...
-   rows=rows.filter(r=>{const parts=String(r.documento||'').trim().split('-');return parts.length===3 && parts.every(x=>x.length>0 && [...x].every(ch=>ch>='0'&&ch<='9')) && (parts[1]==='80'||parts[1]==='81');});
+   // CT-es refaturados (80/81) e substitutos (outras séries), sem registros sintéticos de setor.
+   rows=rows.filter(r=>{const parts=String(r.documento||'').trim().split('-');return (r.tipo==='refaturado'||r.tipo==='substituto') && parts.length===3 && parts.every(x=>/^\d+$/.test(x));});
 
    render();
   }
@@ -544,7 +544,7 @@ create table if not exists manual (
    const visible=rows.filter(r=>($('pendType').value==='all'||empty(r.setor)||empty(r.operador))&&(!query||String(r.documento).toLowerCase().includes(query))).slice(0,150);
    $('pendCount').textContent=pending.length+' pendência(s) / '+rows.length+' registro(s)';
    $('pendStatus').textContent=visible.length?'Exibindo até 150 documentos. Pesquise pelo CT-e para localizar.':'Nenhum documento encontrado.';
-   $('pendRows').innerHTML=visible.map((r,i)=>'<tr style="height:30px"><td style="padding:1px 8px;white-space:nowrap">'+safe(r.documento)+'</td><td style="padding:1px 8px"><input style="height:24px;padding:2px 7px;max-width:230px" data-doc="'+safe(r.documento)+'" data-field="setor" value="'+safe(r.setor)+'" placeholder="Setor"></td><td style="padding:1px 8px"><input style="height:24px;padding:2px 7px;max-width:230px" data-doc="'+safe(r.documento)+'" data-field="operador" value="'+safe(r.operador)+'" placeholder="Operador"></td><td style="padding:1px 8px"><span style="display:inline-flex;align-items:center;gap:7px;white-space:nowrap"><button type="button" data-motivo="'+i+'" title="Ver motivo e observação do CT-e" aria-label="Ver motivo e observação" style="height:24px;width:28px;min-width:28px;padding:3px;display:inline-flex;align-items:center;justify-content:center;background:#172c4a;border:1px solid #365276;border-radius:7px;color:#dceeff"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></button><button style="height:24px;padding:2px 10px" data-save="'+safe(r.documento)+'">Salvar</button></span></td></tr>').join('');
+   $('pendRows').innerHTML=visible.map((r,i)=>'<tr style="height:30px"><td style="padding:1px 8px;white-space:nowrap">'+safe(r.documento)+'</td><td style="padding:1px 8px">'+safe(r.tipo==='substituto'?'Substituto':'Refaturado')+'</td><td style="padding:1px 8px"><input style="height:24px;padding:2px 7px;max-width:230px" data-doc="'+safe(r.documento)+'" data-field="setor" value="'+safe(r.setor)+'" placeholder="Setor"></td><td style="padding:1px 8px"><input style="height:24px;padding:2px 7px;max-width:230px" data-doc="'+safe(r.documento)+'" data-field="operador" value="'+safe(r.operador)+'" placeholder="Operador"></td><td style="padding:1px 8px"><span style="display:inline-flex;align-items:center;gap:7px;white-space:nowrap"><button type="button" data-motivo="'+i+'" title="Ver motivo e observação do CT-e" aria-label="Ver motivo e observação" style="height:24px;width:28px;min-width:28px;padding:3px;display:inline-flex;align-items:center;justify-content:center;background:#172c4a;border:1px solid #365276;border-radius:7px;color:#dceeff"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></button><button style="height:24px;padding:2px 10px" data-save="'+safe(r.documento)+'">Salvar</button></span></td></tr>').join('');
   }
   panel.addEventListener('click',async e=>{
    const lupa=e.target.closest('[data-motivo]');
