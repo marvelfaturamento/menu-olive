@@ -597,4 +597,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   requestAnimationFrame(()=>{if(window.Chart&&Chart.instances)Object.values(Chart.instances).forEach(ch=>{if(root.contains(ch.canvas)&&ch.canvas.offsetParent!==null)ch.resize();});});
  }));
 });
-</script></body></html>
+</script><style>
+#motivos .setor-mini{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;text-align:left;padding:13px 16px;border:1px solid #354b70;border-radius:11px;background:#15243d;color:#eaf2ff;cursor:pointer;min-height:72px;font:inherit}
+#motivos .setor-mini strong{font-size:14px;font-weight:700}
+#motivos .setor-mini small{color:#9eafc9;font-size:12px;font-weight:400}
+#motivos .setor-mini.active{border:2px solid #5b95ed;background:#203b64}
+#motivos [data-motivo-painel][hidden]{display:none!important}
+</style></body></html>
