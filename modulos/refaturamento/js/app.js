@@ -2891,12 +2891,12 @@ function bindConfigActions(){
   document.getElementById('btnSaveReasons').addEventListener('click', function(){
     const box=document.getElementById('reasonBox');
     const button=document.getElementById('btnSaveReasons');
-    const rows=[...new Map(box.value.split(/\\r?\\n/).map(s=>s.trim()).filter(Boolean).map(s=>[s.toLocaleLowerCase('pt-BR'),s])).values()];
+    const rows=[...new Map(box.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(s=>[s.toLocaleLowerCase('pt-BR'),s])).values()];
     if(!rows.length){alert('Informe pelo menos um motivo antes de salvar.');return;}
     try{
       writeStorage('painel_ref_reasons_v30',rows);
       state.reasons=rows;
-      box.value=rows.join('\\n');
+      box.value=rows.join('\n');
       renderAll();
       const oldLabel=button.textContent;
       button.textContent='✓ Salvo neste navegador';
