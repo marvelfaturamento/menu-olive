@@ -282,7 +282,8 @@ input:focus { outline: none; border-color: var(--marvel-blue); box-shadow: 0 0 0
 /* Autocomplete/Dropdowns */
 /* A lista deve ficar acima dos campos seguintes, sem bordas atravessando as opções. */
 div:has(> input + .suggestions){position:relative;isolation:isolate;}
-div:has(> input + .suggestions):focus-within{z-index:1000;}
+div:has(> input + .suggestions):has(> .suggestions:not(:empty)){z-index:1000;}
+div:has(> input + .suggestions):focus-within{z-index:1001;}
 .suggestions {background:#ffffff!important;opacity:1!important;border:1px solid var(--border-color);border-radius:6px;position:absolute;top:calc(100% - 15px);left:0;right:0;z-index:1001;width:100%;max-height:220px;overflow-y:auto;overflow-x:hidden;box-shadow:0 8px 20px rgba(0,0,0,.16);box-sizing:border-box;}
 .suggestions:empty{display:none;}
 .suggestions div{background:#fff;position:relative;z-index:1;padding:11px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #edf0f4;line-height:1.45;}
@@ -1006,7 +1007,8 @@ input:focus { outline: none; border-color: var(--marvel-blue); box-shadow: 0 0 0
 /* Dropdowns & Tags */
 /* A lista deve ficar acima dos campos seguintes, sem bordas atravessando as opções. */
 div:has(> input + .suggestions){position:relative;isolation:isolate;}
-div:has(> input + .suggestions):focus-within{z-index:1000;}
+div:has(> input + .suggestions):has(> .suggestions:not(:empty)){z-index:1000;}
+div:has(> input + .suggestions):focus-within{z-index:1001;}
 .suggestions {background:#ffffff!important;opacity:1!important;border:1px solid var(--border-color);border-radius:6px;position:absolute;top:calc(100% - 15px);left:0;right:0;z-index:1001;width:100%;max-height:220px;overflow-y:auto;overflow-x:hidden;box-shadow:0 8px 20px rgba(0,0,0,.16);box-sizing:border-box;}
 .suggestions:empty{display:none;}
 .suggestions div{background:#fff;position:relative;z-index:1;padding:11px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #edf0f4;line-height:1.45;}
