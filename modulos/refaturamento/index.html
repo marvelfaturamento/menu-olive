@@ -101,6 +101,11 @@
 </div>
 </section>
 <section class="view" id="motivos">
+<div class="setor-mini-tabs" role="tablist" aria-label="Período da análise de motivos" style="display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));gap:10px;margin-bottom:16px">
+<button type="button" class="setor-mini active" data-motivo-periodo="mensal" aria-selected="true"><strong>📅 Mensal</strong><small>Motivos do mês consultado</small></button>
+<button type="button" class="setor-mini" data-motivo-periodo="anual" aria-selected="false"><strong>📊 Anual</strong><small>Motivos de todos os meses do ano</small></button>
+</div>
+<div data-motivo-painel="mensal">
 <div class="grid grid-2">
 <div class="card"><h3>Ranking de valores: total x refaturado x substituto</h3><div class="sub">Total = refaturado + substituto. Refaturado = soma dos débitos dos setores.</div><div class="chart-box"><canvas height="0" id="chartOriginalRefSubs" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 <div class="card"><h3>Motivos por quantidade</h3><div class="chart-box"><canvas height="0" id="chartMotivosQtd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
@@ -109,6 +114,13 @@
 <div class="card"><h3>Motivos por valor</h3><div class="sub">Soma do débito vinculado ao motivo.</div><div class="chart-box"><canvas height="0" id="chartMotivosValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 </div>
 <div class="card" style="margin-top:16px;"><h3>Tabela de motivos</h3><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>Qtd. Ref.</th><th>Valor refaturado</th><th>Qtd. Sub.</th><th>Valor substituto</th><th>Impacto total</th><th>Detalhes</th></tr></thead><tbody id="tbodyMotivos"></tbody></table></div></div>
+</section>
+</div>
+<div data-motivo-painel="anual" hidden>
+<div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div class="field"><label for="motivosAnoSelect">Ano</label><select id="motivosAnoSelect"></select></div><div class="sub" id="motivosAnualStatus">Selecione Anual para carregar o consolidado.</div></div>
+<div class="grid grid-2"><div class="card"><h3>Motivos no ano — quantidade</h3><div class="chart-box"><canvas id="chartMotivosAnualQtd"></canvas></div></div><div class="card"><h3>Motivos no ano — valor</h3><div class="chart-box"><canvas id="chartMotivosAnualValor"></canvas></div></div></div>
+<div class="card" style="margin-top:16px"><h3>Consolidado anual por motivo</h3><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>Qtd. Ref.</th><th>Valor refaturado</th><th>Qtd. Sub.</th><th>Valor substituto</th><th>Impacto total</th></tr></thead><tbody id="tbodyMotivosAnual"></tbody></table></div></div>
+</div>
 </section>
 <section class="view" id="usuarios"><div class="card" style="margin-bottom: 16px;">
 <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
