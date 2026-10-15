@@ -536,10 +536,40 @@ let cidades={origem:null,aduana:null,destino:null};
 
 // Cache compartilhado entre Origem, Aduana e Destino, sem alterar as coordenadas usadas no cálculo.
 const cacheCidades=new Map();
+const CHAVE_CIDADES='marvel_cidades_autocomplete_v1';
+try{
+  const salvas=JSON.parse(localStorage.getItem(CHAVE_CIDADES)||'[]');
+  if(Array.isArray(salvas))salvas.forEach(c=>{
+    if(c&&typeof c.label==='string'&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
+      cacheCidades.set(c.label.toLocaleLowerCase('pt-BR'),[c]);
+  });
+}catch(e){console.warn('Cache de cidades não disponível',e);}
+function cidadesLocais(texto){
+  const termo=normalizarBuscaCidade(texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const resultado=[],vistos=new Set();
+  for(const lista of cacheCidades.values())for(const c of lista){
+    const nome=c.label.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(nome.includes(termo)&&!vistos.has(nome)){vistos.add(nome);resultado.push(c);}
+  }
+  return resultado.slice(0,7);
+}
+function guardarCidades(lista){
+  for(const c of lista){
+    if(c?.label&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
+      cacheCidades.set(normalizarBuscaCidade(c.label),[c]);
+  }
+  try{
+    const unicas=new Map();
+    for(const grupo of cacheCidades.values())for(const c of grupo)if(c?.label&&Array.isArray(c.coordinates))unicas.set(normalizarBuscaCidade(c.label),c);
+    localStorage.setItem(CHAVE_CIDADES,JSON.stringify([...unicas.values()].slice(-350)));
+  }catch(e){console.warn('Não foi possível salvar cidades',e);}
+}
+
 const normalizarBuscaCidade=t=>String(t||'').trim().toLocaleLowerCase('pt-BR');
 async function consultarCidadesRapido(texto,signal){
   const q=normalizarBuscaCidade(texto);
-  if(cacheCidades.has(q))return cacheCidades.get(q);
+  const locais=cidadesLocais(texto);
+  if(locais.length)return locais;
   const buscar=async(url,converter)=>{
     const r=await fetch(url,{signal});
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -569,8 +599,7 @@ async function consultarCidadesRapido(texto,signal){
     ]);
   }
   if(resultados.length){
-    cacheCidades.set(q,resultados);
-    if(cacheCidades.size>100)cacheCidades.delete(cacheCidades.keys().next().value);
+    guardarCidades(resultados);
   }
   return resultados;
 }
@@ -586,6 +615,16 @@ function auto(id,sug,key){
     const minhaSeq=++seq;
     const texto=i.value.trim();
     if(texto.length<3){box.innerHTML='';return;}
+    const locais=cidadesLocais(texto);
+    if(locais.length){
+      box.innerHTML='';
+      locais.forEach(c=>{
+        const div=document.createElement('div');div.textContent=c.label;
+        div.onclick=()=>{i.value=c.label;cidades[key]=c.coordinates;box.innerHTML='';++seq;};
+        box.appendChild(div);
+      });
+      return;
+    }
     box.textContent='Buscando cidades...';
     timer=setTimeout(async()=>{
       controller=new AbortController();
@@ -1216,10 +1255,40 @@ let cidades={origem:null,aduana:null,destino:null};
 
 // Cache compartilhado entre Origem, Aduana e Destino, sem alterar as coordenadas usadas no cálculo.
 const cacheCidades=new Map();
+const CHAVE_CIDADES='marvel_cidades_autocomplete_v1';
+try{
+  const salvas=JSON.parse(localStorage.getItem(CHAVE_CIDADES)||'[]');
+  if(Array.isArray(salvas))salvas.forEach(c=>{
+    if(c&&typeof c.label==='string'&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
+      cacheCidades.set(c.label.toLocaleLowerCase('pt-BR'),[c]);
+  });
+}catch(e){console.warn('Cache de cidades não disponível',e);}
+function cidadesLocais(texto){
+  const termo=normalizarBuscaCidade(texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const resultado=[],vistos=new Set();
+  for(const lista of cacheCidades.values())for(const c of lista){
+    const nome=c.label.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(nome.includes(termo)&&!vistos.has(nome)){vistos.add(nome);resultado.push(c);}
+  }
+  return resultado.slice(0,7);
+}
+function guardarCidades(lista){
+  for(const c of lista){
+    if(c?.label&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
+      cacheCidades.set(normalizarBuscaCidade(c.label),[c]);
+  }
+  try{
+    const unicas=new Map();
+    for(const grupo of cacheCidades.values())for(const c of grupo)if(c?.label&&Array.isArray(c.coordinates))unicas.set(normalizarBuscaCidade(c.label),c);
+    localStorage.setItem(CHAVE_CIDADES,JSON.stringify([...unicas.values()].slice(-350)));
+  }catch(e){console.warn('Não foi possível salvar cidades',e);}
+}
+
 const normalizarBuscaCidade=t=>String(t||'').trim().toLocaleLowerCase('pt-BR');
 async function consultarCidadesRapido(texto,signal){
   const q=normalizarBuscaCidade(texto);
-  if(cacheCidades.has(q))return cacheCidades.get(q);
+  const locais=cidadesLocais(texto);
+  if(locais.length)return locais;
   const buscar=async(url,converter)=>{
     const r=await fetch(url,{signal});
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -1249,8 +1318,7 @@ async function consultarCidadesRapido(texto,signal){
     ]);
   }
   if(resultados.length){
-    cacheCidades.set(q,resultados);
-    if(cacheCidades.size>100)cacheCidades.delete(cacheCidades.keys().next().value);
+    guardarCidades(resultados);
   }
   return resultados;
 }
@@ -1266,6 +1334,16 @@ function auto(id,sug,key){
     const minhaSeq=++seq;
     const texto=i.value.trim();
     if(texto.length<3){box.innerHTML='';return;}
+    const locais=cidadesLocais(texto);
+    if(locais.length){
+      box.innerHTML='';
+      locais.forEach(c=>{
+        const div=document.createElement('div');div.textContent=c.label;
+        div.onclick=()=>{i.value=c.label;cidades[key]=c.coordinates;box.innerHTML='';++seq;};
+        box.appendChild(div);
+      });
+      return;
+    }
     box.textContent='Buscando cidades...';
     timer=setTimeout(async()=>{
       controller=new AbortController();
