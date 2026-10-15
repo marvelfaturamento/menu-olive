@@ -2872,6 +2872,30 @@ async function clearAnnualMonthEverywhere(key){
   return true;
 }
 
+async function carregarMotivosCompartilhados(){
+  if(!ensureSupabaseConnected())return false;
+  const {data,error}=await state.supabase.from('refaturamento_motivos_config').select('motivos').eq('id','padrao').maybeSingle();
+  if(error){console.error('Falha ao carregar motivos compartilhados:',error);return false;}
+  if(data&&Array.isArray(data.motivos)&&data.motivos.length){
+    state.reasons=data.motivos;
+    writeStorage('painel_ref_reasons_v30',state.reasons);
+    const box=document.getElementById('reasonBox');
+    if(box)box.value=state.reasons.join('\n');
+    return true;
+  }
+  return false;
+}
+async function salvarMotivosCompartilhados(rows){
+  if(!ensureSupabaseConnected())throw new Error('Supabase não conectada');
+  const {error}=await state.supabase.from('refaturamento_motivos_config').upsert({
+    id:'padrao',motivos:rows,atualizado_em:new Date().toISOString()
+  },{onConflict:'id'});
+  if(error)throw error;
+  state.reasons=rows;
+  writeStorage('painel_ref_reasons_v30',rows);
+  document.getElementById('reasonBox').value=rows.join('\n');
+  renderAll();
+}
 function bindConfigActions(){
   document.getElementById('btnExportJson').addEventListener('click', function(){
     const blob = new Blob([JSON.stringify(state.manual, null, 2)], { type:'application/json' });
@@ -2888,31 +2912,32 @@ function bindConfigActions(){
     renderAll();
   });
 
-  document.getElementById('btnSaveReasons').addEventListener('click', function(){
-    const box=document.getElementById('reasonBox');
-    const button=document.getElementById('btnSaveReasons');
-    const rows=[...new Map(box.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(s=>[s.toLocaleLowerCase('pt-BR'),s])).values()];
-    if(!rows.length){alert('Informe pelo menos um motivo antes de salvar.');return;}
+  document.getElementById('btnSaveReasons').addEventListener('click',async function(){
+    const box=document.getElementById('reasonBox'),button=this;
+    const rows=[...new Map(box.value.split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean).map(x=>[x.toLocaleLowerCase('pt-BR'),x])).values()];
+    if(!rows.length){alert('Informe pelo menos um motivo.');return;}
+    button.disabled=true;button.textContent='Salvando na base...';
     try{
-      writeStorage('painel_ref_reasons_v30',rows);
-      state.reasons=rows;
-      box.value=rows.join('\n');
-      renderAll();
-      const oldLabel=button.textContent;
-      button.textContent='✓ Salvo neste navegador';
-      button.disabled=true;
-      setTimeout(()=>{button.textContent=oldLabel;button.disabled=false;},2500);
-    }catch(err){
-      console.error('Falha ao salvar motivos:',err);
-      alert('Não foi possível salvar os motivos neste navegador: '+(err.message||err));
+      await salvarMotivosCompartilhados(rows);
+      button.textContent='✓ Salvo na base';
+      setTimeout(()=>{button.textContent='Salvar motivos';button.disabled=false;},2200);
+    }catch(error){
+      console.error('Falha ao salvar motivos na base:',error);
+      button.textContent='Salvar motivos';button.disabled=false;
+      alert('Não foi possível salvar no Supabase: '+(error.message||error));
     }
   });
-
-  document.getElementById('btnResetReasons').addEventListener('click', function(){
-    state.reasons = DEFAULT_REASONS.slice();
-    writeStorage('painel_ref_reasons_v30', state.reasons);
-    document.getElementById('reasonBox').value = state.reasons.join('\n');
-    renderAll();
+  document.getElementById('btnResetReasons').addEventListener('click',async function(){
+    if(!confirm('Restaurar os motivos padrão para todos os usuários?'))return;
+    const button=this;button.disabled=true;button.textContent='Restaurando...';
+    try{
+      await salvarMotivosCompartilhados(DEFAULT_REASONS.slice());
+      button.textContent='Restaurar padrão';
+    }catch(error){
+      console.error('Falha ao restaurar motivos:',error);
+      alert('Não foi possível restaurar os motivos na base: '+(error.message||error));
+      button.textContent='Restaurar padrão';
+    }finally{button.disabled=false;}
   });
   document.getElementById('btnSaveCurrentMonth')?.addEventListener('click', saveCurrentMonthToAnnual);
   document.getElementById('btnSaveProdMonth')?.addEventListener('click', saveCurrentProdMonth);
@@ -3022,6 +3047,7 @@ async function bootstrap(){
   document.getElementById('reasonBox').value = state.reasons.join('\n');
   connectSupabase();
   await loadManualFromSupabase();
+  await carregarMotivosCompartilhados();
   renderAll();
   // A opção vazia "Último importado" representa o snapshot da sessão,
   // que está vazio após recarregar. Carregar efetivamente o mês remoto.
