@@ -183,6 +183,7 @@
 <button type="button" class="setor-mini active" data-setor-tab="documentos" aria-selected="true"><strong>▤ Documentos</strong><small>Refaturados e substitutos</small></button>
 <button type="button" class="setor-mini" data-setor-tab="valores" aria-selected="false"><strong>＄ Valores</strong><small>Impacto financeiro</small></button>
 <button type="button" class="setor-mini" data-setor-tab="totais" aria-selected="false"><strong>▥ Totais</strong><small>Consolidado por setor</small></button>
+<button type="button" class="setor-mini" data-setor-tab="anual" aria-selected="false"><strong>▥ Total Anual</strong><small>Consolidado do ano por setor</small></button>
 <button type="button" class="setor-mini" data-setor-tab="motivos" aria-selected="false"><strong>⌕ Motivos</strong><small>Causas e documentos</small></button>
 </div><div data-setor-panel="documentos"><div class="grid grid-2" style="margin-top:16px;">
 <div class="card"><h3>Quantitativo refaturado por setor</h3><div class="sub">Total de linhas refaturadas por setor.</div><div class="chart-box"><canvas height="0" id="chartRefQtySetor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
@@ -225,6 +226,15 @@
 </table>
 </div>
 </div>
+</div>
+<div data-setor-panel="anual" hidden>
+<div class="card" style="margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+<div class="field"><label for="setoresAnoSelect">Ano</label><select id="setoresAnoSelect"></select></div>
+<div class="sub" id="setoresAnualStatus">Selecione Total Anual para carregar.</div>
+</div>
+<div class="grid grid-2"><div class="card"><h3>Valor total anual por setor</h3><div class="sub">Débito refaturado + frete substituto, com rateio entre setores.</div><div class="chart-box"><canvas id="chartSetoresAnualValor"></canvas></div></div>
+<div class="card"><h3>Quantidade anual por setor</h3><div class="sub">Refaturados e substitutos por setor.</div><div class="chart-box"><canvas id="chartSetoresAnualQtd"></canvas></div></div></div>
+<div class="card" style="margin-top:16px"><h3>Consolidado anual por setor</h3><div class="table-wrap"><table><thead><tr><th>Setor</th><th>Qtd. refaturados</th><th>Valor refaturado</th><th>Qtd. substitutos</th><th>Valor substituto</th><th>Valor total</th></tr></thead><tbody id="tbodySetoresAnual"></tbody></table></div></div>
 </div></section>
 <section class="view" id="performance">
 <div class="grid grid-2">
