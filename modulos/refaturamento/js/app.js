@@ -2914,7 +2914,7 @@ function bindConfigActions(){
 
   document.getElementById('btnSaveReasons').addEventListener('click',async function(){
     const box=document.getElementById('reasonBox'),button=this;
-    const rows=[...new Map(box.value.split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean).map(x=>[x.toLocaleLowerCase('pt-BR'),x])).values()];
+    const rows=[...new Map(box.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>[x.toLocaleLowerCase('pt-BR'),x])).values()];
     if(!rows.length){alert('Informe pelo menos um motivo.');return;}
     button.disabled=true;button.textContent='Salvando na base...';
     try{
