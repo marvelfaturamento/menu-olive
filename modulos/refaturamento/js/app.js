@@ -6034,19 +6034,34 @@ function __perfAnualAggregate(){
   }
 
   window.renderMotivosView=function(){
+    // Quantidades, valores, graficos e detalhes precisam compartilhar a mesma
+    // colecao de documentos e a mesma classificacao de motivo.
     stableRenderMotivos && stableRenderMotivos.apply(this,arguments);
-    addExactMotivoDetails();
-    // O grafico de quantidade deve usar a MESMA colecao de documentos
-    // que alimenta os detalhes e os quantitativos corrigidos da tabela.
-    const counts = new Map();
+    const groups=new Map();
     motivosDetailRowsExact().forEach(r=>{
       const motivo=txt(r.motivo)||'Sem preenchimento';
       const key=norm(motivo);
-      if(!counts.has(key))counts.set(key,{motivo,qtd:0});
-      counts.get(key).qtd++;
+      if(!groups.has(key))groups.set(key,{motivo,refQty:0,subQty:0,refValue:0,subValue:0,rows:[]});
+      const x=groups.get(key);
+      const v=Number(r.valor)||0;
+      if(r.tipo==='Refaturado'){x.refQty++;x.refValue+=v;}
+      else if(r.tipo==='Substituto'){x.subQty++;x.subValue+=v;}
+      x.rows.push(r);
     });
-    const ranked=[...counts.values()].sort((a,b)=>b.qtd-a.qtd||a.motivo.localeCompare(b.motivo,'pt-BR')).slice(0,10);
-    makeBarChart('chartMotivosQtd',ranked.map(x=>x.motivo),ranked.map(x=>x.qtd),true,'Quantidade');
+    const all=[...groups.values()];
+    const byQty=all.slice().sort((a,b)=>(b.refQty+b.subQty)-(a.refQty+a.subQty));
+    const byValue=all.slice().sort((a,b)=>(b.refValue+b.subValue)-(a.refValue+a.subValue));
+    makeBarChart('chartMotivosQtd',byQty.slice(0,10).map(x=>x.motivo),byQty.slice(0,10).map(x=>x.refQty+x.subQty),true,'Quantidade');
+    makeBarChart('chartMotivosValor',byValue.slice(0,10).map(x=>x.motivo),byValue.slice(0,10).map(x=>x.refValue+x.subValue),true,'Impacto total');
+    const totalRef=all.reduce((v,x)=>v+x.refValue,0);
+    const totalSub=all.reduce((v,x)=>v+x.subValue,0);
+    makeBarChart('chartOriginalRefSubs',['Total','Refaturado','Substituto'],[totalRef+totalSub,totalRef,totalSub]);
+    const tbody=document.getElementById('tbodyMotivos');
+    if(tbody)tbody.innerHTML=byValue.length?byValue.map((x,i)=>{
+      const id='motivo-unificado-'+i;
+      setGroup(id,x.rows);
+      return `<tr><td>${esc(x.motivo)}</td><td>${x.refQty}</td><td>${fmtMoney(x.refValue)}</td><td>${x.subQty}</td><td>${fmtMoney(x.subValue)}</td><td>${fmtMoney(x.refValue+x.subValue)}</td><td><button type="button" class="details-btn" data-detail-id="${esc(id)}">🔎 Ver detalhes (${x.refQty} ref. / ${x.subQty} sub.)</button></td></tr>`;
+    }).join(''):'<tr><td colspan="7" class="center muted">Sem dados</td></tr>';
   };
   function usuariosDetailRowsExact(){
     // A tabela de usuários é calculada por getUsuariosReasonDetailRows().
