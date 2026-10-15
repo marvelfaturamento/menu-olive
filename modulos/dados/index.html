@@ -534,51 +534,86 @@ document.getElementById("manualFields").style.display=m==="manual"?"block":"none
 
 let cidades={origem:null,aduana:null,destino:null};
 
+// Cache compartilhado entre Origem, Aduana e Destino, sem alterar as coordenadas usadas no cálculo.
+const cacheCidades=new Map();
+const normalizarBuscaCidade=t=>String(t||'').trim().toLocaleLowerCase('pt-BR');
+async function consultarCidadesRapido(texto,signal){
+  const q=normalizarBuscaCidade(texto);
+  if(cacheCidades.has(q))return cacheCidades.get(q);
+  const buscar=async(url,converter)=>{
+    const r=await fetch(url,{signal});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return converter(await r.json());
+  };
+  const photon=()=>buscar('https://photon.komoot.io/api/?q='+encodeURIComponent(texto)+'&limit=7',d=>(d.features||[]).map(c=>{
+    const p=c.properties||{};
+    const partes=[p.name,p.city,p.state,p.country].filter((v,i,a)=>v&&a.indexOf(v)===i);
+    return {label:partes.join(', ')||texto,coordinates:c.geometry.coordinates};
+  }));
+  const nominatim=()=>buscar('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=7&q='+encodeURIComponent(texto),d=>d.map(c=>({
+    label:c.display_name,
+    coordinates:[Number(c.lon),Number(c.lat)]
+  })));
+  // Evita que um provedor lento bloqueie o preenchimento.
+  let resultados;
+  try{
+    resultados=await Promise.race([
+      photon(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Photon lento')),2200))
+    ]);
+  }catch(err){
+    if(signal.aborted)throw err;
+    resultados=await Promise.race([
+      nominatim(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Serviços de cidades indisponíveis')),4500))
+    ]);
+  }
+  if(resultados.length){
+    cacheCidades.set(q,resultados);
+    if(cacheCidades.size>100)cacheCidades.delete(cacheCidades.keys().next().value);
+  }
+  return resultados;
+}
 function auto(id,sug,key){
   const i=document.getElementById(id);
   const box=document.getElementById(sug);
-  if (!i || !box) return;
-  let timer=null;
-  let seq=0;
-
-  i.addEventListener("input",()=>{
+  if(!i||!box)return;
+  let timer=null,seq=0,controller=null;
+  i.addEventListener('input',()=>{
     cidades[key]=null;
     clearTimeout(timer);
+    if(controller)controller.abort();
+    const minhaSeq=++seq;
     const texto=i.value.trim();
-    if(texto.length<3){ box.innerHTML=""; return; }
-
+    if(texto.length<3){box.innerHTML='';return;}
+    box.textContent='Buscando cidades...';
     timer=setTimeout(async()=>{
-      const minhaSeq=++seq;
+      controller=new AbortController();
       try{
-        // Photon não depende da chave do ORS e serve como contingência para o autocomplete. O parâmetro lang=pt foi removido porque a API Photon retorna HTTP 400 para esse idioma.
-        const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(texto)}&limit=5`;
-        const r=await fetch(url);
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const d=await r.json();
-        if(minhaSeq!==seq) return;
-        box.innerHTML="";
-        (d.features||[]).forEach(c=>{
-          const p=c.properties||{};
-          const partes=[p.name,p.city,p.state,p.country].filter((v,idx,arr)=>v && arr.indexOf(v)===idx);
-          const label=partes.join(", ") || p.name || texto;
-          const div=document.createElement("div");
-          div.innerText=label;
+        const items=await consultarCidadesRapido(texto,controller.signal);
+        if(minhaSeq!==seq)return;
+        box.innerHTML='';
+        if(!items.length){box.textContent='Nenhuma cidade encontrada.';return;}
+        items.forEach(c=>{
+          const div=document.createElement('div');
+          div.textContent=c.label;
           div.onclick=()=>{
-            i.value=label;
-            cidades[key]=c.geometry.coordinates;
-            box.innerHTML="";
+            i.value=c.label;
+            cidades[key]=c.coordinates;
+            box.innerHTML='';
+            ++seq;
+            controller?.abort();
           };
           box.appendChild(div);
         });
       }catch(e){
-        if(minhaSeq!==seq) return;
-        console.warn("Autocomplete indisponível:",e);
-        box.innerHTML='<div style="opacity:.7;cursor:default">Não foi possível consultar cidades agora.</div>';
+        if(minhaSeq!==seq)return;
+        console.warn('Autocomplete indisponível:',e);
+        box.textContent='Busca indisponível no momento. Tente novamente.';
       }
-    },450);
+    },230);
   });
 }
-
 auto("origem","sugOrigem","origem");
 auto("aduana","sugAduana","aduana");
 auto("destino","sugDestino","destino");
@@ -1179,51 +1214,86 @@ if (dolarInput) {
 
 let cidades={origem:null,aduana:null,destino:null};
 
+// Cache compartilhado entre Origem, Aduana e Destino, sem alterar as coordenadas usadas no cálculo.
+const cacheCidades=new Map();
+const normalizarBuscaCidade=t=>String(t||'').trim().toLocaleLowerCase('pt-BR');
+async function consultarCidadesRapido(texto,signal){
+  const q=normalizarBuscaCidade(texto);
+  if(cacheCidades.has(q))return cacheCidades.get(q);
+  const buscar=async(url,converter)=>{
+    const r=await fetch(url,{signal});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return converter(await r.json());
+  };
+  const photon=()=>buscar('https://photon.komoot.io/api/?q='+encodeURIComponent(texto)+'&limit=7',d=>(d.features||[]).map(c=>{
+    const p=c.properties||{};
+    const partes=[p.name,p.city,p.state,p.country].filter((v,i,a)=>v&&a.indexOf(v)===i);
+    return {label:partes.join(', ')||texto,coordinates:c.geometry.coordinates};
+  }));
+  const nominatim=()=>buscar('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=7&q='+encodeURIComponent(texto),d=>d.map(c=>({
+    label:c.display_name,
+    coordinates:[Number(c.lon),Number(c.lat)]
+  })));
+  // Evita que um provedor lento bloqueie o preenchimento.
+  let resultados;
+  try{
+    resultados=await Promise.race([
+      photon(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Photon lento')),2200))
+    ]);
+  }catch(err){
+    if(signal.aborted)throw err;
+    resultados=await Promise.race([
+      nominatim(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Serviços de cidades indisponíveis')),4500))
+    ]);
+  }
+  if(resultados.length){
+    cacheCidades.set(q,resultados);
+    if(cacheCidades.size>100)cacheCidades.delete(cacheCidades.keys().next().value);
+  }
+  return resultados;
+}
 function auto(id,sug,key){
   const i=document.getElementById(id);
   const box=document.getElementById(sug);
-  if (!i || !box) return;
-  let timer=null;
-  let seq=0;
-
-  i.addEventListener("input",()=>{
+  if(!i||!box)return;
+  let timer=null,seq=0,controller=null;
+  i.addEventListener('input',()=>{
     cidades[key]=null;
     clearTimeout(timer);
+    if(controller)controller.abort();
+    const minhaSeq=++seq;
     const texto=i.value.trim();
-    if(texto.length<3){ box.innerHTML=""; return; }
-
+    if(texto.length<3){box.innerHTML='';return;}
+    box.textContent='Buscando cidades...';
     timer=setTimeout(async()=>{
-      const minhaSeq=++seq;
+      controller=new AbortController();
       try{
-        // Photon não depende da chave do ORS e serve como contingência para o autocomplete. O parâmetro lang=pt foi removido porque a API Photon retorna HTTP 400 para esse idioma.
-        const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(texto)}&limit=5`;
-        const r=await fetch(url);
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const d=await r.json();
-        if(minhaSeq!==seq) return;
-        box.innerHTML="";
-        (d.features||[]).forEach(c=>{
-          const p=c.properties||{};
-          const partes=[p.name,p.city,p.state,p.country].filter((v,idx,arr)=>v && arr.indexOf(v)===idx);
-          const label=partes.join(", ") || p.name || texto;
-          const div=document.createElement("div");
-          div.innerText=label;
+        const items=await consultarCidadesRapido(texto,controller.signal);
+        if(minhaSeq!==seq)return;
+        box.innerHTML='';
+        if(!items.length){box.textContent='Nenhuma cidade encontrada.';return;}
+        items.forEach(c=>{
+          const div=document.createElement('div');
+          div.textContent=c.label;
           div.onclick=()=>{
-            i.value=label;
-            cidades[key]=c.geometry.coordinates;
-            box.innerHTML="";
+            i.value=c.label;
+            cidades[key]=c.coordinates;
+            box.innerHTML='';
+            ++seq;
+            controller?.abort();
           };
           box.appendChild(div);
         });
       }catch(e){
-        if(minhaSeq!==seq) return;
-        console.warn("Autocomplete indisponível:",e);
-        box.innerHTML='<div style="opacity:.7;cursor:default">Não foi possível consultar cidades agora.</div>';
+        if(minhaSeq!==seq)return;
+        console.warn('Autocomplete indisponível:',e);
+        box.textContent='Busca indisponível no momento. Tente novamente.';
       }
-    },450);
+    },230);
   });
 }
-
 auto("origem","sugOrigem","origem");
 auto("aduana","sugAduana","aduana");
 auto("destino","sugDestino","destino");
