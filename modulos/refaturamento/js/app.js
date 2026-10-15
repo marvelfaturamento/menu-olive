@@ -6147,6 +6147,77 @@ function __perfAnualAggregate(){
     if(event.target?.id==='motivosAnoSelect')renderMotivosAnual();
   });
 
+  // Consolidação anual de setores: mesmas fontes e regra de rateio do mensal.
+  const setorAnnualCache=new Map();
+  let setorAnnualRequest=0;
+  function setorAnnualYears(){
+    const select=document.getElementById('setoresAnoSelect');
+    if(!select)return;
+    const current=select.value;
+    const selected=motivosSelectedYear();
+    const years=[...new Set([selected,...(state.remoteMonths||[]).map(k=>String(k).slice(0,4))])].filter(y=>/^\\d{4}$/.test(y)).sort().reverse();
+    select.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    select.value=years.includes(current)?current:selected;
+  }
+  async function setorAnnualData(year){
+    if(setorAnnualCache.has(year))return setorAnnualCache.get(year);
+    if(!state.supabase)throw new Error('Supabase não conectada');
+    const keys=(state.remoteMonths||[]).filter(k=>String(k).startsWith(year+'-'));
+    const months=keys.length?keys:Array.from({length:12},(_,i)=>year+'-'+String(i+1).padStart(2,'0'));
+    const result=new Map();
+    const ensure=setor=>{if(!result.has(setor))result.set(setor,{setor,refQty:0,refValue:0,subQty:0,subValue:0});return result.get(setor);};
+    for(const key of months){
+      const [ano,mes]=key.split('-');
+      const rows=[];
+      for(let from=0;;from+=1000){
+        const response=await state.supabase.from('refaturamento_importado').select('*').eq('ano',ano).eq('mes',mes).range(from,from+999);
+        if(response.error)throw response.error;
+        rows.push(...(response.data||[]));
+        if((response.data||[]).length<1000)break;
+      }
+      __dedupeRemoteRefRowsFinal(rows).forEach(r=>{
+        if(r.tipo==='setor'){
+          const setor=sectorNormalize(r.setor||'NÃO IDENTIFICADO');
+          const item=ensure(setor);
+          item.refQty++;
+          item.refValue+=parseNumber(r.debito||0);
+        }else if(r.tipo==='substituto'){
+          const sectors=parseReducedSectors(r.reduzido||r.setor||'');
+          const targets=sectors.length?sectors:['NÃO IDENTIFICADO'];
+          const value=parseNumber(r.frete_substituto||0)/targets.length;
+          targets.forEach(setor=>{const item=ensure(setor);item.subQty++;item.subValue+=value;});
+        }
+      });
+    }
+    const data=[...result.values()].map(x=>({...x,totalValue:x.refValue+x.subValue}));
+    setorAnnualCache.set(year,data);
+    return data;
+  }
+  async function renderSetoresAnual(){
+    const year=document.getElementById('setoresAnoSelect')?.value||motivosSelectedYear();
+    const status=document.getElementById('setoresAnualStatus');
+    const request=++setorAnnualRequest;
+    if(status)status.textContent='Carregando setores de '+year+'...';
+    try{
+      const rows=await setorAnnualData(year);
+      if(request!==setorAnnualRequest)return;
+      const ranked=rows.slice().sort((a,b)=>b.totalValue-a.totalValue);
+      makeBarChart('chartSetoresAnualValor',ranked.map(x=>x.setor),ranked.map(x=>x.totalValue),false,'Valor');
+      makeBarChart('chartSetoresAnualQtd',ranked.map(x=>x.setor),ranked.map(x=>x.refQty+x.subQty),false,'Quantidade');
+      const tbody=document.getElementById('tbodySetoresAnual');
+      if(tbody)tbody.innerHTML=ranked.length?ranked.map(x=>`<tr><td>${esc(x.setor)}</td><td>${x.refQty}</td><td>${fmtMoney(x.refValue)}</td><td>${x.subQty}</td><td>${fmtMoney(x.subValue)}</td><td>${fmtMoney(x.totalValue)}</td></tr>`).join(''):'<tr><td colspan="6" class="center muted">Sem dados para este ano</td></tr>';
+      if(status)status.textContent=year+' • '+fmtMoney(ranked.reduce((sum,x)=>sum+x.totalValue,0))+' em valores por setor';
+    }catch(error){console.error('Erro no total anual por setor',error);if(status)status.textContent='Erro: '+(error.message||error);}
+  }
+  document.addEventListener('click',event=>{
+    const btn=event.target.closest('[data-setor-tab="anual"]');
+    if(!btn)return;
+    setorAnnualYears();
+    renderSetoresAnual();
+  });
+  document.addEventListener('change',event=>{
+    if(event.target?.id==='setoresAnoSelect')renderSetoresAnual();
+  });
   function usuariosDetailRowsExact(){
     // A tabela de usuários é calculada por getUsuariosReasonDetailRows().
     // Os detalhes devem obrigatoriamente usar a mesma coleção para que
