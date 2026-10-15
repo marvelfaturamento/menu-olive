@@ -6068,13 +6068,13 @@ function __perfAnualAggregate(){
   let motivosAnnualRequest=0;
   function motivosSelectedYear(){
     const key=String(state.selectedMonthKey||document.getElementById('monthViewSelect')?.value||'');
-    return /^\\d{4}/.test(key)?key.slice(0,4):String(new Date().getFullYear());
+    return /^\d{4}/.test(key)?key.slice(0,4):String(new Date().getFullYear());
   }
   function motivosFillYears(){
     const select=document.getElementById('motivosAnoSelect');
     if(!select)return;
     const previous=select.value;
-    const years=[...new Set([motivosSelectedYear(),...(state.remoteMonths||[]).map(k=>String(k).slice(0,4))])].filter(x=>/^\\d{4}$/.test(x)).sort().reverse();
+    const years=[...new Set([motivosSelectedYear(),...(state.remoteMonths||[]).map(k=>String(k).slice(0,4))])].filter(x=>/^\d{4}$/.test(x)).sort().reverse();
     select.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
     select.value=years.includes(previous)?previous:motivosSelectedYear();
   }
@@ -6155,7 +6155,7 @@ function __perfAnualAggregate(){
     if(!select)return;
     const current=select.value;
     const selected=motivosSelectedYear();
-    const years=[...new Set([selected,...(state.remoteMonths||[]).map(k=>String(k).slice(0,4))])].filter(y=>/^\\d{4}$/.test(y)).sort().reverse();
+    const years=[...new Set([selected,...(state.remoteMonths||[]).map(k=>String(k).slice(0,4))])].filter(y=>/^\d{4}$/.test(y)).sort().reverse();
     select.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
     select.value=years.includes(current)?current:selected;
   }
