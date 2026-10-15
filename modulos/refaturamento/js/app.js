@@ -6063,6 +6063,90 @@ function __perfAnualAggregate(){
       return `<tr><td>${esc(x.motivo)}</td><td>${x.refQty}</td><td>${fmtMoney(x.refValue)}</td><td>${x.subQty}</td><td>${fmtMoney(x.subValue)}</td><td>${fmtMoney(x.refValue+x.subValue)}</td><td><button type="button" class="details-btn" data-detail-id="${esc(id)}">🔎 Ver detalhes (${x.refQty} ref. / ${x.subQty} sub.)</button></td></tr>`;
     }).join(''):'<tr><td colspan="7" class="center muted">Sem dados</td></tr>';
   };
+  // Analise anual: leitura isolada do Supabase, sem trocar o mes do painel.
+  const motivosAnnualCache=new Map();
+  let motivosAnnualRequest=0;
+  function motivosSelectedYear(){
+    const key=String(state.selectedMonthKey||document.getElementById('monthViewSelect')?.value||'');
+    return /^\\d{4}/.test(key)?key.slice(0,4):String(new Date().getFullYear());
+  }
+  function motivosFillYears(){
+    const select=document.getElementById('motivosAnoSelect');
+    if(!select)return;
+    const previous=select.value;
+    const years=[...new Set([motivosSelectedYear(),...(state.remoteMonths||[]).map(k=>String(k).slice(0,4))])].filter(x=>/^\\d{4}$/.test(x)).sort().reverse();
+    select.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    select.value=years.includes(previous)?previous:motivosSelectedYear();
+  }
+  async function motivosAnnualRows(year){
+    if(motivosAnnualCache.has(year))return motivosAnnualCache.get(year);
+    if(!state.supabase)throw new Error('Supabase não conectada');
+    const months=(state.remoteMonths||[]).filter(k=>String(k).startsWith(year+'-'));
+    const keys=months.length?months:Array.from({length:12},(_,i)=>year+'-'+String(i+1).padStart(2,'0'));
+    const fixesResult=await state.supabase.from('refaturamento_correcoes').select('documento,setor,operador');
+    if(fixesResult.error)console.warn('Correções anuais não carregadas',fixesResult.error);
+    const all=[];
+    for(const key of keys){
+      const [ano,mes]=key.split('-');
+      const monthRows=[];
+      for(let from=0;;from+=1000){
+        const res=await state.supabase.from('refaturamento_importado').select('*').eq('ano',ano).eq('mes',mes).range(from,from+999);
+        if(res.error)throw res.error;
+        monthRows.push(...(res.data||[]));
+        if((res.data||[]).length<1000)break;
+      }
+      const deduped=__dedupeRemoteRefRowsFinal(monthRows);
+      all.push(...deduped.filter(r=>r.tipo==='refaturado'||r.tipo==='substituto'));
+    }
+    const map=new Map();
+    all.forEach(r=>{
+      const cte=txt(r.documento);
+      const manual=getManual(cte);
+      const motivoBaixa=txt(r.motivo_baixa);
+      const motivo=txt(manual.reason||inferReasonFromText(motivoBaixa)||(motivoBaixa?'Não identificado':'Sem preenchimento'));
+      const key=norm(motivo);
+      if(!map.has(key))map.set(key,{motivo,refQty:0,subQty:0,refValue:0,subValue:0});
+      const x=map.get(key);
+      if(r.tipo==='refaturado'){x.refQty++;x.refValue+=parseNumber(r.frete_refaturado||0);}
+      else{x.subQty++;x.subValue+=parseNumber(r.frete_substituto||0);}
+    });
+    const result=[...map.values()];
+    motivosAnnualCache.set(year,result);
+    return result;
+  }
+  async function renderMotivosAnual(){
+    const year=document.getElementById('motivosAnoSelect')?.value||motivosSelectedYear();
+    const status=document.getElementById('motivosAnualStatus');
+    const request=++motivosAnnualRequest;
+    if(status)status.textContent='Carregando motivos de '+year+'...';
+    try{
+      const all=await motivosAnnualRows(year);
+      if(request!==motivosAnnualRequest)return;
+      const qtd=all.slice().sort((a,b)=>(b.refQty+b.subQty)-(a.refQty+a.subQty));
+      const valor=all.slice().sort((a,b)=>(b.refValue+b.subValue)-(a.refValue+a.subValue));
+      makeBarChart('chartMotivosAnualQtd',qtd.slice(0,10).map(x=>x.motivo),qtd.slice(0,10).map(x=>x.refQty+x.subQty),true,'Quantidade');
+      makeBarChart('chartMotivosAnualValor',valor.slice(0,10).map(x=>x.motivo),valor.slice(0,10).map(x=>x.refValue+x.subValue),true,'Impacto total');
+      const tbody=document.getElementById('tbodyMotivosAnual');
+      if(tbody)tbody.innerHTML=valor.length?valor.map(x=>`<tr><td>${esc(x.motivo)}</td><td>${x.refQty}</td><td>${fmtMoney(x.refValue)}</td><td>${x.subQty}</td><td>${fmtMoney(x.subValue)}</td><td>${fmtMoney(x.refValue+x.subValue)}</td></tr>`).join(''):'<tr><td colspan="6" class="center muted">Sem registros para este ano</td></tr>';
+      if(status)status.textContent=year+' • '+all.reduce((n,x)=>n+x.refQty+x.subQty,0)+' documentos • '+fmtMoney(all.reduce((n,x)=>n+x.refValue+x.subValue,0));
+    }catch(err){
+      console.error('Falha na análise anual de motivos',err);
+      if(status)status.textContent='Erro ao carregar ano: '+(err.message||err);
+    }
+  }
+  document.addEventListener('click',event=>{
+    const btn=event.target.closest('[data-motivo-periodo]');
+    if(!btn)return;
+    const period=btn.dataset.motivoPeriodo;
+    document.querySelectorAll('[data-motivo-periodo]').forEach(el=>{const active=el===btn;el.classList.toggle('active',active);el.setAttribute('aria-selected',String(active));});
+    document.querySelectorAll('[data-motivo-painel]').forEach(el=>{el.hidden=el.dataset.motivoPainel!==period;});
+    if(period==='anual'){motivosFillYears();renderMotivosAnual();}
+    else window.renderMotivosView?.();
+  });
+  document.addEventListener('change',event=>{
+    if(event.target?.id==='motivosAnoSelect')renderMotivosAnual();
+  });
+
   function usuariosDetailRowsExact(){
     // A tabela de usuários é calculada por getUsuariosReasonDetailRows().
     // Os detalhes devem obrigatoriamente usar a mesma coleção para que
