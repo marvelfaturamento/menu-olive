@@ -6036,6 +6036,17 @@ function __perfAnualAggregate(){
   window.renderMotivosView=function(){
     stableRenderMotivos && stableRenderMotivos.apply(this,arguments);
     addExactMotivoDetails();
+    // O grafico de quantidade deve usar a MESMA colecao de documentos
+    // que alimenta os detalhes e os quantitativos corrigidos da tabela.
+    const counts = new Map();
+    motivosDetailRowsExact().forEach(r=>{
+      const motivo=txt(r.motivo)||'Sem preenchimento';
+      const key=norm(motivo);
+      if(!counts.has(key))counts.set(key,{motivo,qtd:0});
+      counts.get(key).qtd++;
+    });
+    const ranked=[...counts.values()].sort((a,b)=>b.qtd-a.qtd||a.motivo.localeCompare(b.motivo,'pt-BR')).slice(0,10);
+    makeBarChart('chartMotivosQtd',ranked.map(x=>x.motivo),ranked.map(x=>x.qtd),true,'Quantidade');
   };
   function usuariosDetailRowsExact(){
     // A tabela de usuários é calculada por getUsuariosReasonDetailRows().
