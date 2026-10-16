@@ -1050,6 +1050,19 @@ function inferReasonFromText(text){
     const valueNorm = normalizeText(value);
     if(!valueNorm) return '';
 
+    // Identifica a origem do erro de valor antes do motivo genérico.
+    // Não atribui responsabilidade apenas pela menção isolada a "cliente".
+    const isValueIssue = /\b(valor|frete|tarifa|cobranca|cobrado|preco)\b/.test(valueNorm) &&
+      /(incorret|errad|divergent|diferent|equivocad|ajust|corrig|erro)/.test(valueNorm);
+    if(isValueIssue){
+      if(/(tabela de frete|tabela de preco|tabela incorret|tarifa cadastrada|tarifa incorret|erro na tabela|valor de tabela)/.test(valueNorm))
+        return 'valor incorreto na tabela';
+      if(/(erro (do|de|pelo) cliente|cliente (informou|passou|solicitou|enviou) (o |um )?valor (incorret|errad|divergent)|valor (incorret|errad|divergent) (informado|enviado|solicitado) pelo cliente)/.test(valueNorm))
+        return 'valor incorreto cliente';
+      if(/(erro (do|de|no|pelo) faturamento|faturamento (calculou|lancou|digitou|cobrou|faturou) (o |um )?valor (incorret|errad|divergent)|valor (incorret|errad|divergent) (calculado|lancado|digitado|faturado) (pelo|no) faturamento)/.test(valueNorm))
+        return 'valor incorreto faturamento';
+    }
+
     // Quando o texto informa dois erros, mantém a causa composta em vez de
     // deixar a referência à NF capturar o registro como nota fiscal indevida.
     const hasValorError = /\bvalor\b/.test(valueNorm) && /(incorret|errad|divergent)/.test(valueNorm);
@@ -1064,6 +1077,7 @@ function inferReasonFromText(text){
       { reason:'falta de notas fiscais', terms:['faltou nota','faltou notas','faltaram notas','faltou 1 nota','falta de nota','falta de notas','notas faltantes','nf faltante','nfs faltantes'] },
       { reason:'imposto incorreto', terms:['somou icms indevidamente','icms indevido','icms incorreto','icms errado','icms calculado indevidamente','imposto indevido','imposto incorreto','cst incorreto','cst incorreta','cst errado','cst errada','cst divergente'] },
       // Motivos efetivos têm prioridade sobre referências documentais como "NF pallet 397133".
+      { reason:'valor incorreto na tabela', terms:['valor incorreto na tabela','valor errado na tabela','valor divergente na tabela'] },
       { reason:'valor incorreto', terms:['valor incorreto','valor errado','valor divergente'] },
       { reason:'nota fiscal de pallet', terms:['nota fiscal de pallet incorreta','nf de pallet incorreta','erro nf pallet','erro nota pallet','motivo nota fiscal de pallet','motivo nf pallet'] },
       { reason:'nota fiscal indevida', terms:['nota incorreta','nf incorreta','nota fiscal incorreta','nota fiscal indevida','nf indevida','nota indevida','documento fiscal indevido'] },
