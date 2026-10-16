@@ -6203,6 +6203,11 @@ function __perfAnualAggregate(){
     if(!state.supabase)throw new Error('Supabase não conectada');
     const keys=(state.remoteMonths||[]).filter(k=>String(k).startsWith(year+'-'));
     const months=keys.length?keys:Array.from({length:12},(_,i)=>year+'-'+String(i+1).padStart(2,'0'));
+    // O anual deve respeitar as correções já salvas, como a tela de Pendências.
+    const {data:correcoes,error:erroCorrecoes}=await state.supabase
+      .from('refaturamento_correcoes').select('documento,setor,operador');
+    if(erroCorrecoes)throw erroCorrecoes;
+    const mapaCorrecoes=new Map((correcoes||[]).map(x=>[String(x.documento||'').trim(),x]));
     const result=new Map();
     const ensure=setor=>{if(!result.has(setor))result.set(setor,{setor,refQty:0,refValue:0,subQty:0,subValue:0});return result.get(setor);};
     for(const key of months){
@@ -6215,13 +6220,16 @@ function __perfAnualAggregate(){
         if((response.data||[]).length<1000)break;
       }
       __dedupeRemoteRefRowsFinal(rows).forEach(r=>{
+        const correcao=mapaCorrecoes.get(String(r.documento||'').trim());
+        const setorCorrigido=String(correcao?.setor||'').trim();
+        const setorEfetivo=setorCorrigido||String(r.setor||'').trim();
         if(r.tipo==='setor'){
-          const setor=sectorNormalize(r.setor||'NÃO IDENTIFICADO');
+          const setor=sectorNormalize(setorEfetivo||'NÃO IDENTIFICADO');
           const item=ensure(setor);
           item.refQty++;
           item.refValue+=parseNumber(r.debito||0);
         }else if(r.tipo==='substituto'){
-          const sectors=parseReducedSectors(r.reduzido||r.setor||'');
+          const sectors=parseReducedSectors(setorCorrigido||r.reduzido||setorEfetivo||'');
           const targets=sectors.length?sectors:['NÃO IDENTIFICADO'];
           const value=parseNumber(r.frete_substituto||0)/targets.length;
           targets.forEach(setor=>{const item=ensure(setor);item.subQty++;item.subValue+=value;});
