@@ -6254,6 +6254,93 @@ function __perfAnualAggregate(){
     setorAnnualCache.set(year,data);
     return data;
   }
+  // Motivos anuais por setor: mesmos filtros do card mensal, com leitura isolada do ano.
+  const setorMotivosAnnualCache=new Map();
+  async function setorMotivosAnnualData(year){
+    if(setorMotivosAnnualCache.has(year))return setorMotivosAnnualCache.get(year);
+    if(!state.supabase)throw new Error('Supabase não conectada');
+    const months=(state.remoteMonths||[]).filter(k=>String(k).startsWith(year+'-'));
+    const keys=months.length?months:Array.from({length:12},(_,i)=>year+'-'+String(i+1).padStart(2,'0'));
+    const [manualRes,fixesRes]=await Promise.all([
+      state.supabase.from('refaturamento_manual').select('documento,motivo'),
+      state.supabase.from('refaturamento_correcoes').select('documento,setor')
+    ]);
+    if(manualRes.error)throw manualRes.error;
+    if(fixesRes.error)throw fixesRes.error;
+    const manuals=new Map((manualRes.data||[]).map(r=>[String(r.documento||'').trim(),r.motivo]));
+    const fixes=new Map((fixesRes.data||[]).map(r=>[String(r.documento||'').trim(),r.setor]));
+    const grouped=new Map();
+    for(const key of keys){
+      const [ano,mes]=key.split('-');
+      const monthRows=[];
+      for(let from=0;;from+=1000){
+        const res=await state.supabase.from('refaturamento_importado').select('*').eq('ano',ano).eq('mes',mes).range(from,from+999);
+        if(res.error)throw res.error;
+        monthRows.push(...(res.data||[]));
+        if((res.data||[]).length<1000)break;
+      }
+      __dedupeRemoteRefRowsFinal(monthRows).forEach(r=>{
+        if(r.tipo!=='refaturado'&&r.tipo!=='substituto')return;
+        const cte=String(r.documento||'').trim();
+        const raw=String(r.motivo_baixa||'').trim();
+        const motivo=canonicalRefReason(manuals.get(cte)||inferReasonFromText(raw)||(raw?'Não identificado':'Sem preenchimento'));
+        const override=String(fixes.get(cte)||'').trim();
+        const setores=Array.from(new Set(parseReducedSectors(override||r.reduzido||r.setor||'').map(x=>upper(x)).filter(Boolean)));
+        const targets=setores.length?setores:['NÃO IDENTIFICADO'];
+        const value=parseNumber((r.tipo==='refaturado'?r.frete_refaturado:r.frete_substituto)||0)/targets.length;
+        targets.forEach(setor=>{
+          const id=setor+'|'+motivo;
+          if(!grouped.has(id))grouped.set(id,{setor,motivo,qty:0,value:0});
+          const item=grouped.get(id);
+          item.qty++;item.value+=value;
+        });
+      });
+    }
+    const rows=[...grouped.values()];
+    setorMotivosAnnualCache.set(year,rows);
+    return rows;
+  }
+  function renderSetorMotivosAnnualCharts(rows){
+    const select=document.getElementById('setorMotivosAnualSelect');
+    if(!select)return;
+    const current=select.value||'TODOS';
+    const sectors=[...new Set(rows.map(x=>x.setor))].sort();
+    select.innerHTML='<option value="TODOS">Todos</option>'+sectors.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+    select.value=sectors.includes(current)?current:'TODOS';
+    const filtered=rows.filter(x=>select.value==='TODOS'||x.setor===select.value);
+    const map=new Map();
+    filtered.forEach(x=>{
+      if(!map.has(x.motivo))map.set(x.motivo,{motivo:x.motivo,qty:0,value:0});
+      const a=map.get(x.motivo);a.qty+=x.qty;a.value+=x.value;
+    });
+    const all=[...map.values()];
+    const byQty=all.slice().sort((a,b)=>b.qty-a.qty);
+    const byValue=all.slice().sort((a,b)=>b.value-a.value);
+    makeBarChart('chartSetorMotivosAnualQtd',byQty.slice(0,12).map(x=>x.motivo),byQty.slice(0,12).map(x=>x.qty),true,'Quantidade');
+    makeBarChart('chartSetorMotivosAnualValor',byValue.slice(0,12).map(x=>x.motivo),byValue.slice(0,12).map(x=>x.value),true,'Valor');
+    const tbody=document.getElementById('tbodySetorMotivosAnual');
+    if(tbody)tbody.innerHTML=byValue.length?byValue.map(x=>'<tr><td>'+esc(x.motivo)+'</td><td>'+x.qty+'</td><td>'+fmtMoney(x.value)+'</td></tr>').join(''):'<tr><td colspan="3" class="center muted">Sem dados</td></tr>';
+  }
+  let setorMotivosAnnualRequest=0;
+  async function renderSetorMotivosAnual(){
+    const year=document.getElementById('setoresAnoSelect')?.value||motivosSelectedYear();
+    const status=document.getElementById('setorMotivosAnualStatus');
+    const request=++setorMotivosAnnualRequest;
+    if(status)status.textContent='Carregando motivos de '+year+'...';
+    try{
+      const rows=await setorMotivosAnnualData(year);
+      if(request!==setorMotivosAnnualRequest)return;
+      renderSetorMotivosAnnualCharts(rows);
+      if(status)status.textContent=year+' • '+rows.reduce((n,x)=>n+x.qty,0)+' vínculos de setor';
+    }catch(e){console.error('Erro nos motivos anuais por setor',e);if(status)status.textContent='Erro: '+(e.message||e);}
+  }
+  document.addEventListener('change',event=>{
+    if(event.target?.id==='setorMotivosAnualSelect'){
+      const year=document.getElementById('setoresAnoSelect')?.value||motivosSelectedYear();
+      const rows=setorMotivosAnnualCache.get(year);
+      if(rows)renderSetorMotivosAnnualCharts(rows);
+    }
+  });
   async function renderSetoresAnual(){
     const year=document.getElementById('setoresAnoSelect')?.value||motivosSelectedYear();
     const status=document.getElementById('setoresAnualStatus');
@@ -6275,9 +6362,10 @@ function __perfAnualAggregate(){
     if(!btn)return;
     setorAnnualYears();
     renderSetoresAnual();
+    renderSetorMotivosAnual();
   });
   document.addEventListener('change',event=>{
-    if(event.target?.id==='setoresAnoSelect')renderSetoresAnual();
+    if(event.target?.id==='setoresAnoSelect'){renderSetoresAnual();renderSetorMotivosAnual();}
   });
   function usuariosDetailRowsExact(){
     // A tabela de usuários é calculada por getUsuariosReasonDetailRows().
