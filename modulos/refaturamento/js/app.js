@@ -6036,7 +6036,7 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorRefaturado || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        motivo:canonicalRefReason(txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento'))),
         origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteRefaturado || 0)
@@ -6054,7 +6054,7 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        motivo:canonicalRefReason(txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento'))),
         origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteSubstituto || 0)
@@ -6156,7 +6156,7 @@ function __perfAnualAggregate(){
       const cte=txt(r.documento);
       const manual=getManual(cte);
       const motivoBaixa=txt(r.motivo_baixa);
-      const motivo=txt(manual.reason||inferReasonFromText(motivoBaixa)||(motivoBaixa?'Não identificado':'Sem preenchimento'));
+      const motivo=canonicalRefReason(txt(manual.reason||inferReasonFromText(motivoBaixa)||(motivoBaixa?'Não identificado':'Sem preenchimento')));
       const key=norm(motivo);
       if(!map.has(key))map.set(key,{motivo,refQty:0,subQty:0,refValue:0,subValue:0});
       const x=map.get(key);
