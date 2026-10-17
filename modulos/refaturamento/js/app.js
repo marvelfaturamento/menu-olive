@@ -1030,6 +1030,15 @@ function clientGroup(name){
   if(s.includes('FRIMESA')) return 'FRIMESA';
   return s || 'SEM CLIENTE';
 }
+// Normaliza rótulos históricos sem alterar a observação original.
+function canonicalRefReason(value){
+  const raw=String(value||'').trim();
+  const n=normalizeText(raw);
+  if(['valor incorreto na tabela','valor incorreto','valor incorreto cliente','frete minimo','frete incorreto','erro de valor - cliente'].includes(n))return 'Frete incorreto';
+  if(['alteracao no transporte','observacao incorreta'].includes(n))return 'observação incorreta';
+  if(['cnpj incorreto','cnpj invertido','remetente incorreto'].includes(n))return 'remetente incorreto';
+  return raw;
+}
 function inferReasonFromText(text){
   const original = String(text || '').trim();
   const t = normalizeText(original);
@@ -1049,6 +1058,11 @@ function inferReasonFromText(text){
   function classify(value, allowDocumentContext = true){
     const valueNorm = normalizeText(value);
     if(!valueNorm) return '';
+
+    // Prioriza a causa explícita e os motivos padronizados antes de termos genéricos.
+    if(/(?:alteracao|erro|incorrecao) (?:na|da|de) observacao|observacao (?:incorreta|errada)|alteracao no transporte/.test(valueNorm))return 'observação incorreta';
+    if(/(?:cnpj (?:incorreto|errado|invertido)|cnpj do remetente|remetente (?:incorreto|errado))/.test(valueNorm))return 'remetente incorreto';
+    if(/(?:frete minimo|valor minimo de frete|tabela de frete|valor (?:incorreto|errado|divergente)|frete (?:incorreto|errado|divergente)|erro (?:no|de) frete)/.test(valueNorm))return 'Frete incorreto';
 
     // Quando o texto informa dois erros, mantém a causa composta em vez de
     // deixar a referência à NF capturar o registro como nota fiscal indevida.
@@ -1081,7 +1095,7 @@ function inferReasonFromText(text){
     ];
 
     for(const rule of priorityRules){
-      if(rule.terms.some(term => valueNorm.includes(normalizeText(term)))) return rule.reason;
+      if(rule.terms.some(term => valueNorm.includes(normalizeText(term)))) return canonicalRefReason(rule.reason);
     }
 
     // Só considera a palavra pallet isoladamente quando estamos analisando o
@@ -1095,7 +1109,7 @@ function inferReasonFromText(text){
     // regras conclusivas acima para não capturar uma referência incidental.
     for(const item of (state.reasons || [])){
       const n = normalizeText(item);
-      if(n && valueNorm.includes(n)) return item;
+      if(n && valueNorm.includes(n)) return canonicalRefReason(item);
     }
 
     if(/\bpis\b/.test(valueNorm) || /\bcofins\b/.test(valueNorm)) return 'pis/cofins';
@@ -1118,11 +1132,11 @@ function inferReasonFromText(text){
 
 // Diferencia ausência real de observação de texto preenchido ainda não reconhecido.
 function resolveReason(text, manualReason = ''){
-  const automaticReason = inferReasonFromText(text);
-  if(automaticReason) return automaticReason;
-
+  // O motivo salvo/validado prevalece sobre qualquer sugestão automática.
   const manual = String(manualReason || '').trim();
-  if(manual) return manual;
+  if(manual) return canonicalRefReason(manual);
+  const automaticReason = inferReasonFromText(text);
+  if(automaticReason) return canonicalRefReason(automaticReason);
 
   return String(text || '').trim() ? 'Não identificado' : 'Sem preenchimento';
 }
@@ -1620,7 +1634,7 @@ function motivoFinal(rec){
 function motivosAggregate(){
   const map = new Map();
   const ensure = motivo => {
-    const key = String(motivo || 'Sem preenchimento').trim() || 'Sem preenchimento';
+    const key = canonicalRefReason(motivo || 'Sem preenchimento') || 'Sem preenchimento';
     if(!map.has(key)) map.set(key, {
       motivo:key,
       qtdRef:0,
@@ -1894,7 +1908,7 @@ function renderManualTable(){
   document.getElementById('tbodyCadastro').innerHTML = rows.length ? rows.map(r => {
     const manual = getManual(r.refaturado);
     const motivoAutomatico = inferReasonFromText(r.motivoBaixa);
-    const motivo = manual.reason || motivoAutomatico || '';
+    const motivo = canonicalRefReason(manual.reason || motivoAutomatico || '');
     const detalhamento = manual.detail || r.motivoBaixa || '';
 
     // Garante que uma classificação automática nova apareça no select mesmo
@@ -2877,7 +2891,7 @@ async function carregarMotivosCompartilhados(){
   const {data,error}=await state.supabase.from('refaturamento_motivos_config').select('motivos').eq('id','padrao').maybeSingle();
   if(error){console.error('Falha ao carregar motivos compartilhados:',error);return false;}
   if(data&&Array.isArray(data.motivos)&&data.motivos.length){
-    state.reasons=data.motivos;
+    state.reasons=Array.from(new Set(data.motivos.map(canonicalRefReason)));
     writeStorage('painel_ref_reasons_v30',state.reasons);
     const box=document.getElementById('reasonBox');
     if(box)box.value=state.reasons.join('\n');
@@ -3746,7 +3760,7 @@ rows.sort((a,b) =>
 function aggregateUserReasons(rows){
   const map = new Map();
   rows.forEach(r => {
-    const key = r.motivo || 'Sem preenchimento';
+    const key = canonicalRefReason(r.motivo || 'Sem preenchimento');
     if(!map.has(key)) map.set(key, { motivo:key, qty:0, value:0 });
     const item = map.get(key);
     item.qty += 1;
@@ -6022,7 +6036,7 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorRefaturado || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        motivo:canonicalRefReason(txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento'))),
         origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteRefaturado || 0)
@@ -6040,7 +6054,7 @@ function __perfAnualAggregate(){
         cliente:txt(r.tomadorSubstituto || r.tomadorOriginal || r.cliente),
         usuario:txt(getSingleResponsibleUser(r) || r.userSetor || r.operadorOriginal),
         setor:txt(r.reduzido || r.setorLancamento || '-'),
-        motivo:txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento')),
+        motivo:canonicalRefReason(txt(manual.reason || autoReason || (String(motivoBaixa || '').trim() ? 'Não identificado' : 'Sem preenchimento'))),
         origemMotivo:txt(manual.reason ? 'Preenchimento manual' : (autoReason ? 'Identificado automaticamente' : 'Não identificado')),
         observacao:motivoBaixa,
         valor:Number(r.freteSubstituto || 0)
@@ -6142,7 +6156,7 @@ function __perfAnualAggregate(){
       const cte=txt(r.documento);
       const manual=getManual(cte);
       const motivoBaixa=txt(r.motivo_baixa);
-      const motivo=txt(manual.reason||inferReasonFromText(motivoBaixa)||(motivoBaixa?'Não identificado':'Sem preenchimento'));
+      const motivo=canonicalRefReason(txt(manual.reason||inferReasonFromText(motivoBaixa)||(motivoBaixa?'Não identificado':'Sem preenchimento')));
       const key=norm(motivo);
       if(!map.has(key))map.set(key,{motivo,refQty:0,subQty:0,refValue:0,subValue:0});
       const x=map.get(key);
