@@ -1984,13 +1984,15 @@ function parseTXT(text, fileName){
   const iPedido = findHeaderIndex(header, cfg.pedido);
   const iViagem = findHeaderIndex(header, cfg.viagem);
   const iNF = findHeaderIndex(header, cfg.nf);
-  const iTransportador = findHeaderIndex(header, ['CNPJ Transportador', 'CNPJ do Transportador', 'Transportador']);
+  const iTransportador = findHeaderIndex(header, ['STCD1', 'CNPJ Transportador', 'CNPJ do Transportador', 'Transportador']);
 
   const iFreteLiquidoList = cfg.freteLiquido.map(c => findHeaderIndex(header, [c]));
   const iFreteBrutoList = cfg.freteBruto.map(c => findHeaderIndex(header, [c]));
 
   for(let i=headerLineIndex+1;i<lines.length;i++){
     const cols = splitCSVLine(lines[i], delimiter);
+    // O TXT PBR/Nestlé contém uma segunda linha com descrições das colunas.
+    if(String(cols[0]||'').trim().toUpperCase()==='CNPJ TRANSPORTADOR')continue;
     const rawKey = iKey>=0 ? cols[iKey] : '';
     const keys = findKeys(rawKey || lines[i]);
 
