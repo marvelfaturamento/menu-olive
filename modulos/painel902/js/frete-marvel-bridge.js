@@ -10,8 +10,8 @@
   function pcValida(pc){
     const bucket=CORE.norm(pc.bucket_atual??pc.bucket??'');
     const status=CORE.norm(pc.status??'');
-    return ['AG NOTA','AGUARDANDO NOTA','EM ADUANA','ADUANA'].includes(bucket) ||
-      ['AG NOTA','AGUARDANDO NOTA','EM ADUANA'].includes(status);
+    return ['AG NOTA','AGNOTA','AGUARDANDO NOTA','EM ADUANA','EMADUANA','ADUANA'].includes(bucket) ||
+      ['AG NOTA','AGNOTA','AGUARDANDO NOTA','EM ADUANA','EMADUANA'].includes(status);
   }
   function auditar(payload){
     if(!Array.isArray(payload.tarifas) || payload.tarifas.length>20000) throw Error('Lote de tarifas inválido');
