@@ -2754,6 +2754,48 @@ initApp();
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
           out.appendChild(summary);
           if(!items.length){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
+          const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
+          const tabs=[['pendentes','Para validar',pending.length],['salvos','Salvos na base','—'],['historico','Histórico','—']];
+          const views={};
+          for(const [key,label,count] of tabs){
+            const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
+            tab.style.cssText='padding:12px 18px;border:1px solid #38517b;border-radius:10px;';
+            shell.appendChild(tab);
+            const view=document.createElement('div');view.dataset.marvelView=key;view.hidden=key!=='pendentes';
+            views[key]=view;
+            tab.addEventListener('click',()=>{Object.entries(views).forEach(([k,v])=>v.hidden=k!==key);});
+          }
+          out.appendChild(shell);
+          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.salvos,views.historico);out.appendChild(tabsBody);
+          async function loadSaved(){
+            if(!state.supabase){
+              views.salvos.textContent='Supabase indisponível nesta sessão.';
+              views.historico.textContent='Supabase indisponível nesta sessão.';
+              return;
+            }
+            const queries=[
+              ['salvos','config_frete_marvel_spot','id,pc_id,pagador,frete,status,atualizado_em'],
+              ['historico','auditoria_frete_marvel','id,pc_id,pagador,acao,frete_anterior,frete_marvel,criado_em,executor']
+            ];
+            await Promise.all(queries.map(async ([viewName,table,fields])=>{
+              const target=views[viewName];target.textContent='Consultando registros...';
+              try{
+                const {data,error}=await state.supabase.from(table).select(fields).order(viewName==='salvos'?'atualizado_em':'criado_em',{ascending:false}).limit(50);
+                if(error)throw error;
+                target.replaceChildren();
+                if(!data?.length){target.textContent='Nenhum registro disponível na base para esta consulta.';return;}
+                const info=document.createElement('p');info.textContent='Últimos '+data.length+' registros (máximo de 50 por consulta).';target.appendChild(info);
+                data.forEach(item=>{
+                  const line=document.createElement('div');line.style.cssText='padding:12px;margin:8px 0;border:1px solid #38517b;border-radius:8px;';
+                  line.textContent=viewName==='salvos'
+                    ? 'PC '+(item.pc_id||'—')+' | '+(item.pagador||'—')+' | R$ '+Number(item.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2})+' | '+(item.status||'—')+' | '+(item.atualizado_em||'')
+                    : 'PC '+(item.pc_id||'—')+' | '+(item.acao||'—')+' | '+(item.pagador||'—')+' | '+(item.executor||'—')+' | '+(item.criado_em||'');
+                  target.appendChild(line);
+                });
+              }catch(e){target.textContent='Não foi possível consultar '+table+'. Acesso ao histórico depende de permissões seguras no Supabase. '+(e.message||'');}
+            }));
+          }
+          loadSaved();
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
           for(const group of groups.values()){
@@ -2795,8 +2837,9 @@ initApp();
               if(raw&&(!Number.isFinite(value)||value<=0||!chosen.length)){feedback.textContent='Informe um valor spot válido e selecione pelo menos uma PC.';return;}
               try{localStorage.setItem(draftKey,JSON.stringify({tabela:table.value.trim(),spot:spot.value.trim(),pcs:chosen,createdAt:new Date().toISOString()}));feedback.textContent='Decisão guardada neste navegador para revisão. Não enviada ao Supabase.';}catch(e){feedback.textContent='Não foi possível guardar: '+e.message;}
             });
-            out.appendChild(section);
+            views.pendentes.appendChild(section);
           }
+          if(!groups.size)views.pendentes.textContent='Nenhuma pendência identificada nesta conferência.';
         }
       }
       window.addEventListener('message',receive);
