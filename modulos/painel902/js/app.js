@@ -2768,7 +2768,34 @@ initApp();
               row.textContent='PC '+(x.pv||x.id||'—')+' | Pedido: '+(x.referencia||'—')+' | Cavalo: '+(x.cavalo||'—')+' | '+x.estado+(x.freteMarvel!=null?' | Marvel: '+Number(x.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'');
               section.appendChild(row);
             });
-            const note=document.createElement('small');note.textContent='Validação e salvamento ainda não habilitados nesta tela.';section.appendChild(note);out.appendChild(section);
+            const controls=document.createElement('div');controls.style.cssText='display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:12px;';
+            function field(label,type,placeholder){
+              const wrap=document.createElement('label');wrap.style.cssText='display:grid;gap:5px;min-width:190px;flex:1;';
+              const title=document.createElement('span');title.textContent=label;wrap.appendChild(title);
+              const input=document.createElement('input');input.type=type;input.placeholder=placeholder;input.style.cssText='padding:9px;border:1px solid #46618d;border-radius:7px;background:#101f43;color:white;width:100%;';wrap.appendChild(input);controls.appendChild(wrap);return input;
+            }
+            const table=field('Tabela Marvel utilizada pelo cliente','text','Ex.: GARDEN');
+            const spot=field('Frete spot (R$) para PCs selecionadas','text','Ex.: 29000,00');
+            spot.inputMode='decimal';
+            const checkWrap=document.createElement('div');checkWrap.style.cssText='display:flex;flex-wrap:wrap;gap:12px;width:100%;';
+            const checks=group.map(x=>{
+              const label=document.createElement('label');label.style.cssText='display:flex;gap:6px;align-items:center;';
+              const check=document.createElement('input');check.type='checkbox';check.checked=true;
+              label.append(check,document.createTextNode('PC '+(x.pv||x.id||'—')));checkWrap.appendChild(label);return {check,x};
+            });controls.appendChild(checkWrap);
+            const draftKey='marvel-test-decision:'+encodeURIComponent([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino].join('|'));
+            try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){table.value=previous.tabela||'';spot.value=previous.spot||'';checks.forEach(({check,x})=>check.checked=(previous.pcs||[]).includes(String(x.pv||x.id)));}}catch(_){}
+            const save=document.createElement('button');save.type='button';save.textContent='Guardar decisão para revisão';save.style.cssText='padding:10px 14px;border-radius:8px;';controls.appendChild(save);
+            const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
+            save.addEventListener('click',()=>{
+              const chosen=checks.filter(v=>v.check.checked).map(v=>String(v.x.pv||v.x.id));
+              const raw=spot.value.trim().replace(/\\s/g,'').replace(/\\./g,'').replace(',','.');
+              const value=raw?Number(raw):null;
+              if(!table.value.trim()&&!raw){feedback.textContent='Informe a tabela Marvel ou o valor spot.';return;}
+              if(raw&&(!Number.isFinite(value)||value<=0||!chosen.length)){feedback.textContent='Informe um valor spot válido e selecione pelo menos uma PC.';return;}
+              try{localStorage.setItem(draftKey,JSON.stringify({tabela:table.value.trim(),spot:spot.value.trim(),pcs:chosen,createdAt:new Date().toISOString()}));feedback.textContent='Decisão guardada neste navegador para revisão. Não enviada ao Supabase.';}catch(e){feedback.textContent='Não foi possível guardar: '+e.message;}
+            });
+            out.appendChild(section);
           }
         }
       }
