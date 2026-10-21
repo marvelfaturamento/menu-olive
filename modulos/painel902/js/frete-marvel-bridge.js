@@ -23,6 +23,21 @@
     resultados.forEach(r=>{contagem[r.situacao]=(contagem[r.situacao]||0)+1;});
     return {total:resultados.length,contagem,resultados};
   }
+  // Exportação somente leitura para a extensão: o painel continua sendo a fonte das PCs.
+  window.addEventListener('message',event=>{
+    if(event.source!==window || event.origin!==location.origin) return;
+    const data=event.data;
+    if(!data || data.source!==SOURCE || data.type!=='marvel-frete-902-get-pcs-v1' || typeof data.requestId!=='string') return;
+    try{
+      const pcs=(Array.isArray(state.rows)?state.rows:[]).filter(pcValida).map(pc=>({
+        id:pc.id, pagador:pc.pagador, municipio_origem:pc.municipio_origem??pc.cidadeOrigem,
+        uf_origem:pc.uf_origem??pc.ufRem, municipio_destino:pc.municipio_destino??pc.cidadeDestino,
+        uf_destino:pc.uf_destino??pc.ufDest, frete_padrao:pc.frete_padrao??pc.frete,
+        bucket_atual:pc.bucket_atual??pc.bucket, status:pc.status
+      }));
+      window.postMessage({source:'painel-902',type:'marvel-frete-902-pcs-v1',requestId:data.requestId,pcs},location.origin);
+    }catch(e){window.postMessage({source:'painel-902',type:'marvel-frete-902-pcs-v1',requestId:data.requestId,erro:String(e.message||e)},location.origin);}
+  });
   window.addEventListener('message',event=>{
     if(event.source!==window || event.origin!==location.origin) return;
     const data=event.data;
