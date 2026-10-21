@@ -2748,14 +2748,15 @@ initApp();
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
           const items=Array.isArray(d.casos)?d.casos:[];
-          const pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID','Cadastrar','Atualizar'].includes(x.estado));
+          const pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
+          const found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           out.replaceChildren();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
           out.appendChild(summary);
           if(!items.length){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
-          const tabs=[['pendentes','Para validar',pending.length],['salvos','Salvos na base','—'],['historico','Histórico','—']];
+          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Tarifas Marvel encontradas',found.length],['salvos','Salvos na base','—'],['historico','Histórico','—']];
           const views={};
           for(const [key,label,count] of tabs){
             const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
@@ -2766,7 +2767,7 @@ initApp();
             tab.addEventListener('click',()=>{Object.entries(views).forEach(([k,v])=>v.hidden=k!==key);});
           }
           out.appendChild(shell);
-          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.salvos,views.historico);out.appendChild(tabsBody);
+          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.historico);out.appendChild(tabsBody);
           async function loadSaved(){
             if(!state.supabase){
               views.salvos.textContent='Supabase indisponível nesta sessão.';
@@ -2796,13 +2797,21 @@ initApp();
             }));
           }
           loadSaved();
+          const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
+          recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
+          if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
+          found.forEach(x=>{
+            const row=document.createElement('div');row.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
+            row.textContent='PC '+(x.pv||x.id||'—')+' | '+(x.pagador||'—')+' | '+(x.origem||'—')+'/'+(x.ufOrigem||'—')+' → '+(x.destino||'—')+'/'+(x.ufDestino||'—')+' | Marvel: '+Number(x.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' | '+x.estado+' (ainda não salvo/validado na base)';
+            views.encontrados.appendChild(row);
+          });
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
           for(const group of groups.values()){
             const first=group[0],section=document.createElement('section');
-            section.style.cssText='border:1px solid #38517b;border-radius:10px;padding:12px;margin:12px 0;';
+            section.style.cssText='background:#192643;border:1px solid #d79c45;border-left:5px solid #f3b451;border-radius:10px;padding:15px;margin:12px 0;color:#f5f7ff;';
             const heading=document.createElement('strong');
-            heading.textContent=first.pagador+' — '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino;
+            heading.style.color='#ffd28a';heading.textContent=first.pagador+' — '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino;
             section.appendChild(heading);
             const desc=document.createElement('p');desc.textContent=group.length+' PC(s) para revisão';section.appendChild(desc);
             group.forEach(x=>{
@@ -2827,7 +2836,7 @@ initApp();
             });controls.appendChild(checkWrap);
             const draftKey='marvel-test-decision:'+encodeURIComponent([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino].join('|'));
             try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){table.value=previous.tabela||'';spot.value=previous.spot||'';checks.forEach(({check,x})=>check.checked=(previous.pcs||[]).includes(String(x.pv||x.id)));}}catch(_){}
-            const save=document.createElement('button');save.type='button';save.textContent='Guardar decisão para revisão';save.style.cssText='padding:10px 14px;border-radius:8px;';controls.appendChild(save);
+            const save=document.createElement('button');save.type='button';save.textContent='Guardar rascunho (não salva na base)';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
             const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
             save.addEventListener('click',()=>{
               const chosen=checks.filter(v=>v.check.checked).map(v=>String(v.x.pv||v.x.id));
