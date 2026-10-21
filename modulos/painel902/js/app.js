@@ -2587,6 +2587,7 @@ initApp();
 (function(){
   const META = [
     {key:'mensal', title:'Controle mensal', icon:'📅', desc:'Competências, exportação e limpeza mensal.', heading:'Controle mensal'},
+    {key:'fretesMarvelTeste', title:'Fretes Padrão — Teste', icon:'🧪', desc:'Auditoria Marvel em implantação, sem alteração das PCs.', heading:'Fretes Padrão — Teste'},
     {key:'fretes', title:'Frete padrão', icon:'💰', desc:'Tarifas cadastradas por tomador, remetente e rota.', heading:'Frete padrão'},
     {key:'paga', title:'Clientes com regra de aduana', icon:'🏭', desc:'Clientes que seguem regras específicas de aduana.', heading:'Clientes com regra de aduana'},
     {key:'aduanas', title:'Aduanas monitoradas', icon:'📍', desc:'Pontos de aduana usados na classificação operacional.', heading:'Aduanas monitoradas'},
@@ -2722,4 +2723,34 @@ initApp();
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
+})();
+
+
+// Comando de teste: a extensão futura responderá com requestId idêntico.
+// Sem resposta, mostrar falha explícita em vez de afirmar que a auditoria foi executada.
+(function(){
+  function initMarvelTest(){
+    const button=document.getElementById('marvelTestRun');
+    const status=document.getElementById('marvelTestStatus');
+    if(!button||!status)return;
+    button.addEventListener('click',()=>{
+      if(button.disabled)return;
+      const requestId='marvel-test-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+      button.disabled=true;
+      status.textContent='Solicitação enviada à extensão local. Aguardando resposta...';
+      const timer=setTimeout(()=>finish('Extensão ainda não integrada a este botão. Nenhuma tarifa foi gravada.'),12000);
+      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);button.disabled=false;status.textContent=message;}
+      function receive(event){
+        if(event.source!==window||event.origin!==location.origin)return;
+        const d=event.data;
+        if(d?.source!=='marvel-frete-ext'||d?.type!=='marvel-frete-902-test-response-v1'||d?.requestId!==requestId)return;
+        finish(d.ok?'Extensão respondeu. Conferência recebida (sem gravação de PCs).':'Falha na extensão: '+String(d.erro||'desconhecida'));
+        const out=document.getElementById('marvelTestResults');
+        if(out&&d.ok)out.textContent='Total conferido: '+Number(d.total||0)+'. Dados ainda não persistidos.';
+      }
+      window.addEventListener('message',receive);
+      window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId},location.origin);
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initMarvelTest,{once:true});else initMarvelTest();
 })();
