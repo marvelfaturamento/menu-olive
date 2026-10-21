@@ -851,7 +851,9 @@ function reclassify(){
   isAduanaPosition(row.posicao || '') &&
   hasPaga(row) &&
   isUFEx(row.ufRem || '');
-    row.frete = fretePadrao(row);
+    // Tarifas legadas por UF não são mais fonte automática de frete.
+    // Preserva valores importados/confirmados até a conferência Marvel ou spot.
+    // Não alterar row.frete durante a reclassificação operacional.
     row.competencia = competenciaMes(row.dataPC);
 
     const checkpointRule = hasCheckpointRule(row);
