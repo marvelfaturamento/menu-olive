@@ -2738,7 +2738,7 @@ initApp();
       const requestId='marvel-test-'+Date.now()+'-'+Math.random().toString(36).slice(2);
       button.disabled=true;
       status.textContent='Solicitação enviada à extensão local. Aguardando resposta...';
-      const timer=setTimeout(()=>finish('Extensão ainda não integrada a este botão. Nenhuma tarifa foi gravada.'),12000);
+      const timer=setTimeout(()=>finish('Tempo limite de 5 minutos. Verifique a aba Marvel e a extensão; nenhuma tarifa foi gravada.'),300000);
       function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);button.disabled=false;status.textContent=message;}
       function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
