@@ -2826,6 +2826,7 @@ initApp();
               const input=document.createElement('input');input.type=type;input.placeholder=placeholder;input.style.cssText='padding:9px;border:1px solid #46618d;border-radius:7px;background:#101f43;color:white;width:100%;';wrap.appendChild(input);controls.appendChild(wrap);return input;
             }
             const table=field('Tabela Marvel utilizada pelo cliente','text','Ex.: GARDEN');
+            const routeButton=document.createElement('button');routeButton.type='button';routeButton.textContent='↻ Reprocessar esta rota';routeButton.style.cssText='padding:11px 15px;border-radius:8px;background:#0f766e;color:white;border:1px solid #5eead4;font-weight:700;';controls.appendChild(routeButton);
             const spot=field('Frete spot (R$) para PCs selecionadas','text','Ex.: 29000,00');
             spot.inputMode='decimal';
             const checkWrap=document.createElement('div');checkWrap.style.cssText='display:flex;flex-wrap:wrap;gap:12px;width:100%;';
@@ -2838,6 +2839,26 @@ initApp();
             try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){table.value=previous.tabela||'';spot.value=previous.spot||'';checks.forEach(({check,x})=>check.checked=(previous.pcs||[]).includes(String(x.pv||x.id)));}}catch(_){}
             const save=document.createElement('button');save.type='button';save.textContent='Guardar rascunho (não salva na base)';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
             const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
+            routeButton.addEventListener('click',()=>{
+              const selected=checks.filter(v=>v.check.checked);
+              if(!table.value.trim()){feedback.textContent='Informe o nome da tabela Marvel antes de reprocessar.';return;}
+              if(!selected.length){feedback.textContent='Selecione pelo menos uma PC.';return;}
+              const requestId='marvel-route-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+              routeButton.disabled=true;
+              feedback.textContent='Consultando a Marvel com a tabela '+table.value.trim()+' para a PC '+(selected[0].x.pv||selected[0].x.id)+'...';
+              const timeout=setTimeout(()=>done('Tempo limite da consulta. Verifique se a Marvel está aberta.'),120000);
+              function done(msg){clearTimeout(timeout);window.removeEventListener('message',handle);routeButton.disabled=false;feedback.textContent=msg;}
+              function handle(ev){
+                if(ev.source!==window||ev.origin!==location.origin)return;
+                const d=ev.data;
+                if(d?.source!=='marvel-frete-ext'||d.type!=='marvel-frete-902-route-response-v1'||d.requestId!==requestId)return;
+                if(!d.ok){done('Erro na consulta: '+(d.erro||'sem detalhes'));return;}
+                const found=(d.casos||[]).find(x=>Number(x.freteMarvel)>0);
+                done(found?'Marvel encontrou tarifa: '+Number(found.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' | '+found.estado+'. Valor não salvo na base.':'Consulta concluída, mas não encontrou tarifa única para esta rota. Verifique tabela e cidades.');
+              }
+              window.addEventListener('message',handle);
+              window.postMessage({source:'painel-902',type:'marvel-frete-902-route-request-v1',requestId,route:{pcId:String(selected[0].x.id||selected[0].x.pv),tabela:table.value.trim()}},location.origin);
+            });
             save.addEventListener('click',()=>{
               const chosen=checks.filter(v=>v.check.checked).map(v=>String(v.x.pv||v.x.id));
               const raw=spot.value.trim().replace(/\\s/g,'').replace(/\\./g,'').replace(',','.');
