@@ -2746,7 +2746,31 @@ initApp();
         if(d?.source!=='marvel-frete-ext'||d?.type!=='marvel-frete-902-test-response-v1'||d?.requestId!==requestId)return;
         finish(d.ok?'Extensão respondeu. Conferência recebida (sem gravação de PCs).':'Falha na extensão: '+String(d.erro||'desconhecida'));
         const out=document.getElementById('marvelTestResults');
-        if(out&&d.ok)out.textContent='Total conferido: '+Number(d.total||0)+'. Dados ainda não persistidos.';
+        if(out&&d.ok){
+          const items=Array.isArray(d.casos)?d.casos:[];
+          const pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID','Cadastrar','Atualizar'].includes(x.estado));
+          out.replaceChildren();
+          const summary=document.createElement('p');
+          summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
+          out.appendChild(summary);
+          if(!items.length){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
+          const groups=new Map();
+          pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
+          for(const group of groups.values()){
+            const first=group[0],section=document.createElement('section');
+            section.style.cssText='border:1px solid #38517b;border-radius:10px;padding:12px;margin:12px 0;';
+            const heading=document.createElement('strong');
+            heading.textContent=first.pagador+' — '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino;
+            section.appendChild(heading);
+            const desc=document.createElement('p');desc.textContent=group.length+' PC(s) para revisão';section.appendChild(desc);
+            group.forEach(x=>{
+              const row=document.createElement('div');row.style.cssText='padding:7px 0;border-top:1px solid #38517b;';
+              row.textContent='PC '+(x.pv||x.id||'—')+' | Pedido: '+(x.referencia||'—')+' | Cavalo: '+(x.cavalo||'—')+' | '+x.estado+(x.freteMarvel!=null?' | Marvel: '+Number(x.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'');
+              section.appendChild(row);
+            });
+            const note=document.createElement('small');note.textContent='Validação e salvamento ainda não habilitados nesta tela.';section.appendChild(note);out.appendChild(section);
+          }
+        }
       }
       window.addEventListener('message',receive);
       window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId},location.origin);
