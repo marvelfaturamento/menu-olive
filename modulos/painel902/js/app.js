@@ -2738,13 +2738,36 @@ initApp();
       const requestId='marvel-test-'+Date.now()+'-'+Math.random().toString(36).slice(2);
       button.disabled=true;
       status.textContent='Solicitação enviada à extensão local. Aguardando resposta...';
+      const progress=document.createElement('div');
+      progress.style.cssText='margin:12px 0;padding:12px;border:1px solid #326a91;background:#122945;border-radius:10px;color:#eef7ff;';
+      const heading=document.createElement('div');heading.textContent='Conferência Marvel: preparando... 0%';heading.style.cssText='font-weight:700;margin-bottom:8px;';
+      const track=document.createElement('div');track.style.cssText='height:13px;background:#33465d;border-radius:12px;overflow:hidden;';
+      const fill=document.createElement('div');fill.style.cssText='height:100%;width:0%;background:#24a9aa;transition:width .25s;';
+      const stage=document.createElement('small');stage.textContent='Aguardando a contagem das rotas.';stage.style.cssText='display:block;margin-top:8px;';
+      track.appendChild(fill);progress.append(heading,track,stage);
+      status.after(progress);
+      function updateProgress(done,total,description){
+        if(!Number.isFinite(total)||total<=0)return;
+        const count=Math.max(0,Math.min(total,Number(done)||0));
+        const pct=Math.floor(count/total*100);
+        fill.style.width=pct+'%';
+        heading.textContent='Conferência Marvel: '+pct+'% ('+count+' de '+total+' rotas)';
+        stage.textContent=description||'Consultando rotas na Marvel...';
+      }
+      function receiveProgress(event){
+        if(event.source!==window||event.origin!==location.origin)return;
+        const d=event.data;
+        if(d?.source!=='marvel-frete-ext'||d.type!=='marvel-frete-902-progress-v1'||d.requestId!==requestId||d.route)return;
+        updateProgress(Number(d.done),Number(d.total),String(d.stage||''));
+      }
+      window.addEventListener('message',receiveProgress);
       const timer=setTimeout(()=>finish('Tempo limite de 5 minutos. Verifique a aba Marvel e a extensão; nenhuma tarifa foi gravada.'),300000);
-      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);button.disabled=false;status.textContent=message;}
+      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;status.textContent=message;if(!message.startsWith('Extensão respondeu.')){progress.style.borderColor='#b16e48';stage.textContent=message;}}
       function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
         if(d?.source!=='marvel-frete-ext'||d?.type!=='marvel-frete-902-test-response-v1'||d?.requestId!==requestId)return;
-        finish(d.ok?'Extensão respondeu. Conferência recebida (sem gravação de PCs).':'Falha na extensão: '+String(d.erro||'desconhecida'));
+        if(d.ok){fill.style.width='100%';heading.textContent='Conferência Marvel: 100% — concluída';stage.textContent='Resultados recebidos. Nenhum frete operacional foi alterado.';}finish(d.ok?'Extensão respondeu. Conferência recebida (sem gravação de PCs).':'Falha na extensão: '+String(d.erro||'desconhecida'));
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
           const items=Array.isArray(d.casos)?d.casos:[];
@@ -2845,9 +2868,13 @@ initApp();
               if(!selected.length){feedback.textContent='Selecione pelo menos uma PC.';return;}
               const requestId='marvel-route-'+Date.now()+'-'+Math.random().toString(36).slice(2);
               routeButton.disabled=true;
+              const routeProgress=document.createElement('div');routeProgress.style.cssText='height:9px;background:#35516b;border-radius:8px;overflow:hidden;margin-top:8px;';
+              const routeFill=document.createElement('div');routeFill.style.cssText='height:100%;width:0%;background:#29b6a6;transition:width .25s;';routeProgress.appendChild(routeFill);feedback.after(routeProgress);
+              function routeProgressEvent(ev){if(ev.source!==window||ev.origin!==location.origin)return;const m=ev.data;if(m?.source!=='marvel-frete-ext'||m.type!=='marvel-frete-902-progress-v1'||m.requestId!==requestId||!m.route)return;const pct=m.total>0?Math.floor(Math.max(0,Math.min(m.done,m.total))/m.total*100):0;routeFill.style.width=pct+'%';feedback.textContent='Reprocessamento: '+pct+'% — '+(m.stage||'consultando Marvel');}
+              window.addEventListener('message',routeProgressEvent);
               feedback.textContent='Consultando a Marvel com a tabela '+table.value.trim()+' para a PC '+(selected[0].x.pv||selected[0].x.id)+'...';
               const timeout=setTimeout(()=>done('Tempo limite da consulta. Verifique se a Marvel está aberta.'),120000);
-              function done(msg){clearTimeout(timeout);window.removeEventListener('message',handle);routeButton.disabled=false;feedback.textContent=msg;}
+              function done(msg){clearTimeout(timeout);window.removeEventListener('message',handle);window.removeEventListener('message',routeProgressEvent);routeButton.disabled=false;feedback.textContent=msg;routeProgress.remove();}
               function handle(ev){
                 if(ev.source!==window||ev.origin!==location.origin)return;
                 const d=ev.data;
