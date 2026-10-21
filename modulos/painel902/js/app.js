@@ -2854,7 +2854,29 @@ initApp();
                 if(d?.source!=='marvel-frete-ext'||d.type!=='marvel-frete-902-route-response-v1'||d.requestId!==requestId)return;
                 if(!d.ok){done('Erro na consulta: '+(d.erro||'sem detalhes'));return;}
                 const found=(d.casos||[]).find(x=>Number(x.freteMarvel)>0);
-                done(found?'Marvel encontrou tarifa: '+Number(found.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' | '+found.estado+'. Valor não salvo na base.':'Consulta concluída, mas não encontrou tarifa única para esta rota. Verifique tabela e cidades.');
+                if(found){
+                  const pc=String(found.pv||found.id||selected[0].x.pv||selected[0].x.id);
+                  const amount=Number(found.freteMarvel);
+                  const existing=Array.from(views.encontrados.children).find(el=>el.dataset.marvelPc===pc);
+                  const resultRow=existing||document.createElement('div');
+                  resultRow.dataset.marvelPc=pc;
+                  resultRow.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
+                  resultRow.textContent='PC '+pc+' | '+first.pagador+' | '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino+' | Marvel: '+amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' | Tabela: '+table.value.trim()+' | Encontrado, aguardando validação/salvamento.';
+                  if(!existing)views.encontrados.appendChild(resultRow);
+                  const index=checks.findIndex(v=>String(v.x.pv||v.x.id)===pc || String(v.x.id||v.x.pv)===String(found.id||found.pv));
+                  if(index>=0){
+                    const check=checks[index].check;
+                    check.checked=false;
+                    check.disabled=true;
+                    const parent=check.closest('label');if(parent)parent.style.display='none';
+                    const lines=Array.from(section.querySelectorAll('div')).filter(el=>el.textContent?.startsWith('PC '+pc+' |'));
+                    lines.forEach(el=>el.remove());
+                    const n=section.querySelector('p');if(n)n.textContent=checks.filter(v=>!v.check.disabled).length+' PC(s) para revisão';
+                  }
+                  const remaining=checks.filter(v=>!v.check.disabled).length;
+                  if(!remaining)section.remove();
+                  done('Tarifa '+amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' encontrada. PC '+pc+' movida para Tarifas Marvel encontradas. Ainda não salva na base.');
+                }else done('Consulta concluída, mas não encontrou tarifa única para esta rota. Verifique tabela e cidades.');
               }
               window.addEventListener('message',handle);
               window.postMessage({source:'painel-902',type:'marvel-frete-902-route-request-v1',requestId,route:{pcId:String(selected[0].x.id||selected[0].x.pv),tabela:table.value.trim()}},location.origin);
