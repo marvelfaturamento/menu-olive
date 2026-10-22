@@ -2257,14 +2257,14 @@ async function syncConfigsToSupabase(){
   await state.supabase.from('config_clientes_alerta').delete().neq('id',0);
   await state.supabase.from('config_clientes_paga').delete().neq('id',0);
   await state.supabase.from('config_clientes_expo').delete().neq('id',0);
-  await state.supabase.from('config_frete_padrao').delete().neq('id',0);
+  // Cadastro legado descontinuado: não sincronizar.
   await state.supabase.from('config_checkpoint').delete().neq('id',0);
 
   if(state.config.aduanas.length) await state.supabase.from('config_aduanas').insert(state.config.aduanas.map(v => ({descricao:v, ativo:true})));
   if(state.config.alerta.length) await state.supabase.from('config_clientes_alerta').insert(state.config.alerta.map(v => ({cliente:v, ativo:true})));
   if(state.config.paga.length) await state.supabase.from('config_clientes_paga').insert(state.config.paga.map(v => ({cliente:v, ativo:true})));
   if(state.config.expo.length) await state.supabase.from('config_clientes_expo').insert(state.config.expo.map(v => ({cliente:v, ativo:true})));
-  if(state.config.fretes.length) await state.supabase.from('config_frete_padrao').insert(state.config.fretes.map(v => ({pagador:v.pagador || null, remetente:v.remetente || null, uf_origem:v.ufOrigem || null, uf_destino:v.ufDestino || null, frete:Number(v.frete || 0), ativo:true})));
+  // Fretes Marvel/spot são a única origem operacional.
   if((state.config.checkpoints || []).length) await state.supabase.from('config_checkpoint').insert((state.config.checkpoints || []).map(v => ({cliente:v.cliente || null, cidade:v.cidade || null, uf_origem:v.ufOrigem || 'EX', destino_bucket:v.destinoBucket || 'alertaInt'})));
 }
 async function syncToSupabase(silent=false){
@@ -2447,7 +2447,7 @@ async function carregarDaSupabase(silent=false){
   const cfgA = await state.supabase.from('config_aduanas').select('descricao').eq('ativo', true);
   const cfgB = await state.supabase.from('config_clientes_alerta').select('cliente').eq('ativo', true);
   const cfgC = await state.supabase.from('config_clientes_paga').select('cliente').eq('ativo', true);
-  const cfgD = await state.supabase.from('config_frete_padrao').select('*').eq('ativo', true);
+  const cfgD = {data:[],error:null};
   const cfgE = await state.supabase.from('config_clientes_expo').select('cliente').eq('ativo', true);
   const cfgF = await state.supabase.from('config_checkpoint').select('*');
 
