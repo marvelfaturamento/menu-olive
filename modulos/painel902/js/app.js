@@ -2819,15 +2819,51 @@ initApp();
               }catch(e){target.textContent='Não foi possível consultar '+table+'. Acesso ao histórico depende de permissões seguras no Supabase. '+(e.message||'');}
             }));
           }
+          async function saveMarvel(table,payload){
+            if(!state.supabase)throw Error('Supabase indisponível');
+            const {data,error}=await state.supabase.from(table).insert(payload).select('id');
+            if(error)throw Error(error.message);
+            if(!data?.length)throw Error('A base não confirmou o registro');
+            return data;
+          }
+          function moneyBR(value){return Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+          function validateMarvel(x,tabela){
+            const pc=String(x.id||x.pv||'').trim();
+            const amount=Number(x.freteMarvel);
+            if(!pc||!x.pagador||!x.origem||!x.destino||!x.ufOrigem||!x.ufDestino||!tabela||!Number.isFinite(amount)||amount<=0)throw Error('Dados da consulta incompletos; reprocessar antes de validar');
+            return {pc,amount,pagador:x.pagador,municipio_origem:x.origem,uf_origem:x.ufOrigem,municipio_destino:x.destino,uf_destino:x.ufDestino,nome_marvel:tabela};
+          }
+          async function persistTariff(x,tabela){
+            const v=validateMarvel(x,tabela);
+            const row={pagador:v.pagador,nome_marvel:v.nome_marvel,municipio_origem:v.municipio_origem,uf_origem:v.uf_origem,municipio_destino:v.municipio_destino,uf_destino:v.uf_destino,frete:v.amount,consultado_em:new Date().toISOString(),situacao:'validado',ativo:true};
+            await saveMarvel('config_frete_marvel_rotas',row);
+            await saveMarvel('auditoria_frete_marvel',{pc_id:v.pc,pagador:v.pagador,municipio_origem:v.municipio_origem,uf_origem:v.uf_origem,municipio_destino:v.municipio_destino,uf_destino:v.uf_destino,frete_marvel:v.amount,acao:'validacao_marvel',detalhe:'Tabela '+v.nome_marvel});
+            await loadSaved();
+          }
+          function appendTariff(x,tabela){
+            const pc=String(x.pv||x.id||'');
+            const old=Array.from(views.encontrados.children).find(el=>el.dataset.marvelPc===pc);
+            if(old)old.remove();
+            if(views.encontrados.textContent.startsWith('Nenhuma tarifa encontrada'))views.encontrados.replaceChildren();
+            const row=document.createElement('div');row.dataset.marvelPc=pc;
+            row.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
+            const info=document.createElement('div');info.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+moneyBR(x.freteMarvel)+' | Tabela: '+(tabela||'não identificada');
+            const input=document.createElement('input');input.placeholder='Tabela Marvel utilizada';input.value=tabela||'';input.style.cssText='padding:8px;margin:8px 8px 8px 0;background:#14213d;color:white;border:1px solid #567;border-radius:6px;';
+            const save=document.createElement('button');save.type='button';save.textContent='Validar e salvar na base';save.style.cssText='padding:9px 13px;background:#0b8066;color:white;border-radius:8px;font-weight:700;';
+            const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:6px;';
+            save.addEventListener('click',async()=>{
+              if(!confirm('Confirmar a tarifa '+moneyBR(x.freteMarvel)+' da PC '+pc+' na tabela '+input.value+'?'))return;
+              save.disabled=true;feedback.textContent='Salvando no Supabase...';
+              try{await persistTariff(x,input.value.trim());feedback.textContent='Tarifa salva e auditada na base.';save.remove();}
+              catch(e){feedback.textContent='Não foi possível salvar: '+e.message;save.disabled=false;}
+            });
+            row.append(info,input,save,feedback);views.encontrados.appendChild(row);
+          }
           loadSaved();
           const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
           recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
-          found.forEach(x=>{
-            const row=document.createElement('div');row.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
-            row.textContent='PC '+(x.pv||x.id||'—')+' | '+(x.pagador||'—')+' | '+(x.origem||'—')+'/'+(x.ufOrigem||'—')+' → '+(x.destino||'—')+'/'+(x.ufDestino||'—')+' | Marvel: '+Number(x.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' | '+x.estado+' (ainda não salvo/validado na base)';
-            views.encontrados.appendChild(row);
-          });
+          found.forEach(x=>appendTariff(x,x.tabelaMarvel||x.nomeMarvel||''));
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
           for(const group of groups.values()){
@@ -2860,7 +2896,7 @@ initApp();
             });controls.appendChild(checkWrap);
             const draftKey='marvel-test-decision:'+encodeURIComponent([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino].join('|'));
             try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){table.value=previous.tabela||'';spot.value=previous.spot||'';checks.forEach(({check,x})=>check.checked=(previous.pcs||[]).includes(String(x.pv||x.id)));}}catch(_){}
-            const save=document.createElement('button');save.type='button';save.textContent='Guardar rascunho (não salva na base)';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
+            const save=document.createElement('button');save.type='button';save.textContent='Salvar spot na base';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
             const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
             routeButton.addEventListener('click',()=>{
               const selected=checks.filter(v=>v.check.checked);
@@ -2884,12 +2920,7 @@ initApp();
                 if(found){
                   const pc=String(found.pv||found.id||selected[0].x.pv||selected[0].x.id);
                   const amount=Number(found.freteMarvel);
-                  const existing=Array.from(views.encontrados.children).find(el=>el.dataset.marvelPc===pc);
-                  const resultRow=existing||document.createElement('div');
-                  resultRow.dataset.marvelPc=pc;
-                  resultRow.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
-                  resultRow.textContent='PC '+pc+' | '+first.pagador+' | '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino+' | Marvel: '+amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' | Tabela: '+table.value.trim()+' | Encontrado, aguardando validação/salvamento.';
-                  if(!existing)views.encontrados.appendChild(resultRow);
+                  appendTariff({...found,pagador:first.pagador,origem:first.origem,ufOrigem:first.ufOrigem,destino:first.destino,ufDestino:first.ufDestino},table.value.trim());
                   const index=checks.findIndex(v=>String(v.x.pv||v.x.id)===pc || String(v.x.id||v.x.pv)===String(found.id||found.pv));
                   if(index>=0){
                     const check=checks[index].check;
@@ -2908,13 +2939,21 @@ initApp();
               window.addEventListener('message',handle);
               window.postMessage({source:'painel-902',type:'marvel-frete-902-route-request-v1',requestId,route:{pcId:String(selected[0].x.id||selected[0].x.pv),tabela:table.value.trim()}},location.origin);
             });
-            save.addEventListener('click',()=>{
-              const chosen=checks.filter(v=>v.check.checked).map(v=>String(v.x.pv||v.x.id));
+            save.addEventListener('click',async()=>{
+              const chosen=checks.filter(v=>v.check.checked&&!v.check.disabled).map(v=>v.x);
               const raw=spot.value.trim().replace(/\\s/g,'').replace(/\\./g,'').replace(',','.');
-              const value=raw?Number(raw):null;
-              if(!table.value.trim()&&!raw){feedback.textContent='Informe a tabela Marvel ou o valor spot.';return;}
-              if(raw&&(!Number.isFinite(value)||value<=0||!chosen.length)){feedback.textContent='Informe um valor spot válido e selecione pelo menos uma PC.';return;}
-              try{localStorage.setItem(draftKey,JSON.stringify({tabela:table.value.trim(),spot:spot.value.trim(),pcs:chosen,createdAt:new Date().toISOString()}));feedback.textContent='Decisão guardada neste navegador para revisão. Não enviada ao Supabase.';}catch(e){feedback.textContent='Não foi possível guardar: '+e.message;}
+              const value=Number(raw);
+              if(!raw||!Number.isFinite(value)||value<=0||!chosen.length){feedback.textContent='Informe frete spot válido e selecione as PCs.';return;}
+              if(!confirm('Salvar '+moneyBR(value)+' como spot para '+chosen.length+' PC(s)?'))return;
+              save.disabled=true;feedback.textContent='Salvando spot na base...';
+              try{
+                for(const x of chosen){
+                  const pc=String(x.id||x.pv||'');
+                  await saveMarvel('config_frete_marvel_spot',{negociacao:'PC '+pc,pc_id:pc,pagador:first.pagador,frete:value,status:'validado',observacao:'Spot cadastrado manualmente no Painel 902'});
+                  await saveMarvel('auditoria_frete_marvel',{pc_id:pc,pagador:first.pagador,municipio_origem:first.origem,uf_origem:first.ufOrigem,municipio_destino:first.destino,uf_destino:first.ufDestino,frete_marvel:value,acao:'spot_validado',detalhe:'Spot individual da PC'});
+                }
+                feedback.textContent=chosen.length+' spot(s) salvos na base.';await loadSaved();
+              }catch(e){feedback.textContent='Falha ao salvar: '+e.message;}finally{save.disabled=false;}
             });
             views.pendentes.appendChild(section);
           }
