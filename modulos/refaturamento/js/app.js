@@ -6150,8 +6150,17 @@ function __perfAnualAggregate(){
       const motivoBaixa=txt(r.motivo_baixa);
       const motivo=canonicalRefReason(txt(manual.reason||inferReasonFromText(motivoBaixa)||(motivoBaixa?'Não identificado':'Sem preenchimento')));
       const key=norm(motivo);
-      if(!map.has(key))map.set(key,{motivo,refQty:0,subQty:0,refValue:0,subValue:0});
+      if(!map.has(key))map.set(key,{motivo,refQty:0,subQty:0,refValue:0,subValue:0,details:[]});
       const x=map.get(key);
+      x.details.push({
+        tipo:r.tipo==='refaturado'?'Refaturado':'Substituto',
+        cte, cliente:txt(r.cliente||r.tomador||r.tomador_refaturado||r.tomador_substituto),
+        usuario:txt(r.operador||r.usuario||r.user_setor),
+        setor:txt(r.setor), motivo,
+        origemMotivo:manual.reason?'Preenchimento manual':'Identificado automaticamente',
+        observacao:motivoBaixa,
+        valor:parseNumber(r.tipo==='refaturado'?r.frete_refaturado:r.frete_substituto)
+      });
       if(r.tipo==='refaturado'){x.refQty++;x.refValue+=parseNumber(r.frete_refaturado||0);}
       else{x.subQty++;x.subValue+=parseNumber(r.frete_substituto||0);}
     });
@@ -6172,7 +6181,7 @@ function __perfAnualAggregate(){
       makeBarChart('chartMotivosAnualQtd',qtd.slice(0,10).map(x=>x.motivo),qtd.slice(0,10).map(x=>x.refQty+x.subQty),true,'Quantidade');
       makeBarChart('chartMotivosAnualValor',valor.slice(0,10).map(x=>x.motivo),valor.slice(0,10).map(x=>x.refValue+x.subValue),true,'Impacto total');
       const tbody=document.getElementById('tbodyMotivosAnual');
-      if(tbody)tbody.innerHTML=valor.length?valor.map(x=>`<tr><td>${esc(x.motivo)}</td><td>${x.refQty}</td><td>${fmtMoney(x.refValue)}</td><td>${x.subQty}</td><td>${fmtMoney(x.subValue)}</td><td>${fmtMoney(x.refValue+x.subValue)}</td></tr>`).join(''):'<tr><td colspan="6" class="center muted">Sem registros para este ano</td></tr>';
+      if(tbody)tbody.innerHTML=valor.length?valor.map((x,i)=>{const id='motivo-anual-'+year+'-'+i;setGroup(id,x.details||[]);return `<tr><td>${esc(x.motivo)}</td><td>${x.refQty}</td><td>${fmtMoney(x.refValue)}</td><td>${x.subQty}</td><td>${fmtMoney(x.subValue)}</td><td>${fmtMoney(x.refValue+x.subValue)}</td><td>${button(id,(x.details||[]).length)}</td></tr>`;}).join(''):'<tr><td colspan="7" class="center muted">Sem registros para este ano</td></tr>';
       if(status)status.textContent=year+' • '+all.reduce((n,x)=>n+x.refQty+x.subQty,0)+' documentos • '+fmtMoney(all.reduce((n,x)=>n+x.refValue+x.subValue,0));
     }catch(err){
       console.error('Falha na análise anual de motivos',err);
