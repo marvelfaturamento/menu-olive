@@ -2794,40 +2794,34 @@ initApp();
           }
           out.appendChild(shell);
           const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.historico);out.appendChild(tabsBody);
-          async function loadSaved(){
-            if(!state.supabase){
-              views.salvos.textContent='Supabase indisponível nesta sessão.';
-              views.historico.textContent='Supabase indisponível nesta sessão.';
-              return;
-            }
-            const queries=[
-              ['salvos','config_frete_marvel_spot','id,pc_id,pagador,frete,status,atualizado_em'],
-              ['historico','auditoria_frete_marvel','id,pc_id,pagador,acao,frete_anterior,frete_marvel,criado_em,executor']
-            ];
-            await Promise.all(queries.map(async ([viewName,table,fields])=>{
-              const target=views[viewName];target.textContent='Consultando registros...';
-              try{
-                const {data,error}=await state.supabase.from(table).select(fields).order(viewName==='salvos'?'atualizado_em':'criado_em',{ascending:false}).limit(50);
-                if(error)throw error;
-                target.replaceChildren();
-                if(!data?.length){target.textContent='Nenhum registro disponível na base para esta consulta.';return;}
-                const info=document.createElement('p');info.textContent='Últimos '+data.length+' registros (máximo de 50 por consulta).';target.appendChild(info);
-                data.forEach(item=>{
-                  const line=document.createElement('div');line.style.cssText='padding:12px;margin:8px 0;border:1px solid #38517b;border-radius:8px;';
-                  line.textContent=viewName==='salvos'
-                    ? 'PC '+(item.pc_id||'—')+' | '+(item.pagador||'—')+' | R$ '+Number(item.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2})+' | '+(item.status||'—')+' | '+(item.atualizado_em||'')
-                    : 'PC '+(item.pc_id||'—')+' | '+(item.acao||'—')+' | '+(item.pagador||'—')+' | '+(item.executor||'—')+' | '+(item.criado_em||'');
-                  target.appendChild(line);
-                });
-              }catch(e){target.textContent='Não foi possível consultar '+table+'. Acesso ao histórico depende de permissões seguras no Supabase. '+(e.message||'');}
-            }));
-          }
-          async function saveMarvel(table,payload){
-            if(!state.supabase)throw Error('Supabase indisponível');
-            const {data,error}=await state.supabase.from(table).insert(payload).select('id');
-            if(error)throw Error(error.message);
-            if(!data?.length)throw Error('A base não confirmou o registro');
+          async function marvelApi(action,item){
+            const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
+            let token='';
+            try{token=JSON.parse(raw||'null')?.access_token||'';}catch(_){}
+            if(!token)throw Error('Sessão do Menu Olive não encontrada. Acesse o painel pelo Menu Olive.');
+            const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action,item})});
+            const data=await res.json();if(!res.ok||data.error)throw Error(data.error||'HTTP '+res.status);
             return data;
+          }
+          async function loadSaved(){
+            try{
+              const data=await marvelApi('list');
+              views.salvos.replaceChildren();views.historico.replaceChildren();
+              const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa',...x})),...(data.spots||[]).map(x=>({kind:'Spot',...x}))];
+              for(const x of entries){
+                const line=document.createElement('div');line.style.cssText='padding:9px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
+                line.textContent=x.kind+' | '+x.pagador+' | '+(x.pc_id?'PC '+x.pc_id+' | ':'')+(x.nome_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+                views.salvos.appendChild(line);
+              }
+              for(const x of data.historico||[]){
+                const line=document.createElement('div');line.style.cssText='padding:9px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
+                line.textContent='PC '+(x.pc_id||'—')+' | '+x.acao+' | '+x.pagador+' | '+x.criado_em;
+                views.historico.appendChild(line);
+              }
+              if(!entries.length)views.salvos.textContent='Nenhuma tarifa ou spot salvo.';
+              if(!data.historico?.length)views.historico.textContent='Sem histórico.';
+              return data;
+            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.historico.textContent='Não foi possível carregar: '+e.message;throw e;}
           }
           function moneyBR(value){return Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
           function validateMarvel(x,tabela){
@@ -2838,19 +2832,7 @@ initApp();
           }
           async function persistTariff(x,tabela){
             const v=validateMarvel(x,tabela);
-            const row={pagador:v.pagador,nome_marvel:v.nome_marvel,municipio_origem:v.municipio_origem,uf_origem:v.uf_origem,municipio_destino:v.municipio_destino,uf_destino:v.uf_destino,frete:v.amount,consultado_em:new Date().toISOString(),situacao:'validado',ativo:true};
-            const query=state.supabase.from('config_frete_marvel_rotas');
-            const {data:existing,error:readError}=await query.select('id,frete').eq('pagador',v.pagador).eq('nome_marvel',v.nome_marvel).eq('municipio_origem',v.municipio_origem).eq('uf_origem',v.uf_origem).eq('municipio_destino',v.municipio_destino).eq('uf_destino',v.uf_destino).limit(2);
-            if(readError)throw Error(readError.message);
-            if(existing.length>1)throw Error('Há tarifas duplicadas nesta rota; necessário corrigir a base antes de atualizar');
-            let action='tarifa_cadastrada',old=null;
-            if(existing.length){
-              old=Number(existing[0].frete);action=old===v.amount?'tarifa_reconfirmada':'tarifa_atualizada';
-              const {data,error}=await state.supabase.from('config_frete_marvel_rotas').update(row).eq('id',existing[0].id).select('id');
-              if(error)throw Error(error.message);
-              if(!data?.length)throw Error('Atualização não confirmada pelo Supabase');
-            }else await saveMarvel('config_frete_marvel_rotas',row);
-            await saveMarvel('auditoria_frete_marvel',{pc_id:v.pc,pagador:v.pagador,municipio_origem:v.municipio_origem,uf_origem:v.uf_origem,municipio_destino:v.municipio_destino,uf_destino:v.uf_destino,frete_anterior:old,frete_marvel:v.amount,acao:action,detalhe:'Tabela '+v.nome_marvel});
+            await marvelApi('tariff',{...x,tabelaMarvel:v.nome_marvel,freteMarvel:v.amount});
             await loadSaved();
           }
           function moveToFound(x,tabela){
@@ -2870,7 +2852,9 @@ initApp();
             row.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+moneyBR(x.freteMarvel)+' | '+(tabela||'Tabela não identificada')+' | Aguardando gravação na base';
             views.encontrados.appendChild(row);return row;
           }
-          loadSaved();
+          loadSaved().catch(()=>{});
+          // Guarda todas as PCs não resolvidas na fila persistente.
+          pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
           const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
           recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
@@ -2962,8 +2946,7 @@ initApp();
               try{
                 for(const x of chosen){
                   const pc=String(x.id||x.pv||'');
-                  await saveMarvel('config_frete_marvel_spot',{negociacao:'PC '+pc,pc_id:pc,pagador:first.pagador,frete:value,status:'validado',observacao:'Spot cadastrado manualmente no Painel 902'});
-                  await saveMarvel('auditoria_frete_marvel',{pc_id:pc,pagador:first.pagador,municipio_origem:first.origem,uf_origem:first.ufOrigem,municipio_destino:first.destino,uf_destino:first.ufDestino,frete_marvel:value,acao:'spot_validado',detalhe:'Spot individual da PC'});
+                  await marvelApi('spot',{...x,frete:value});
                 }
                 feedback.textContent=chosen.length+' spot(s) salvos na base.';chosen.forEach(x=>{pending=pending.filter(y=>pcKey(y)!==pcKey(x));section.querySelector('[data-pending-pc="'+pcKey(x)+'"]')?.remove();const selectedCheck=checks.find(v=>pcKey(v.x)===pcKey(x));if(selectedCheck){selectedCheck.check.disabled=true;selectedCheck.check.closest('label')?.remove();}});if(!section.querySelector('[data-pending-pc]'))section.remove();refreshCounts();await loadSaved();
               }catch(e){feedback.textContent='Falha ao salvar: '+e.message;}finally{save.disabled=false;}
