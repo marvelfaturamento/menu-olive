@@ -2763,7 +2763,7 @@ initApp();
       window.addEventListener('message',receiveProgress);
       const timer=setTimeout(()=>finish('Tempo limite de 5 minutos. Verifique a aba Marvel e a extensão; nenhuma tarifa foi gravada.'),300000);
       function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;status.textContent=message;if(!message.startsWith('Extensão respondeu.')){progress.style.borderColor='#b16e48';stage.textContent=message;}}
-      function receive(event){
+      async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
         if(d?.source!=='marvel-frete-ext'||d?.type!=='marvel-frete-902-test-response-v1'||d?.requestId!==requestId)return;
@@ -2773,6 +2773,22 @@ initApp();
           const items=Array.isArray(d.casos)?d.casos:[];
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
+          try{
+            const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
+            const token=JSON.parse(raw||'null')?.access_token;
+            if(token){
+              const response=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
+              if(response.ok){
+                const saved=await response.json();
+                const ids=new Set([...pending,...found].map(x=>String(x.id||x.pv||'')));
+                for(const p of saved.pendencias||[]){
+                  if(ids.has(String(p.pc_id)))continue;
+                  pending.push({id:p.pc_id,pv:p.pc_id,pagador:p.pagador,origem:p.municipio_origem,ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,estado:p.estado||'Não encontrado',referencia:p.referencia,cavalo:p.cavalo});
+                }
+              }
+            }
+          }catch(e){console.warn('Marvel: fila persistida indisponível',e);}
+
           out.replaceChildren();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
@@ -2782,7 +2798,7 @@ initApp();
           const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Tarifas Marvel encontradas',found.length],['salvos','Salvos na base','—'],['historico','Histórico','—']];
           const views={};
           const tabButtons={};
-          const pcKey=x=>String(x.pv||x.id||'');
+          const pcKey=x=>String(x.id||x.pv||'');
           function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Tarifas Marvel encontradas ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
           for(const [key,label,count] of tabs){
             const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
