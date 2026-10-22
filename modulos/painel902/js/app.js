@@ -836,9 +836,9 @@ function checkpointAction(row){
 }
 
 function fretePadrao(row){
-  const p = norm(row.pagador), r = norm(row.remetente), o = norm(row.ufRem), d = norm(row.ufDest);
-  const found = state.config.fretes.find(f => (!f.pagador || p.includes(norm(f.pagador))) && (!f.remetente || r.includes(norm(f.remetente))) && norm(f.ufOrigem) === o && norm(f.ufDestino) === d);
-  return found ? Number(found.frete || 0) : 0;
+  // Fonte exclusiva: valor operacional persistido no painel_902.
+  // Cadastro legado por tomador/remetente não participa mais dos cálculos.
+  return Number(row.frete || 0);
 }
 function competenciaMes(dataPc){ const raw = String(dataPc || '').trim().split('/'); return raw.length === 3 ? `${raw[2]}-${raw[1]}` : ''; }
 function reclassify(){
