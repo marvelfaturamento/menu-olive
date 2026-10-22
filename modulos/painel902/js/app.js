@@ -2935,22 +2935,18 @@ initApp();
                 if(!d.ok){done('Erro na consulta: '+(d.erro||'sem detalhes'));return;}
                 const found=(d.casos||[]).find(x=>Number(x.freteMarvel)>0);
                 if(found){
-                  const pc=String(found.pv||found.id||selected[0].x.pv||selected[0].x.id);
-                  const amount=Number(found.freteMarvel);
-                  appendTariff({...found,pagador:first.pagador,origem:first.origem,ufOrigem:first.ufOrigem,destino:first.destino,ufDestino:first.ufDestino},table.value.trim());
-                  const index=checks.findIndex(v=>String(v.x.pv||v.x.id)===pc || String(v.x.id||v.x.pv)===String(found.id||found.pv));
-                  if(index>=0){
-                    const check=checks[index].check;
-                    check.checked=false;
-                    check.disabled=true;
-                    const parent=check.closest('label');if(parent)parent.style.display='none';
-                    const lines=Array.from(section.querySelectorAll('div')).filter(el=>el.textContent?.startsWith('PC '+pc+' |'));
-                    lines.forEach(el=>el.remove());
+                  const x={...found,pagador:first.pagador,origem:first.origem,ufOrigem:first.ufOrigem,destino:first.destino,ufDestino:first.ufDestino};
+                  const pc=pcKey(x),amount=Number(x.freteMarvel);
+                  const row=appendTariff(x,table.value.trim());
+                  feedback.textContent='Tarifa encontrada. Salvando no Supabase...';
+                  persistTariff(x,table.value.trim()).then(()=>{
+                    row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo na base');
+                    moveToFound(x,table.value.trim());
+                    const index=checks.findIndex(v=>pcKey(v.x)===pc);
+                    if(index>=0){checks[index].check.disabled=true;checks[index].check.closest('label')?.remove();}
                     const n=section.querySelector('p');if(n)n.textContent=checks.filter(v=>!v.check.disabled).length+' PC(s) para revisão';
-                  }
-                  const remaining=checks.filter(v=>!v.check.disabled).length;
-                  if(!remaining)section.remove();
-                  done('Tarifa '+amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' encontrada. PC '+pc+' movida para Tarifas Marvel encontradas. Ainda não salva na base.');
+                    done('PC '+pc+': tarifa '+moneyBR(amount)+' salva no Supabase e removida das pendências.');
+                  }).catch(e=>{row.textContent+=' | ERRO: '+e.message;done('PC '+pc+' permanece pendente: '+e.message);});
                 }else done('Consulta concluída, mas não encontrou tarifa única para esta rota. Verifique tabela e cidades.');
               }
               window.addEventListener('message',handle);
@@ -2969,7 +2965,7 @@ initApp();
                   await saveMarvel('config_frete_marvel_spot',{negociacao:'PC '+pc,pc_id:pc,pagador:first.pagador,frete:value,status:'validado',observacao:'Spot cadastrado manualmente no Painel 902'});
                   await saveMarvel('auditoria_frete_marvel',{pc_id:pc,pagador:first.pagador,municipio_origem:first.origem,uf_origem:first.ufOrigem,municipio_destino:first.destino,uf_destino:first.ufDestino,frete_marvel:value,acao:'spot_validado',detalhe:'Spot individual da PC'});
                 }
-                feedback.textContent=chosen.length+' spot(s) salvos na base.';await loadSaved();
+                feedback.textContent=chosen.length+' spot(s) salvos na base.';chosen.forEach(x=>{pending=pending.filter(y=>pcKey(y)!==pcKey(x));section.querySelector('[data-pending-pc="'+pcKey(x)+'"]')?.remove();const selectedCheck=checks.find(v=>pcKey(v.x)===pcKey(x));if(selectedCheck){selectedCheck.check.disabled=true;selectedCheck.check.closest('label')?.remove();}});if(!section.querySelector('[data-pending-pc]'))section.remove();refreshCounts();await loadSaved();
               }catch(e){feedback.textContent='Falha ao salvar: '+e.message;}finally{save.disabled=false;}
             });
             views.pendentes.appendChild(section);
