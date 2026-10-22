@@ -2863,7 +2863,21 @@ initApp();
           const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
           recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
-          found.forEach(x=>appendTariff(x,x.tabelaMarvel||x.nomeMarvel||''));
+          // Tarifa encontrada: tentativa de registro imediato; nunca oculta falha de persistência.
+          found.forEach(async x=>{
+            const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||x.pagador||'').trim();
+            const pc=String(x.id||x.pv||'');
+            const feedback=document.createElement('div');feedback.style.cssText='padding:8px;color:#ffd28a;';
+            feedback.textContent='PC '+pc+': gravando tarifa automaticamente...';
+            views.encontrados.appendChild(feedback);
+            try{
+              await persistTariff(x,tabela);
+              feedback.textContent='PC '+pc+': tarifa registrada na base.';
+            }catch(e){
+              feedback.textContent='PC '+pc+': gravação pendente — '+e.message;
+              appendTariff(x,tabela);
+            }
+          });
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
           for(const group of groups.values()){
