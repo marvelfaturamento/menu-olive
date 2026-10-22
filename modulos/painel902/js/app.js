@@ -2771,6 +2771,7 @@ initApp();
           const items=Array.isArray(d.casos)?d.casos:[];
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
+          const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
           try{
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
             const token=JSON.parse(raw||'null')?.access_token;
@@ -2793,11 +2794,11 @@ initApp();
           out.appendChild(summary);
           if(!items.length){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
-          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Tarifas Marvel encontradas',found.length],['salvos','Salvos na base','—'],['historico','Histórico','—']];
+          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Novas tarifas Marvel',found.length],['salvos','Salvos na base','carregando'],['historico','Histórico','carregando']];
           const views={};
           const tabButtons={};
           const pcKey=x=>String(x.id||x.pv||'');
-          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Tarifas Marvel encontradas ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
+          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Novas tarifas Marvel ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
           for(const [key,label,count] of tabs){
             const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
             tab.style.cssText='padding:12px 18px;border:1px solid #38517b;border-radius:10px;';
@@ -2832,10 +2833,12 @@ initApp();
                 line.textContent='PC '+(x.pc_id||'—')+' | '+x.acao+' | '+x.pagador+' | '+x.criado_em;
                 views.historico.appendChild(line);
               }
+              tabButtons.salvos.textContent='Salvos na base ('+entries.length+')';
+              tabButtons.historico.textContent='Histórico ('+(data.historico||[]).length+')';
               if(!entries.length)views.salvos.textContent='Nenhuma tarifa ou spot salvo.';
               if(!data.historico?.length)views.historico.textContent='Sem histórico.';
               return data;
-            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.historico.textContent='Não foi possível carregar: '+e.message;throw e;}
+            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.historico.textContent='Não foi possível carregar: '+e.message;tabButtons.salvos.textContent='Salvos na base (erro)';tabButtons.historico.textContent='Histórico (erro)';throw e;}
           }
           function moneyBR(value){return Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
           function validateMarvel(x,tabela){
@@ -2866,7 +2869,7 @@ initApp();
             row.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+moneyBR(x.freteMarvel)+' | '+(tabela||'Tabela não identificada')+' | Aguardando gravação na base';
             views.encontrados.appendChild(row);return row;
           }
-          loadSaved().catch(()=>{});
+          loadSaved().catch(e=>{status.textContent='Conferência concluída, mas a leitura da base falhou: '+e.message;});
           // Guarda todas as PCs não resolvidas na fila persistente.
           pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
           const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
