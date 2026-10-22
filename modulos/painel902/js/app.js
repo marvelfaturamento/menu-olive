@@ -2433,6 +2433,7 @@ async function carregarDaSupabase(silent=false){
     ufDest: d.uf_destino || '',
     talhao: d.talhao || '',
     referencia: d.referencia || '',
+    frete: Number(d.frete_padrao || 0),
     status: d.status || 'Coleta',
     foiAduana: !!d.foi_aduana,
     passouCheckpoint: !!d.passou_checkpoint,
