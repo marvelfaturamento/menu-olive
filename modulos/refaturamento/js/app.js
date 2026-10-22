@@ -1205,23 +1205,15 @@ async function saveManualToSupabase(cte, payload){
     auditoria: String(payload.audit || 'nao').toLowerCase() === 'sim' ? 'sim' : 'nao'
   };
 
-  const res = await state.supabase
+  // A coluna documento tem UNIQUE no Supabase. Atualiza ou cria atomicamente,
+  // sem excluir o registro anterior caso a escrita falhe.
+  const { error } = await state.supabase
     .from('refaturamento_manual')
-    .delete()
-    .eq('documento', row.documento);
+    .upsert([row], { onConflict:'documento' });
 
-  if(res.error){
-    console.error('Erro apagando refaturamento_manual:', res.error);
-    return { ok:false, message: res.error?.message || 'Erro ao salvar na Supabase.' };
-  }
-
-  const resInsert = await state.supabase
-    .from('refaturamento_manual')
-    .insert([row]);
-
-  if(resInsert.error){
-    console.error('Erro salvando refaturamento_manual:', resInsert.error);
-    return { ok:false, message: resInsert.error?.message || 'Erro ao salvar na Supabase.' };
+  if(error){
+    console.error('Erro salvando refaturamento_manual:', error);
+    return { ok:false, message:error.message || 'Erro ao salvar na Supabase.' };
   }
 
   return { ok:true };
@@ -6585,7 +6577,7 @@ function __perfAnualAggregate(){
     if(e.target.closest('#btnSaveManualBatch')){
       const dirty=[...document.querySelectorAll('.manual-input.manual-dirty')]; if(!dirty.length){alert('Nenhuma alteração pendente.');return;}
       const ctes=[...new Set(dirty.map(x=>x.dataset.cte))]; let fails=[];
-      for(const cte of ctes){const payload={};document.querySelectorAll(`.manual-input[data-cte="${CSS.escape(cte)}"]`).forEach(f=>payload[f.dataset.field]=f.value);saveManual(cte,payload);const r=await saveManualToSupabase(cte,payload);if(!r.ok)fails.push(cte);}
+      for(const cte of ctes){const payload={};document.querySelectorAll(`.manual-input[data-cte="${CSS.escape(cte)}"]`).forEach(f=>payload[f.dataset.field]=f.value);saveManual(cte,payload);const r=await saveManualToSupabase(cte,payload);if(!r.ok)fails.push(cte+' ('+(r.message||'erro não informado')+')');}
       renderAll(); alert(fails.length?`Alterações locais salvas. Falha na Supabase: ${fails.join(', ')}`:`${ctes.length} registro(s) salvo(s) com sucesso.`); return;
     }
     const del=e.target.closest('.btn-delete-record'); if(del){const cte=del.dataset.cte;if(!confirm(`Excluir o CT-e ${cte} da base de refaturamento? Esta ação não pode ser desfeita.`))return;
