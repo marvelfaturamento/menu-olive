@@ -2771,8 +2771,8 @@ initApp();
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
           const items=Array.isArray(d.casos)?d.casos:[];
-          const pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
-          const found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
+          let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
+          let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           out.replaceChildren();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
@@ -2781,10 +2781,13 @@ initApp();
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
           const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Tarifas Marvel encontradas',found.length],['salvos','Salvos na base','—'],['historico','Histórico','—']];
           const views={};
+          const tabButtons={};
+          const pcKey=x=>String(x.pv||x.id||'');
+          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Tarifas Marvel encontradas ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
           for(const [key,label,count] of tabs){
             const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
             tab.style.cssText='padding:12px 18px;border:1px solid #38517b;border-radius:10px;';
-            shell.appendChild(tab);
+            shell.appendChild(tab);tabButtons[key]=tab;
             const view=document.createElement('div');view.dataset.marvelView=key;view.hidden=key!=='pendentes';
             views[key]=view;
             tab.addEventListener('click',()=>{Object.entries(views).forEach(([k,v])=>v.hidden=k!==key);});
@@ -2836,59 +2839,59 @@ initApp();
           async function persistTariff(x,tabela){
             const v=validateMarvel(x,tabela);
             const row={pagador:v.pagador,nome_marvel:v.nome_marvel,municipio_origem:v.municipio_origem,uf_origem:v.uf_origem,municipio_destino:v.municipio_destino,uf_destino:v.uf_destino,frete:v.amount,consultado_em:new Date().toISOString(),situacao:'validado',ativo:true};
-            await saveMarvel('config_frete_marvel_rotas',row);
-            await saveMarvel('auditoria_frete_marvel',{pc_id:v.pc,pagador:v.pagador,municipio_origem:v.municipio_origem,uf_origem:v.uf_origem,municipio_destino:v.municipio_destino,uf_destino:v.uf_destino,frete_marvel:v.amount,acao:'validacao_marvel',detalhe:'Tabela '+v.nome_marvel});
+            const query=state.supabase.from('config_frete_marvel_rotas');
+            const {data:existing,error:readError}=await query.select('id,frete').eq('pagador',v.pagador).eq('nome_marvel',v.nome_marvel).eq('municipio_origem',v.municipio_origem).eq('uf_origem',v.uf_origem).eq('municipio_destino',v.municipio_destino).eq('uf_destino',v.uf_destino).limit(2);
+            if(readError)throw Error(readError.message);
+            if(existing.length>1)throw Error('Há tarifas duplicadas nesta rota; necessário corrigir a base antes de atualizar');
+            let action='tarifa_cadastrada',old=null;
+            if(existing.length){
+              old=Number(existing[0].frete);action=old===v.amount?'tarifa_reconfirmada':'tarifa_atualizada';
+              const {data,error}=await state.supabase.from('config_frete_marvel_rotas').update(row).eq('id',existing[0].id).select('id');
+              if(error)throw Error(error.message);
+              if(!data?.length)throw Error('Atualização não confirmada pelo Supabase');
+            }else await saveMarvel('config_frete_marvel_rotas',row);
+            await saveMarvel('auditoria_frete_marvel',{pc_id:v.pc,pagador:v.pagador,municipio_origem:v.municipio_origem,uf_origem:v.uf_origem,municipio_destino:v.municipio_destino,uf_destino:v.uf_destino,frete_anterior:old,frete_marvel:v.amount,acao:action,detalhe:'Tabela '+v.nome_marvel});
             await loadSaved();
           }
+          function moveToFound(x,tabela){
+            const pc=pcKey(x);
+            pending=pending.filter(y=>pcKey(y)!==pc);
+            if(!found.some(y=>pcKey(y)===pc))found.push(x);
+            for(const el of views.pendentes.querySelectorAll('[data-pending-pc]'))if(el.dataset.pendingPc===pc)el.remove();
+            for(const el of views.pendentes.querySelectorAll('[data-pending-group]'))if(!el.querySelector('[data-pending-pc]'))el.remove();
+            refreshCounts();
+          }
           function appendTariff(x,tabela){
-            const pc=String(x.pv||x.id||'');
+            const pc=pcKey(x);
             const old=Array.from(views.encontrados.children).find(el=>el.dataset.marvelPc===pc);
             if(old)old.remove();
-            if(views.encontrados.textContent.startsWith('Nenhuma tarifa encontrada'))views.encontrados.replaceChildren();
             const row=document.createElement('div');row.dataset.marvelPc=pc;
             row.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
-            const info=document.createElement('div');info.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+moneyBR(x.freteMarvel)+' | Tabela: '+(tabela||'não identificada');
-            const input=document.createElement('input');input.placeholder='Tabela Marvel utilizada';input.value=tabela||'';input.style.cssText='padding:8px;margin:8px 8px 8px 0;background:#14213d;color:white;border:1px solid #567;border-radius:6px;';
-            const save=document.createElement('button');save.type='button';save.textContent='Validar e salvar na base';save.style.cssText='padding:9px 13px;background:#0b8066;color:white;border-radius:8px;font-weight:700;';
-            const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:6px;';
-            save.addEventListener('click',async()=>{
-              if(!confirm('Confirmar a tarifa '+moneyBR(x.freteMarvel)+' da PC '+pc+' na tabela '+input.value+'?'))return;
-              save.disabled=true;feedback.textContent='Salvando no Supabase...';
-              try{await persistTariff(x,input.value.trim());feedback.textContent='Tarifa salva e auditada na base.';save.remove();}
-              catch(e){feedback.textContent='Não foi possível salvar: '+e.message;save.disabled=false;}
-            });
-            row.append(info,input,save,feedback);views.encontrados.appendChild(row);
+            row.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+moneyBR(x.freteMarvel)+' | '+(tabela||'Tabela não identificada')+' | Aguardando gravação na base';
+            views.encontrados.appendChild(row);return row;
           }
           loadSaved();
           const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
           recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
-          // Tarifa encontrada: tentativa de registro imediato; nunca oculta falha de persistência.
           found.forEach(async x=>{
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||x.pagador||'').trim();
-            const pc=String(x.id||x.pv||'');
-            const feedback=document.createElement('div');feedback.style.cssText='padding:8px;color:#ffd28a;';
-            feedback.textContent='PC '+pc+': gravando tarifa automaticamente...';
-            views.encontrados.appendChild(feedback);
-            try{
-              await persistTariff(x,tabela);
-              feedback.textContent='PC '+pc+': tarifa registrada na base.';
-            }catch(e){
-              feedback.textContent='PC '+pc+': gravação pendente — '+e.message;
-              appendTariff(x,tabela);
-            }
+            const row=appendTariff(x,tabela);
+            try{await persistTariff(x,tabela);row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo na base');}
+            catch(e){row.textContent+=' | ERRO: '+e.message;}
           });
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
           for(const group of groups.values()){
             const first=group[0],section=document.createElement('section');
+            section.dataset.pendingGroup='1';
             section.style.cssText='background:#192643;border:1px solid #d79c45;border-left:5px solid #f3b451;border-radius:10px;padding:15px;margin:12px 0;color:#f5f7ff;';
             const heading=document.createElement('strong');
             heading.style.color='#ffd28a';heading.textContent=first.pagador+' — '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino;
             section.appendChild(heading);
             const desc=document.createElement('p');desc.textContent=group.length+' PC(s) para revisão';section.appendChild(desc);
             group.forEach(x=>{
-              const row=document.createElement('div');row.style.cssText='padding:7px 0;border-top:1px solid #38517b;';
+              const row=document.createElement('div');row.dataset.pendingPc=pcKey(x);row.style.cssText='padding:7px 0;border-top:1px solid #38517b;';
               row.textContent='PC '+(x.pv||x.id||'—')+' | Pedido: '+(x.referencia||'—')+' | Cavalo: '+(x.cavalo||'—')+' | '+x.estado+(x.freteMarvel!=null?' | Marvel: '+Number(x.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'');
               section.appendChild(row);
             });
