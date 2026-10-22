@@ -2769,7 +2769,30 @@ initApp();
         if(d.ok){fill.style.width='100%';heading.textContent='Conferência Marvel: 100% — concluída';stage.textContent='Resultados recebidos. Nenhum frete operacional foi alterado.';}finish(d.ok?'Extensão respondeu. Conferência recebida (sem gravação de PCs).':'Falha na extensão: '+String(d.erro||'desconhecida'));
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
-          const items=Array.isArray(d.casos)?d.casos:[];
+          const items=Array.isArray(d.casos)?[...d.casos]:[];
+          // Complementa a fila com PCs operacionais zeradas que a extensão não retornou.
+          // A própria base é a fonte de verdade para detectar pendências faltantes.
+          try{
+            if(state.supabase){
+              const {data:zeros,error:zeroError}=await state.supabase
+                .from('painel_902')
+                .select('id,pv,pagador,municipio_origem,uf_origem,municipio_destino,uf_destino,frete_padrao,bucket_atual,ref,referencia,cavalo')
+                .in('bucket_atual',['agNota','aduana','alertaInt'])
+                .eq('frete_padrao',0)
+                .limit(1000);
+              if(zeroError)throw zeroError;
+              const known=new Set(items.map(x=>String(x.id||x.pv||'')));
+              for(const p of zeros||[]){
+                const key=String(p.id||p.pv||'');
+                if(!key||known.has(key))continue;
+                known.add(key);
+                items.push({id:p.id,pv:p.pv,pagador:p.pagador,origem:p.municipio_origem,
+                  ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,
+                  referencia:p.referencia||p.ref,cavalo:p.cavalo,estado:'Não encontrado'});
+              }
+            }
+          }catch(e){console.warn('Marvel: não foi possível complementar PCs sem frete',e);}
+
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
