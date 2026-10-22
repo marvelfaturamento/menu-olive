@@ -2586,7 +2586,7 @@ initApp();
 (function(){
   const META = [
     {key:'mensal', title:'Controle mensal', icon:'📅', desc:'Competências, exportação e limpeza mensal.', heading:'Controle mensal'},
-    {key:'fretes', title:'Frete padrão', icon:'💰', desc:'Tarifas cadastradas por tomador, remetente e rota.', heading:'Frete padrão'},
+    {key:'fretes', title:'Fretes Marvel', icon:'💰', desc:'Sincronização Marvel, pendências, spots e histórico.', heading:'Fretes Marvel — Sincronização'},
     {key:'paga', title:'Clientes com regra de aduana', icon:'🏭', desc:'Clientes que seguem regras específicas de aduana.', heading:'Clientes com regra de aduana'},
     {key:'aduanas', title:'Aduanas monitoradas', icon:'📍', desc:'Pontos de aduana usados na classificação operacional.', heading:'Aduanas monitoradas'},
     {key:'alerta', title:'Clientes alerta nacional', icon:'⚠️', desc:'Clientes acompanhados pelas regras de alerta nacional.', heading:'Clientes alerta nacional'},
@@ -2599,7 +2599,7 @@ initApp();
 
   function countText(key){
     try{
-      if(key==='fretes') return `${(state.config.fretes||[]).length} tarifas cadastradas`;
+      if(key==='fretes') return 'Sincronização e pendências';
       if(key==='paga') return `${(state.config.paga||[]).length} clientes cadastrados`;
       if(key==='aduanas') return `${(state.config.aduanas||[]).length} aduanas cadastradas`;
       if(key==='alerta') return `${(state.config.alerta||[]).length} clientes cadastrados`;
