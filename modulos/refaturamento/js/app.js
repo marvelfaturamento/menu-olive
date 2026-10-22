@@ -6333,7 +6333,7 @@ function __perfAnualAggregate(){
         setGroup(id,x.details);
         const ref=x.details.filter(d=>d.tipo.startsWith('Refaturado')).length;
         const sub=x.details.length-ref;
-        return '<tr><td>'+esc(x.motivo)+' <button type="button" class="details-btn" data-detail-id="'+id+'" title="Ver documentos do motivo">🔎</button></td><td>'+x.qty+' <small title="Refaturados e substitutos">('+ref+' ref. + '+sub+' sub.)</small></td><td>'+fmtMoney(x.value)+'</td></tr>';
+        return '<tr><td>'+esc(x.motivo)+'</td><td>'+x.qty+' <small title="Refaturados e substitutos">('+ref+' ref. + '+sub+' sub.)</small></td><td>'+fmtMoney(x.value)+'</td><td><button type="button" class="details-btn" data-detail-id="'+id+'" title="Ver documentos do motivo">🔎 Ver detalhes ('+x.qty+')</button></td></tr>';
       }).join(''):'<tr><td colspan="3" class="center muted">Sem dados</td></tr>';
     }
   }
