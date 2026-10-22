@@ -2731,11 +2731,12 @@ initApp();
     const button=document.getElementById('marvelTestRun');
     const status=document.getElementById('marvelTestStatus');
     if(!button||!status)return;
-    button.addEventListener('click',()=>{
+    button.addEventListener('click',(clickEvent)=>{
       if(button.disabled)return;
+      const restored=clickEvent?.detail?.restoreData||null;
       const requestId='marvel-test-'+Date.now()+'-'+Math.random().toString(36).slice(2);
       button.disabled=true;
-      status.textContent='Solicitação enviada à extensão local. Aguardando resposta...';
+      status.textContent=restored?'Carregando pendências e histórico salvos no Supabase...':'Solicitação enviada à extensão local. Aguardando resposta...';
       const progress=document.createElement('div');
       progress.style.cssText='margin:12px 0;padding:12px;border:1px solid #326a91;background:#122945;border-radius:10px;color:#eef7ff;';
       const heading=document.createElement('div');heading.textContent='Conferência Marvel: preparando... 0%';heading.style.cssText='font-weight:700;margin-bottom:8px;';
@@ -2792,7 +2793,7 @@ initApp();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
           out.appendChild(summary);
-          if(!items.length){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
+          if(!items.length && !restored){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
           const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Novas tarifas Marvel',found.length],['salvos','Salvos na base','carregando'],['historico','Histórico','carregando']];
           const views={};
@@ -2871,7 +2872,7 @@ initApp();
           }
           loadSaved().catch(e=>{status.textContent='Conferência concluída, mas a leitura da base falhou: '+e.message;});
           // Guarda todas as PCs não resolvidas na fila persistente.
-          pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
+          if(!restored)pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
           const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
           recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
@@ -2974,8 +2975,26 @@ initApp();
         }
       }
       window.addEventListener('message',receive);
-      window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId},location.origin);
+      if(restored){
+        const casos=(restored.pendencias||[]).map(p=>({id:p.pc_id,pv:String(p.pc_id||'').split('|').pop(),pagador:p.pagador,origem:p.municipio_origem,ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,estado:p.estado||'Não encontrado',referencia:p.referencia,cavalo:p.cavalo}));
+        receive({source:window,origin:location.origin,data:{source:'marvel-frete-ext',type:'marvel-frete-902-test-response-v1',requestId,ok:true,casos,total:casos.length}});
+      }else window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId},location.origin);
     });
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initMarvelTest,{once:true});else initMarvelTest();
+  async function restoreMarvelSaved(){
+    const button=document.getElementById('marvelTestRun');
+    const status=document.getElementById('marvelTestStatus');
+    if(!button||!status)return;
+    try{
+      const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
+      const token=JSON.parse(raw||'null')?.access_token;
+      if(!token)throw Error('Sessão do Olive não disponível');
+      const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
+      const data=await res.json();
+      if(!res.ok||data.error)throw Error(data.error||'HTTP '+res.status);
+      button.dispatchEvent(new CustomEvent('click',{detail:{restoreData:data}}));
+    }catch(e){status.textContent='Não foi possível restaurar pendências e histórico: '+e.message;}
+  }
+  function bootMarvel(){initMarvelTest();restoreMarvelSaved();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootMarvel,{once:true});else bootMarvel();
 })();
