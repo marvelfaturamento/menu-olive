@@ -2722,3 +2722,257 @@ initApp();
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
+
+
+// Comando de teste: a extensão futura responderá com requestId idêntico.
+// Sem resposta, mostrar falha explícita em vez de afirmar que a auditoria foi executada.
+(function(){
+  function initMarvelTest(){
+    const button=document.getElementById('marvelTestRun');
+    const status=document.getElementById('marvelTestStatus');
+    if(!button||!status)return;
+    button.addEventListener('click',()=>{
+      if(button.disabled)return;
+      const requestId='marvel-test-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+      button.disabled=true;
+      status.textContent='Solicitação enviada à extensão local. Aguardando resposta...';
+      const progress=document.createElement('div');
+      progress.style.cssText='margin:12px 0;padding:12px;border:1px solid #326a91;background:#122945;border-radius:10px;color:#eef7ff;';
+      const heading=document.createElement('div');heading.textContent='Conferência Marvel: preparando... 0%';heading.style.cssText='font-weight:700;margin-bottom:8px;';
+      const track=document.createElement('div');track.style.cssText='height:13px;background:#33465d;border-radius:12px;overflow:hidden;';
+      const fill=document.createElement('div');fill.style.cssText='height:100%;width:0%;background:#24a9aa;transition:width .25s;';
+      const stage=document.createElement('small');stage.textContent='Aguardando a contagem das rotas.';stage.style.cssText='display:block;margin-top:8px;';
+      track.appendChild(fill);progress.append(heading,track,stage);
+      status.after(progress);
+      function updateProgress(done,total,description){
+        if(!Number.isFinite(total)||total<=0)return;
+        const count=Math.max(0,Math.min(total,Number(done)||0));
+        const pct=Math.floor(count/total*100);
+        fill.style.width=pct+'%';
+        heading.textContent='Conferência Marvel: '+pct+'% ('+count+' de '+total+' rotas)';
+        stage.textContent=description||'Consultando rotas na Marvel...';
+      }
+      function receiveProgress(event){
+        if(event.source!==window||event.origin!==location.origin)return;
+        const d=event.data;
+        if(d?.source!=='marvel-frete-ext'||d.type!=='marvel-frete-902-progress-v1'||d.requestId!==requestId||d.route)return;
+        updateProgress(Number(d.done),Number(d.total),String(d.stage||''));
+      }
+      window.addEventListener('message',receiveProgress);
+      const timer=setTimeout(()=>finish('Tempo limite de 5 minutos. Verifique a aba Marvel e a extensão; nenhuma tarifa foi gravada.'),300000);
+      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;status.textContent=message;if(!message.startsWith('Extensão respondeu.')){progress.style.borderColor='#b16e48';stage.textContent=message;}}
+      async function receive(event){
+        if(event.source!==window||event.origin!==location.origin)return;
+        const d=event.data;
+        if(d?.source!=='marvel-frete-ext'||d?.type!=='marvel-frete-902-test-response-v1'||d?.requestId!==requestId)return;
+        if(d.ok){fill.style.width='100%';heading.textContent='Conferência Marvel: 100% — concluída';stage.textContent='Resultados recebidos. Nenhum frete operacional foi alterado.';}finish(d.ok?'Extensão respondeu. Conferência recebida (sem gravação de PCs).':'Falha na extensão: '+String(d.erro||'desconhecida'));
+        const out=document.getElementById('marvelTestResults');
+        if(out&&d.ok){
+          const items=Array.isArray(d.casos)?d.casos:[];
+          let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
+          let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
+          try{
+            const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
+            const token=JSON.parse(raw||'null')?.access_token;
+            if(token){
+              const response=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
+              if(response.ok){
+                const saved=await response.json();
+                const ids=new Set([...pending,...found].map(x=>String(x.id||x.pv||'')));
+                for(const p of saved.pendencias||[]){
+                  if(ids.has(String(p.pc_id)))continue;
+                  pending.push({id:p.pc_id,pv:p.pc_id,pagador:p.pagador,origem:p.municipio_origem,ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,estado:p.estado||'Não encontrado',referencia:p.referencia,cavalo:p.cavalo});
+                }
+              }
+            }
+          }catch(e){console.warn('Marvel: fila persistida indisponível',e);}
+
+          out.replaceChildren();
+          const summary=document.createElement('p');
+          summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
+          out.appendChild(summary);
+          if(!items.length){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
+          const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
+          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Tarifas Marvel encontradas',found.length],['salvos','Salvos na base','—'],['historico','Histórico','—']];
+          const views={};
+          const tabButtons={};
+          const pcKey=x=>String(x.id||x.pv||'');
+          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Tarifas Marvel encontradas ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
+          for(const [key,label,count] of tabs){
+            const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
+            tab.style.cssText='padding:12px 18px;border:1px solid #38517b;border-radius:10px;';
+            shell.appendChild(tab);tabButtons[key]=tab;
+            const view=document.createElement('div');view.dataset.marvelView=key;view.hidden=key!=='pendentes';
+            views[key]=view;
+            tab.addEventListener('click',()=>{Object.entries(views).forEach(([k,v])=>v.hidden=k!==key);});
+          }
+          out.appendChild(shell);
+          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.historico);out.appendChild(tabsBody);
+          async function marvelApi(action,item){
+            const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
+            let token='';
+            try{token=JSON.parse(raw||'null')?.access_token||'';}catch(_){}
+            if(!token)throw Error('Sessão do Menu Olive não encontrada. Acesse o painel pelo Menu Olive.');
+            const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action,item})});
+            const data=await res.json();if(!res.ok||data.error)throw Error(data.error||'HTTP '+res.status);
+            return data;
+          }
+          async function loadSaved(){
+            try{
+              const data=await marvelApi('list');
+              views.salvos.replaceChildren();views.historico.replaceChildren();
+              const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa',...x})),...(data.spots||[]).map(x=>({kind:'Spot',...x}))];
+              for(const x of entries){
+                const line=document.createElement('div');line.style.cssText='padding:9px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
+                line.textContent=x.kind+' | '+x.pagador+' | '+(x.pc_id?'PC '+x.pc_id+' | ':'')+(x.nome_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+                views.salvos.appendChild(line);
+              }
+              for(const x of data.historico||[]){
+                const line=document.createElement('div');line.style.cssText='padding:9px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
+                line.textContent='PC '+(x.pc_id||'—')+' | '+x.acao+' | '+x.pagador+' | '+x.criado_em;
+                views.historico.appendChild(line);
+              }
+              if(!entries.length)views.salvos.textContent='Nenhuma tarifa ou spot salvo.';
+              if(!data.historico?.length)views.historico.textContent='Sem histórico.';
+              return data;
+            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.historico.textContent='Não foi possível carregar: '+e.message;throw e;}
+          }
+          function moneyBR(value){return Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+          function validateMarvel(x,tabela){
+            const pc=String(x.id||x.pv||'').trim();
+            const amount=Number(x.freteMarvel);
+            if(!pc||!x.pagador||!x.origem||!x.destino||!x.ufOrigem||!x.ufDestino||!tabela||!Number.isFinite(amount)||amount<=0)throw Error('Dados da consulta incompletos; reprocessar antes de validar');
+            return {pc,amount,pagador:x.pagador,municipio_origem:x.origem,uf_origem:x.ufOrigem,municipio_destino:x.destino,uf_destino:x.ufDestino,nome_marvel:tabela};
+          }
+          async function persistTariff(x,tabela){
+            const v=validateMarvel(x,tabela);
+            await marvelApi('tariff',{...x,tabelaMarvel:v.nome_marvel,freteMarvel:v.amount});
+            await loadSaved();
+          }
+          function moveToFound(x,tabela){
+            const pc=pcKey(x);
+            pending=pending.filter(y=>pcKey(y)!==pc);
+            if(!found.some(y=>pcKey(y)===pc))found.push(x);
+            for(const el of views.pendentes.querySelectorAll('[data-pending-pc]'))if(el.dataset.pendingPc===pc)el.remove();
+            for(const el of views.pendentes.querySelectorAll('[data-pending-group]'))if(!el.querySelector('[data-pending-pc]'))el.remove();
+            refreshCounts();
+          }
+          function appendTariff(x,tabela){
+            const pc=pcKey(x);
+            const old=Array.from(views.encontrados.children).find(el=>el.dataset.marvelPc===pc);
+            if(old)old.remove();
+            const row=document.createElement('div');row.dataset.marvelPc=pc;
+            row.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
+            row.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+moneyBR(x.freteMarvel)+' | '+(tabela||'Tabela não identificada')+' | Aguardando gravação na base';
+            views.encontrados.appendChild(row);return row;
+          }
+          loadSaved().catch(()=>{});
+          // Guarda todas as PCs não resolvidas na fila persistente.
+          pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
+          const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
+          recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
+          if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
+          found.forEach(async x=>{
+            const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||x.pagador||'').trim();
+            const row=appendTariff(x,tabela);
+            try{await persistTariff(x,tabela);row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo na base');}
+            catch(e){row.textContent+=' | ERRO: '+e.message;}
+          });
+          const groups=new Map();
+          pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
+          for(const group of groups.values()){
+            const first=group[0],section=document.createElement('section');
+            section.dataset.pendingGroup='1';
+            section.style.cssText='background:#192643;border:1px solid #d79c45;border-left:5px solid #f3b451;border-radius:10px;padding:15px;margin:12px 0;color:#f5f7ff;';
+            const heading=document.createElement('strong');
+            heading.style.color='#ffd28a';heading.textContent=first.pagador+' — '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino;
+            section.appendChild(heading);
+            const desc=document.createElement('p');desc.textContent=group.length+' PC(s) para revisão';section.appendChild(desc);
+            group.forEach(x=>{
+              const row=document.createElement('div');row.dataset.pendingPc=pcKey(x);row.style.cssText='padding:7px 0;border-top:1px solid #38517b;';
+              row.textContent='PC '+(x.pv||x.id||'—')+' | Pedido: '+(x.referencia||'—')+' | Cavalo: '+(x.cavalo||'—')+' | '+x.estado+(x.freteMarvel!=null?' | Marvel: '+Number(x.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'');
+              section.appendChild(row);
+            });
+            const controls=document.createElement('div');controls.style.cssText='display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:12px;';
+            function field(label,type,placeholder){
+              const wrap=document.createElement('label');wrap.style.cssText='display:grid;gap:5px;min-width:190px;flex:1;';
+              const title=document.createElement('span');title.textContent=label;wrap.appendChild(title);
+              const input=document.createElement('input');input.type=type;input.placeholder=placeholder;input.style.cssText='padding:9px;border:1px solid #46618d;border-radius:7px;background:#101f43;color:white;width:100%;';wrap.appendChild(input);controls.appendChild(wrap);return input;
+            }
+            const table=field('Tabela Marvel utilizada pelo cliente','text','Ex.: GARDEN');
+            const routeButton=document.createElement('button');routeButton.type='button';routeButton.textContent='↻ Reprocessar esta rota';routeButton.style.cssText='padding:11px 15px;border-radius:8px;background:#0f766e;color:white;border:1px solid #5eead4;font-weight:700;';controls.appendChild(routeButton);
+            const spot=field('Frete spot (R$) para PCs selecionadas','text','Ex.: 29000,00');
+            spot.inputMode='decimal';
+            const checkWrap=document.createElement('div');checkWrap.style.cssText='display:flex;flex-wrap:wrap;gap:12px;width:100%;';
+            const checks=group.map(x=>{
+              const label=document.createElement('label');label.style.cssText='display:flex;gap:6px;align-items:center;';
+              const check=document.createElement('input');check.type='checkbox';check.checked=true;
+              label.append(check,document.createTextNode('PC '+(x.pv||x.id||'—')));checkWrap.appendChild(label);return {check,x};
+            });controls.appendChild(checkWrap);
+            const draftKey='marvel-test-decision:'+encodeURIComponent([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino].join('|'));
+            try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){table.value=previous.tabela||'';spot.value=previous.spot||'';checks.forEach(({check,x})=>check.checked=(previous.pcs||[]).includes(String(x.pv||x.id)));}}catch(_){}
+            const save=document.createElement('button');save.type='button';save.textContent='Salvar spot na base';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
+            const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
+            routeButton.addEventListener('click',()=>{
+              const selected=checks.filter(v=>v.check.checked);
+              if(!table.value.trim()){feedback.textContent='Informe o nome da tabela Marvel antes de reprocessar.';return;}
+              if(!selected.length){feedback.textContent='Selecione pelo menos uma PC.';return;}
+              const requestId='marvel-route-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+              routeButton.disabled=true;
+              const routeProgress=document.createElement('div');routeProgress.style.cssText='height:9px;background:#35516b;border-radius:8px;overflow:hidden;margin-top:8px;';
+              const routeFill=document.createElement('div');routeFill.style.cssText='height:100%;width:0%;background:#29b6a6;transition:width .25s;';routeProgress.appendChild(routeFill);feedback.after(routeProgress);
+              function routeProgressEvent(ev){if(ev.source!==window||ev.origin!==location.origin)return;const m=ev.data;if(m?.source!=='marvel-frete-ext'||m.type!=='marvel-frete-902-progress-v1'||m.requestId!==requestId||!m.route)return;const pct=m.total>0?Math.floor(Math.max(0,Math.min(m.done,m.total))/m.total*100):0;routeFill.style.width=pct+'%';feedback.textContent='Reprocessamento: '+pct+'% — '+(m.stage||'consultando Marvel');}
+              window.addEventListener('message',routeProgressEvent);
+              feedback.textContent='Consultando a Marvel com a tabela '+table.value.trim()+' para a PC '+(selected[0].x.pv||selected[0].x.id)+'...';
+              const timeout=setTimeout(()=>done('Tempo limite da consulta. Verifique se a Marvel está aberta.'),120000);
+              function done(msg){clearTimeout(timeout);window.removeEventListener('message',handle);window.removeEventListener('message',routeProgressEvent);routeButton.disabled=false;feedback.textContent=msg;routeProgress.remove();}
+              function handle(ev){
+                if(ev.source!==window||ev.origin!==location.origin)return;
+                const d=ev.data;
+                if(d?.source!=='marvel-frete-ext'||d.type!=='marvel-frete-902-route-response-v1'||d.requestId!==requestId)return;
+                if(!d.ok){done('Erro na consulta: '+(d.erro||'sem detalhes'));return;}
+                const found=(d.casos||[]).find(x=>Number(x.freteMarvel)>0);
+                if(found){
+                  const x={...found,pagador:first.pagador,origem:first.origem,ufOrigem:first.ufOrigem,destino:first.destino,ufDestino:first.ufDestino};
+                  const pc=pcKey(x),amount=Number(x.freteMarvel);
+                  const row=appendTariff(x,table.value.trim());
+                  feedback.textContent='Tarifa encontrada. Salvando no Supabase...';
+                  persistTariff(x,table.value.trim()).then(()=>{
+                    row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo na base');
+                    moveToFound(x,table.value.trim());
+                    const index=checks.findIndex(v=>pcKey(v.x)===pc);
+                    if(index>=0){checks[index].check.disabled=true;checks[index].check.closest('label')?.remove();}
+                    const n=section.querySelector('p');if(n)n.textContent=checks.filter(v=>!v.check.disabled).length+' PC(s) para revisão';
+                    done('PC '+pc+': tarifa '+moneyBR(amount)+' salva no Supabase e removida das pendências.');
+                  }).catch(e=>{row.textContent+=' | ERRO: '+e.message;done('PC '+pc+' permanece pendente: '+e.message);});
+                }else done('Consulta concluída, mas não encontrou tarifa única para esta rota. Verifique tabela e cidades.');
+              }
+              window.addEventListener('message',handle);
+              window.postMessage({source:'painel-902',type:'marvel-frete-902-route-request-v1',requestId,route:{pcId:String(selected[0].x.id||selected[0].x.pv),tabela:table.value.trim()}},location.origin);
+            });
+            save.addEventListener('click',async()=>{
+              const chosen=checks.filter(v=>v.check.checked&&!v.check.disabled).map(v=>v.x);
+              const raw=spot.value.trim().replace(/\\s/g,'').replace(/\\./g,'').replace(',','.');
+              const value=Number(raw);
+              if(!raw||!Number.isFinite(value)||value<=0||!chosen.length){feedback.textContent='Informe frete spot válido e selecione as PCs.';return;}
+              if(!confirm('Salvar '+moneyBR(value)+' como spot para '+chosen.length+' PC(s)?'))return;
+              save.disabled=true;feedback.textContent='Salvando spot na base...';
+              try{
+                for(const x of chosen){
+                  const pc=String(x.id||x.pv||'');
+                  await marvelApi('spot',{...x,frete:value});
+                }
+                feedback.textContent=chosen.length+' spot(s) salvos na base.';chosen.forEach(x=>{pending=pending.filter(y=>pcKey(y)!==pcKey(x));section.querySelector('[data-pending-pc="'+pcKey(x)+'"]')?.remove();const selectedCheck=checks.find(v=>pcKey(v.x)===pcKey(x));if(selectedCheck){selectedCheck.check.disabled=true;selectedCheck.check.closest('label')?.remove();}});if(!section.querySelector('[data-pending-pc]'))section.remove();refreshCounts();await loadSaved();
+              }catch(e){feedback.textContent='Falha ao salvar: '+e.message;}finally{save.disabled=false;}
+            });
+            views.pendentes.appendChild(section);
+          }
+          if(!groups.size)views.pendentes.textContent='Nenhuma pendência identificada nesta conferência.';
+        }
+      }
+      window.addEventListener('message',receive);
+      window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId},location.origin);
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initMarvelTest,{once:true});else initMarvelTest();
+})();
