@@ -6291,9 +6291,16 @@ function __perfAnualAggregate(){
         const value=parseNumber((r.tipo==='refaturado'?r.frete_refaturado:r.frete_substituto)||0)/targets.length;
         targets.forEach(setor=>{
           const id=setor+'|'+motivo;
-          if(!grouped.has(id))grouped.set(id,{setor,motivo,qty:0,value:0});
+          if(!grouped.has(id))grouped.set(id,{setor,motivo,qty:0,value:0,details:[]});
           const item=grouped.get(id);
           item.qty++;item.value+=value;
+          item.details.push({
+            tipo:(r.tipo==='substituto'?'Substituto':'Refaturado')+' · '+key,
+            cte,cliente:String(r.cliente||'').trim(),usuario:String(r.operador||'').trim(),
+            setor,motivo,observacao:raw,
+            origemMotivo:manuals.get(cte)?'Preenchimento manual':'Identificado automaticamente',
+            valor:value
+          });
         });
       });
     }
@@ -6311,8 +6318,8 @@ function __perfAnualAggregate(){
     const filtered=rows.filter(x=>select.value==='TODOS'||x.setor===select.value);
     const map=new Map();
     filtered.forEach(x=>{
-      if(!map.has(x.motivo))map.set(x.motivo,{motivo:x.motivo,qty:0,value:0});
-      const a=map.get(x.motivo);a.qty+=x.qty;a.value+=x.value;
+      if(!map.has(x.motivo))map.set(x.motivo,{motivo:x.motivo,qty:0,value:0,details:[]});
+      const a=map.get(x.motivo);a.qty+=x.qty;a.value+=x.value;a.details.push(...(x.details||[]));
     });
     const all=[...map.values()];
     const byQty=all.slice().sort((a,b)=>b.qty-a.qty);
@@ -6320,7 +6327,15 @@ function __perfAnualAggregate(){
     makeBarChart('chartSetorMotivosAnualQtd',byQty.slice(0,12).map(x=>x.motivo),byQty.slice(0,12).map(x=>x.qty),true,'Quantidade');
     makeBarChart('chartSetorMotivosAnualValor',byValue.slice(0,12).map(x=>x.motivo),byValue.slice(0,12).map(x=>x.value),true,'Valor');
     const tbody=document.getElementById('tbodySetorMotivosAnual');
-    if(tbody)tbody.innerHTML=byValue.length?byValue.map(x=>'<tr><td>'+esc(x.motivo)+'</td><td>'+x.qty+'</td><td>'+fmtMoney(x.value)+'</td></tr>').join(''):'<tr><td colspan="3" class="center muted">Sem dados</td></tr>';
+    if(tbody){
+      tbody.innerHTML=byValue.length?byValue.map((x,i)=>{
+        const id='setor-motivos-anual-'+i;
+        setGroup(id,x.details);
+        const ref=x.details.filter(d=>d.tipo.startsWith('Refaturado')).length;
+        const sub=x.details.length-ref;
+        return '<tr><td>'+esc(x.motivo)+' <button type="button" class="details-btn" data-detail-id="'+id+'" title="Ver documentos do motivo">🔎</button></td><td>'+x.qty+' <small title="Refaturados e substitutos">('+ref+' ref. + '+sub+' sub.)</small></td><td>'+fmtMoney(x.value)+'</td></tr>';
+      }).join(''):'<tr><td colspan="3" class="center muted">Sem dados</td></tr>';
+    }
   }
   let setorMotivosAnnualRequest=0;
   async function renderSetorMotivosAnual(){
