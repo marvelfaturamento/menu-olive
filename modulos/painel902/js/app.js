@@ -1820,7 +1820,7 @@ async function parseExcelRows(matrix){
     };
 
     if(oldFinalMap.has(id) || remoteFinalizedIds.has(id) || old?.status === 'Finalizado'){
-      limparAliasesAtivosMesmoPc();
+      // Histórico do próprio ID não pode eliminar outra REF ativa por coincidência de filial+PC.
       importedActiveMap.delete(id);
       importedFinalMap.set(id, {
         ...baseRow,
