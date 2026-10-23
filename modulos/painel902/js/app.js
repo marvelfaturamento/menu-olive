@@ -2879,7 +2879,7 @@ initApp();
                 const save=document.createElement('button');save.textContent='Atualizar spot';save.type='button';save.style.cssText='padding:9px 12px;background:#31548a;color:white;border:1px solid #679be3;border-radius:7px;';
                 const msg=document.createElement('small');
                 save.addEventListener('click',async()=>{
-                  const raw=input.value.trim().replace(/[^\\d,.-]/g,'').replace(/\\./g,'').replace(',','.');
+                  const raw=input.value.trim().replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.');
                   const value=Number(raw);
                   if(!raw||!Number.isFinite(value)||value<=0){msg.textContent='Informe um valor válido.';return;}
                   if(!confirm('Atualizar spot da PC '+x.pc_id+' para '+moneyBR(value)+'?'))return;
