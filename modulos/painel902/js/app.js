@@ -2949,8 +2949,11 @@ initApp();
               label.append(check,document.createTextNode('PC '+(x.pv||x.id||'—')));checkWrap.appendChild(label);return {check,x};
             });controls.appendChild(checkWrap);
             const draftKey='marvel-test-decision:'+encodeURIComponent([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino].join('|'));
-            const sameRoute=x=>[x.pagador,x.municipio_origem,x.uf_origem,x.municipio_destino,x.uf_destino].every((v,i)=>String(v||'').trim().toUpperCase()===String([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino][i]||'').trim().toUpperCase());
+            const normMarvel=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
+            const sameRoute=x=>[x.pagador,x.municipio_origem,x.uf_origem,x.municipio_destino,x.uf_destino].every((v,i)=>normMarvel(v)===normMarvel([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino][i]));
             const fixed=(savedMarvelData.vinculos||[]).find(sameRoute)||(savedMarvelData.tarifas||[]).find(sameRoute);
+            const confirmedTariff=(savedMarvelData.tarifas||[]).find(x=>sameRoute(x)&&x.ativo!==false&&Number(x.frete)>0);
+            if(confirmedTariff){const info=document.createElement('small');info.style.cssText='display:block;color:#70e3bd;margin:8px 0;';info.textContent='Tarifa já salva na base: '+moneyBR(confirmedTariff.frete)+' — '+(confirmedTariff.nome_marvel||'Marvel')+'. Não é necessário cadastrar spot; confira a integração operacional.';section.appendChild(info);}
             if(fixed){table.value=fixed.tabela_marvel||fixed.nome_marvel||'';table.readOnly=true;table.title='Tabela fixa salva no Supabase';}
             const existingSpots=(savedMarvelData.spots||[]).filter(x=>group.some(g=>String(g.id||g.pv)===String(x.pc_id))&&x.status==='validado');
             if(existingSpots.length){
@@ -3005,7 +3008,7 @@ initApp();
               const chosen=checks.filter(v=>v.check.checked&&!v.check.disabled).map(v=>v.x);
               const raw=spot.value.trim().replace(/\\s/g,'').replace(/\\./g,'').replace(',','.');
               const value=Number(raw);
-              if(!raw||!Number.isFinite(value)||value<=0||!chosen.length){feedback.textContent='Informe frete spot válido e selecione as PCs.';return;}
+              if(!raw||!Number.isFinite(value)||value<=0||!chosen.length){feedback.textContent='Confira o valor spot ('+spot.value+') e as PCs marcadas ('+chosen.length+').';return;}
               if(!confirm('Salvar '+moneyBR(value)+' como spot para '+chosen.length+' PC(s)?'))return;
               save.disabled=true;feedback.textContent='Salvando spot na base...';
               try{
