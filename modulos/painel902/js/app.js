@@ -2744,7 +2744,9 @@ initApp();
       const fill=document.createElement('div');fill.style.cssText='height:100%;width:0%;background:#24a9aa;transition:width .25s;';
       const stage=document.createElement('small');stage.textContent='Aguardando a contagem das rotas.';stage.style.cssText='display:block;margin-top:8px;';
       track.appendChild(fill);progress.append(heading,track,stage);
-      status.after(progress);
+      document.querySelectorAll('[data-marvel-progress]').forEach(el=>el.remove());
+      progress.dataset.marvelProgress='1';
+      if(!restored)status.after(progress);
       function updateProgress(done,total,description){
         if(!Number.isFinite(total)||total<=0)return;
         const count=Math.max(0,Math.min(total,Number(done)||0));
@@ -2761,7 +2763,7 @@ initApp();
       }
       window.addEventListener('message',receiveProgress);
       const timer=setTimeout(()=>finish('Tempo limite de 5 minutos. Verifique a aba Marvel e a extensão; nenhuma tarifa foi gravada.'),300000);
-      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;status.textContent=message;if(!message.startsWith('Extensão respondeu.')){progress.style.borderColor='#b16e48';stage.textContent=message;}}
+      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;status.textContent=message;progress.remove();}
       async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
@@ -2836,7 +2838,7 @@ initApp();
           out.appendChild(summary);
           if(!items.length && !restored){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
-          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Novas tarifas Marvel',found.length],['salvos','Salvos na base','carregando'],['historico','Histórico','carregando']];
+          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Novas tarifas Marvel',found.length],['salvos','Salvos na base','carregando'],['spots','Spots','carregando']];
           const views={};
           const tabButtons={};
           const pcKey=x=>String(x.id||x.pv||'');
@@ -2850,7 +2852,7 @@ initApp();
             tab.addEventListener('click',()=>{Object.entries(views).forEach(([k,v])=>v.hidden=k!==key);});
           }
           out.appendChild(shell);
-          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.historico);out.appendChild(tabsBody);
+          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.spots);out.appendChild(tabsBody);
           async function marvelApi(action,item){
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
             let token='';
@@ -2863,24 +2865,36 @@ initApp();
           async function loadSaved(){
             try{
               const data=await marvelApi('list');
-              views.salvos.replaceChildren();views.historico.replaceChildren();
+              views.salvos.replaceChildren();views.spots.replaceChildren();
               const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa',...x})),...(data.spots||[]).map(x=>({kind:'Spot',...x}))];
               for(const x of entries){
                 const line=document.createElement('div');line.style.cssText='padding:9px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
                 line.textContent=x.kind+' | '+x.pagador+' | '+(x.pc_id?'PC '+x.pc_id+' | ':'')+(x.nome_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
                 views.salvos.appendChild(line);
               }
-              for(const x of data.historico||[]){
-                const line=document.createElement('div');line.style.cssText='padding:9px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
-                line.textContent='PC '+(x.pc_id||'—')+' | '+x.acao+' | '+x.pagador+' | '+x.criado_em;
-                views.historico.appendChild(line);
+              for(const x of data.spots||[]){
+                const line=document.createElement('div');line.style.cssText='padding:12px;margin:8px 0;border:1px solid #38517b;border-radius:9px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;';
+                const label=document.createElement('span');label.textContent=(x.pagador||'Cliente')+' | PC '+(x.pc_id||'—')+' | '+(x.status||'spot');
+                const input=document.createElement('input');input.type='text';input.value=Number(x.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});input.setAttribute('aria-label','Valor spot da PC '+x.pc_id);input.style.cssText='width:145px;padding:9px;background:#0e2043;color:white;border:1px solid #5679aa;border-radius:6px;';
+                const save=document.createElement('button');save.textContent='Atualizar spot';save.type='button';save.style.cssText='padding:9px 12px;background:#31548a;color:white;border:1px solid #679be3;border-radius:7px;';
+                const msg=document.createElement('small');
+                save.addEventListener('click',async()=>{
+                  const raw=input.value.trim().replace(/[^\\d,.-]/g,'').replace(/\\./g,'').replace(',','.');
+                  const value=Number(raw);
+                  if(!raw||!Number.isFinite(value)||value<=0){msg.textContent='Informe um valor válido.';return;}
+                  if(!confirm('Atualizar spot da PC '+x.pc_id+' para '+moneyBR(value)+'?'))return;
+                  save.disabled=true;msg.textContent='Gravando...';
+                  try{await marvelApi('spot',{id:x.pc_id,pv:String(x.pc_id||'').split('|').pop(),pagador:x.pagador,origem:x.municipio_origem,ufOrigem:x.uf_origem,destino:x.municipio_destino,ufDestino:x.uf_destino,frete:value});msg.textContent='Spot salvo no Supabase.';await loadSaved();}
+                  catch(e){msg.textContent='Erro: '+e.message;}finally{save.disabled=false;}
+                });
+                line.append(label,input,save,msg);views.spots.appendChild(line);
               }
               tabButtons.salvos.textContent='Salvos na base ('+entries.length+')';
-              tabButtons.historico.textContent='Histórico ('+(data.historico||[]).length+')';
+              tabButtons.spots.textContent='Spots ('+(data.spots||[]).length+')';
               if(!entries.length)views.salvos.textContent='Nenhuma tarifa ou spot salvo.';
-              if(!data.historico?.length)views.historico.textContent='Sem histórico.';
+              if(!data.spots?.length)views.spots.textContent='Nenhum spot cadastrado.';
               return data;
-            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.historico.textContent='Não foi possível carregar: '+e.message;tabButtons.salvos.textContent='Salvos na base (erro)';tabButtons.historico.textContent='Histórico (erro)';throw e;}
+            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.spots.textContent='Não foi possível carregar: '+e.message;tabButtons.salvos.textContent='Salvos na base (erro)';tabButtons.spots.textContent='Spots (erro)';throw e;}
           }
           function moneyBR(value){return Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
           function validateMarvel(x,tabela){
