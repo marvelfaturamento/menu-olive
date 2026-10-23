@@ -2962,7 +2962,7 @@ initApp();
             }
             const table=field('Tabela Marvel utilizada pelo cliente','text','Ex.: GARDEN');
             const routeButton=document.createElement('button');routeButton.type='button';routeButton.textContent='↻ Reprocessar esta rota';routeButton.style.cssText='padding:11px 15px;border-radius:8px;background:#0f766e;color:white;border:1px solid #5eead4;font-weight:700;';controls.appendChild(routeButton);
-            const spot=field('Frete spot (R$) para PCs selecionadas','text','Ex.: 29000,00');
+            const spot=field('Frete spot (R$) para toda a rota','text','Ex.: 29000,00');
             spot.inputMode='decimal';
             const checkWrap=document.createElement('div');checkWrap.style.cssText='display:flex;flex-wrap:wrap;gap:12px;width:100%;';
             const checks=group.map(x=>{
@@ -2986,7 +2986,7 @@ initApp();
             try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){if(!table.value)table.value=previous.tabela||'';if(!spot.value)spot.value=previous.spot||'';if(previous.pcs?.length)checks.forEach(({check,x})=>check.checked=previous.pcs.includes(String(x.pv||x.id)));}}catch(_){}
             table.addEventListener('change',async()=>{if(!table.value.trim()||table.readOnly)return;try{await marvelApi('alias',{...first,tabelaMarvel:table.value.trim()});table.readOnly=true;feedback.textContent='Tabela Marvel salva como fixa no Supabase.';}catch(e){feedback.textContent='Erro ao salvar tabela: '+e.message;}});
             spot.addEventListener('change',()=>{localStorage.setItem(draftKey,JSON.stringify({tabela:table.value,spot:spot.value,pcs:checks.filter(v=>v.check.checked).map(v=>String(v.x.pv||v.x.id))}));});
-            const save=document.createElement('button');save.type='button';save.textContent='Salvar spot na base';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
+            const save=document.createElement('button');save.type='button';save.textContent='Salvar spot da rota';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
             const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
             routeButton.addEventListener('click',()=>{
               const selected=checks.filter(v=>v.check.checked);
@@ -3031,14 +3031,11 @@ initApp();
               const raw=spot.value.trim().replace(/[^\\d,.-]/g,'').replace(/\\./g,'').replace(',','.');
               const value=Number(raw);
               if(!raw||!Number.isFinite(value)||value<=0||!chosen.length){feedback.textContent='Confira o valor spot ('+spot.value+') e as PCs marcadas ('+chosen.length+').';return;}
-              if(!confirm('Salvar '+moneyBR(value)+' como spot para '+chosen.length+' PC(s)?'))return;
-              save.disabled=true;feedback.textContent='Salvando spot na base...';
+              if(!confirm('Salvar '+moneyBR(value)+' como spot da rota '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino+'? O valor será aplicado a todas as PCs ativas dessa rota.'))return;
+              save.disabled=true;feedback.textContent='Salvando spot por rota...';
               try{
-                for(const x of chosen){
-                  const pc=String(x.id||x.pv||'');
-                  await marvelApi('spot',{...x,frete:value});
-                }
-                feedback.textContent=chosen.length+' spot(s) salvos na base.';chosen.forEach(x=>{pending=pending.filter(y=>pcKey(y)!==pcKey(x));section.querySelector('[data-pending-pc="'+pcKey(x)+'"]')?.remove();const selectedCheck=checks.find(v=>pcKey(v.x)===pcKey(x));if(selectedCheck){selectedCheck.check.disabled=true;selectedCheck.check.closest('label')?.remove();}});if(!section.querySelector('[data-pending-pc]'))section.remove();refreshCounts();await loadSaved();
+                const result=await marvelApi('spot_route',{...first,frete:value});
+                feedback.textContent='Spot salvo por rota. PCs ativas atualizadas: '+result.pcs_atualizadas+'.';chosen.forEach(x=>{pending=pending.filter(y=>pcKey(y)!==pcKey(x));section.querySelector('[data-pending-pc="'+pcKey(x)+'"]')?.remove();const selectedCheck=checks.find(v=>pcKey(v.x)===pcKey(x));if(selectedCheck){selectedCheck.check.disabled=true;selectedCheck.check.closest('label')?.remove();}});if(!section.querySelector('[data-pending-pc]'))section.remove();refreshCounts();await loadSaved();
               }catch(e){feedback.textContent='Falha ao salvar: '+e.message;}finally{save.disabled=false;}
             });
             views.pendentes.appendChild(section);
