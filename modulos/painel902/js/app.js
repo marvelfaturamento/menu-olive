@@ -1677,7 +1677,7 @@ async function parseExcelRows(matrix){
 
   if(idsTransitóriosPvReal.size){
     state.finalizados = (state.finalizados || []).filter(r => !idsTransitóriosPvReal.has(r?.id));
-    idsTransitóriosPvReal.forEach(id => state.remoteFinalizedIds?.delete(id));
+    // Não apagar IDs do histórico remoto: PV real pode coincidir com uma PC finalizada legítima.
     // Preserva uma eventual tratativa feita enquanto a versão transitória estava aberta.
     idsTransitóriosPvReal.forEach(idAntigo => {
       const idNovo = idCorretoPorIdPvReal.get(idAntigo);
@@ -1750,7 +1750,10 @@ async function parseExcelRows(matrix){
     if(compLinha && state.competenciasZeradas.has(compLinha)){ bloqueadas++; continue; }
 
     const id = [ref, filial, pv].join('|');
-    const old = oldActiveMap.get(id) || oldFinalMap.get(id);
+    // A finalização é por filial + PC, mesmo quando a REF mudou no 902.
+    const filialPcKey=(f,p)=>norm(f)+'|'+norm(p);
+    const finalizadoEquivalente=[...oldFinalMap.values()].find(x=>filialPcKey(x.filial,x.pv)===filialPcKey(filial,pv));
+    const old = oldActiveMap.get(id) || oldFinalMap.get(id) || finalizadoEquivalente;
 
     // Documento/CT-e do próprio relatório 902.
     // O Crystal usa layouts em que o cabeçalho pode vir abreviado simplesmente como "NUM"
@@ -1817,7 +1820,7 @@ async function parseExcelRows(matrix){
       }
     };
 
-    if(oldFinalMap.has(id) || remoteFinalizedIds.has(id) || old?.status === 'Finalizado'){
+    if(oldFinalMap.has(id) || remoteFinalizedIds.has(id) || finalizadoEquivalente || old?.status === 'Finalizado'){
       limparAliasesAtivosMesmoPc();
       importedActiveMap.delete(id);
       importedFinalMap.set(id, {
@@ -2315,6 +2318,13 @@ async function syncToSupabase(silent=false){
   state.rows.forEach(r => mergedMap.set(r.id, {...r, status: r.status || 'Coleta'}));
   state.finalizados.forEach(r => mergedMap.set(r.id, {...r, status: 'Finalizado', finalizadoEm: r.finalizadoEm || new Date().toISOString()}));
 
+  // O histórico remoto prevalece inclusive se a aba local ainda contiver uma PC antiga.
+  await carregarHistoricoFinalizadosSupabase();
+  const finalizedKeys=new Set([...(state.remoteFinalizedIds||[]),...state.finalizados.map(r=>r.id)]);
+  for(const [id,row] of mergedMap){
+    if(finalizedKeys.has(id) && row.status!=='Finalizado')mergedMap.delete(id);
+  }
+  state.rows=state.rows.filter(r=>!finalizedKeys.has(r.id));
   const payload = uniqueDbPayloadById([...mergedMap.values()].filter(r => !state.competenciasZeradas.has(competenciaMes(r.dataPC))).map(mapRowToDb));
 
   let error = null;
@@ -2470,6 +2480,10 @@ async function carregarDaSupabase(silent=false){
   state.finalizados = uniqueRowsById(allRows.filter(r => r.status === 'Finalizado'));
   state.rows = uniqueRowsById(allRows.filter(r => r.status !== 'Finalizado'));
   await carregarHistoricoFinalizadosSupabase();
+  const finalizedRemote=new Set(state.remoteFinalizedIds||[]);
+  state.rows=state.rows.filter(r=>!finalizedRemote.has(r.id));
+  // Histórico é a fonte de verdade; a linha espelhada não deve reaparecer como ativa.
+  state.finalizados=uniqueRowsById(state.finalizados);
 
   const cfgA = await state.supabase.from('config_aduanas').select('descricao').eq('ativo', true);
   const cfgB = await state.supabase.from('config_clientes_alerta').select('cliente').eq('ativo', true);
