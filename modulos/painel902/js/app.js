@@ -2793,6 +2793,16 @@ initApp();
             }
           }catch(e){console.warn('Marvel: não foi possível complementar PCs sem frete',e);}
 
+          // Somente PCs presentes no espelho operacional ativo entram na fila.
+          // Evita reprocessar pendências históricas de PCs já encerradas.
+          const activeKeys=new Set();
+          try{
+            const active=await state.supabase.from('painel_902').select('id,pv').in('bucket_atual',['agNota','aduana','alertaInt']).limit(1000);
+            if(active.error)throw active.error;
+            for(const p of active.data||[]){activeKeys.add(String(p.id||''));activeKeys.add(String(p.pv||''));}
+          }catch(e){console.warn('Marvel: não foi possível validar PCs ativas',e);}
+          const isActivePc=x=>!activeKeys.size||activeKeys.has(String(x.id||''))||activeKeys.has(String(x.pv||''))||activeKeys.has(String(x.pc_id||''));
+          for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
@@ -2805,7 +2815,7 @@ initApp();
                 const saved=await response.json();
                 const ids=new Set([...pending,...found].map(x=>String(x.id||x.pv||'')));
                 for(const p of saved.pendencias||[]){
-                  if(ids.has(String(p.pc_id)))continue;
+                  if(ids.has(String(p.pc_id))||!isActivePc(p))continue;
                   pending.push({id:p.pc_id,pv:p.pc_id,pagador:p.pagador,origem:p.municipio_origem,ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,estado:p.estado||'Não encontrado',referencia:p.referencia,cavalo:p.cavalo});
                 }
               }
