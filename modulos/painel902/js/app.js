@@ -2806,6 +2806,7 @@ initApp();
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
+          let savedMarvelData={vinculos:[],tarifas:[],spots:[]};
           try{
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
             const token=JSON.parse(raw||'null')?.access_token;
@@ -2813,6 +2814,7 @@ initApp();
               const response=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
               if(response.ok){
                 const saved=await response.json();
+                savedMarvelData=saved;
                 const ids=new Set([...pending,...found].map(x=>String(x.id||x.pv||'')));
                 for(const p of saved.pendencias||[]){
                   if(ids.has(String(p.pc_id))||!isActivePc(p))continue;
@@ -2947,13 +2949,25 @@ initApp();
               label.append(check,document.createTextNode('PC '+(x.pv||x.id||'—')));checkWrap.appendChild(label);return {check,x};
             });controls.appendChild(checkWrap);
             const draftKey='marvel-test-decision:'+encodeURIComponent([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino].join('|'));
-            try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){table.value=previous.tabela||'';spot.value=previous.spot||'';checks.forEach(({check,x})=>check.checked=(previous.pcs||[]).includes(String(x.pv||x.id)));}}catch(_){}
+            const sameRoute=x=>[x.pagador,x.municipio_origem,x.uf_origem,x.municipio_destino,x.uf_destino].every((v,i)=>String(v||'').trim().toUpperCase()===String([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino][i]||'').trim().toUpperCase());
+            const fixed=(savedMarvelData.vinculos||[]).find(sameRoute)||(savedMarvelData.tarifas||[]).find(sameRoute);
+            if(fixed){table.value=fixed.tabela_marvel||fixed.nome_marvel||'';table.readOnly=true;table.title='Tabela fixa salva no Supabase';}
+            const existingSpots=(savedMarvelData.spots||[]).filter(x=>group.some(g=>String(g.id||g.pv)===String(x.pc_id))&&x.status==='validado');
+            if(existingSpots.length){
+              const distinct=[...new Set(existingSpots.map(x=>Number(x.frete)))];
+              if(distinct.length===1){spot.value=distinct[0].toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+              const note=document.createElement('small');note.textContent='Spot anterior: '+existingSpots.map(x=>'PC '+x.pc_id+' — '+moneyBR(x.frete)).join(' | ')+'. Confirme para manter ou altere o valor.';note.style.cssText='display:block;color:#b9d7f6;margin-top:5px;';controls.appendChild(note);
+            }
+            try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){if(!table.value)table.value=previous.tabela||'';if(!spot.value)spot.value=previous.spot||'';if(previous.pcs?.length)checks.forEach(({check,x})=>check.checked=previous.pcs.includes(String(x.pv||x.id)));}}catch(_){}
+            table.addEventListener('change',async()=>{if(!table.value.trim()||table.readOnly)return;try{await marvelApi('alias',{...first,tabelaMarvel:table.value.trim()});table.readOnly=true;feedback.textContent='Tabela Marvel salva como fixa no Supabase.';}catch(e){feedback.textContent='Erro ao salvar tabela: '+e.message;}});
+            spot.addEventListener('change',()=>{localStorage.setItem(draftKey,JSON.stringify({tabela:table.value,spot:spot.value,pcs:checks.filter(v=>v.check.checked).map(v=>String(v.x.pv||v.x.id))}));});
             const save=document.createElement('button');save.type='button';save.textContent='Salvar spot na base';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
             const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
             routeButton.addEventListener('click',()=>{
               const selected=checks.filter(v=>v.check.checked);
               if(!table.value.trim()){feedback.textContent='Informe o nome da tabela Marvel antes de reprocessar.';return;}
               if(!selected.length){feedback.textContent='Selecione pelo menos uma PC.';return;}
+              if(!table.readOnly){marvelApi('alias',{...first,tabelaMarvel:table.value.trim()}).then(()=>{table.readOnly=true;}).catch(e=>{feedback.textContent='Não foi possível salvar tabela fixa: '+e.message;});}
               const requestId='marvel-route-'+Date.now()+'-'+Math.random().toString(36).slice(2);
               routeButton.disabled=true;
               const routeProgress=document.createElement('div');routeProgress.style.cssText='height:9px;background:#35516b;border-radius:8px;overflow:hidden;margin-top:8px;';
