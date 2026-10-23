@@ -1750,10 +1750,9 @@ async function parseExcelRows(matrix){
     if(compLinha && state.competenciasZeradas.has(compLinha)){ bloqueadas++; continue; }
 
     const id = [ref, filial, pv].join('|');
-    // A finalização é por filial + PC, mesmo quando a REF mudou no 902.
-    const filialPcKey=(f,p)=>norm(f)+'|'+norm(p);
-    const finalizadoEquivalente=[...oldFinalMap.values()].find(x=>filialPcKey(x.filial,x.pv)===filialPcKey(filial,pv));
-    const old = oldActiveMap.get(id) || oldFinalMap.get(id) || finalizadoEquivalente;
+    // Finalização automática só por ID exato. Filial+PC pode coincidir com
+    // registro antigo "PC - SEM PV" e NÃO prova finalização desta referência.
+    const old = oldActiveMap.get(id) || oldFinalMap.get(id);
 
     // Documento/CT-e do próprio relatório 902.
     // O Crystal usa layouts em que o cabeçalho pode vir abreviado simplesmente como "NUM"
@@ -1820,7 +1819,7 @@ async function parseExcelRows(matrix){
       }
     };
 
-    if(oldFinalMap.has(id) || remoteFinalizedIds.has(id) || finalizadoEquivalente || old?.status === 'Finalizado'){
+    if(oldFinalMap.has(id) || remoteFinalizedIds.has(id) || old?.status === 'Finalizado'){
       limparAliasesAtivosMesmoPc();
       importedActiveMap.delete(id);
       importedFinalMap.set(id, {
