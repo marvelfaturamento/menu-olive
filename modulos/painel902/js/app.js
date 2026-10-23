@@ -1702,7 +1702,7 @@ async function parseExcelRows(matrix){
       if(response.ok)regrasFrete902=await response.json();
     }
   }catch(e){console.warn('902: regras de frete indisponíveis; preservando valores existentes',e);}
-  const freteNorm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
+  const freteNorm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
   const fretePorRota902=row=>{
     const rota=[row.pagador,row.cidadeOrigem,row.ufRem,row.cidadeDestino,row.ufDest].map(freteNorm);
     if(rota.some(v=>!v))return null;
