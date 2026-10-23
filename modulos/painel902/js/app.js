@@ -2808,7 +2808,7 @@ initApp();
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
-          let savedMarvelData={vinculos:[],tarifas:[],spots:[]};
+          let savedMarvelData={vinculos:[],tarifas:[],spots:[],spotsRotas:[]};
           try{
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
             const token=JSON.parse(raw||'null')?.access_token;
@@ -2830,7 +2830,7 @@ initApp();
           const normFrete=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
           const routeMatches=(a,b)=>[a.pagador,a.origem||a.municipio_origem,a.ufOrigem||a.uf_origem,a.destino||a.municipio_destino,a.ufDestino||a.uf_destino].every((v,i)=>normFrete(v)===normFrete([b.pagador,b.municipio_origem,b.uf_origem,b.municipio_destino,b.uf_destino][i]));
           const spotMatches=(a,b)=>{const id=String(a.id||a.pv||'');const saved=String(b.pc_id||'');return saved===id||saved.endsWith('|'+String(a.pv||''))&&String(a.pv||'')!=='';};
-          const resolvedMarvel=x=>(savedMarvelData.tarifas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t))||(savedMarvelData.spots||[]).some(t=>t.status==='validado'&&Number(t.frete)>0&&spotMatches(x,t));
+          const resolvedMarvel=x=>(savedMarvelData.tarifas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t))||(savedMarvelData.spotsRotas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t));
           pending=pending.filter(x=>!resolvedMarvel(x));
           out.replaceChildren();
           const summary=document.createElement('p');
@@ -2866,33 +2866,35 @@ initApp();
             try{
               const data=await marvelApi('list');
               views.salvos.replaceChildren();views.spots.replaceChildren();
-              const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa',...x})),...(data.spots||[]).map(x=>({kind:'Spot',...x}))];
+              const routes=data.spotsRotas||[];
+              const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa Marvel',...x})),...routes.map(x=>({kind:'Spot',...x}))];
+              const routeLabel=x=>(x.municipio_origem||'Origem não identificada')+'/'+(x.uf_origem||'—')+' → '+(x.municipio_destino||'Destino não identificado')+'/'+(x.uf_destino||'—');
               for(const x of entries){
-                const line=document.createElement('div');line.style.cssText='padding:9px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
-                line.textContent=x.kind+' | '+x.pagador+' | '+(x.pc_id?'PC '+x.pc_id+' | ':'')+(x.nome_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+                const line=document.createElement('div');line.style.cssText='padding:10px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
+                line.textContent=x.kind+' | '+x.pagador+' | '+routeLabel(x)+' | '+(x.nome_marvel||x.tabela_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
                 views.salvos.appendChild(line);
               }
-              for(const x of data.spots||[]){
+              for(const x of routes){
                 const line=document.createElement('div');line.style.cssText='padding:12px;margin:8px 0;border:1px solid #38517b;border-radius:9px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;';
-                const label=document.createElement('span');label.textContent=(x.pagador||'Cliente')+' | PC '+(x.pc_id||'—')+' | '+(x.status||'spot');
-                const input=document.createElement('input');input.type='text';input.value=Number(x.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});input.setAttribute('aria-label','Valor spot da PC '+x.pc_id);input.style.cssText='width:145px;padding:9px;background:#0e2043;color:white;border:1px solid #5679aa;border-radius:6px;';
-                const save=document.createElement('button');save.textContent='Atualizar spot';save.type='button';save.style.cssText='padding:9px 12px;background:#31548a;color:white;border:1px solid #679be3;border-radius:7px;';
+                const label=document.createElement('span');label.textContent=x.pagador+' | '+routeLabel(x);
+                const input=document.createElement('input');input.type='text';input.value=Number(x.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});input.setAttribute('aria-label','Frete spot da rota '+routeLabel(x));input.style.cssText='width:145px;padding:9px;background:#0e2043;color:white;border:1px solid #5679aa;border-radius:6px;';
+                const save=document.createElement('button');save.textContent='Atualizar rota';save.type='button';save.style.cssText='padding:9px 12px;background:#31548a;color:white;border:1px solid #679be3;border-radius:7px;';
                 const msg=document.createElement('small');
                 save.addEventListener('click',async()=>{
-                  const raw=input.value.trim().replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.');
+                  const raw=input.value.trim().replace(/[^\\d,.-]/g,'').replace(/\\./g,'').replace(',','.');
                   const value=Number(raw);
                   if(!raw||!Number.isFinite(value)||value<=0){msg.textContent='Informe um valor válido.';return;}
-                  if(!confirm('Atualizar spot da PC '+x.pc_id+' para '+moneyBR(value)+'?'))return;
+                  if(!confirm('Atualizar o spot de TODAS as PCs ativas da rota '+routeLabel(x)+' para '+moneyBR(value)+'?'))return;
                   save.disabled=true;msg.textContent='Gravando...';
-                  try{await marvelApi('spot',{id:x.pc_id,pv:String(x.pc_id||'').split('|').pop(),pagador:x.pagador,origem:x.municipio_origem,ufOrigem:x.uf_origem,destino:x.municipio_destino,ufDestino:x.uf_destino,frete:value});msg.textContent='Spot salvo no Supabase.';await loadSaved();}
+                  try{const result=await marvelApi('spot_route',{id:'ROTA',...x,frete:value});msg.textContent='Salvo. PCs ativas atualizadas: '+result.pcs_atualizadas;await loadSaved();}
                   catch(e){msg.textContent='Erro: '+e.message;}finally{save.disabled=false;}
                 });
                 line.append(label,input,save,msg);views.spots.appendChild(line);
               }
               tabButtons.salvos.textContent='Salvos na base ('+entries.length+')';
-              tabButtons.spots.textContent='Spots ('+(data.spots||[]).length+')';
+              tabButtons.spots.textContent='Spots ('+routes.length+')';
               if(!entries.length)views.salvos.textContent='Nenhuma tarifa ou spot salvo.';
-              if(!data.spots?.length)views.spots.textContent='Nenhum spot cadastrado.';
+              if(!routes.length)views.spots.textContent='Nenhum spot por rota cadastrado.';
               return data;
             }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.spots.textContent='Não foi possível carregar: '+e.message;tabButtons.salvos.textContent='Salvos na base (erro)';tabButtons.spots.textContent='Spots (erro)';throw e;}
           }
@@ -2975,11 +2977,11 @@ initApp();
             const confirmedTariff=(savedMarvelData.tarifas||[]).find(x=>sameRoute(x)&&x.ativo!==false&&Number(x.frete)>0);
             if(confirmedTariff){const info=document.createElement('small');info.style.cssText='display:block;color:#70e3bd;margin:8px 0;';info.textContent='Tarifa já salva na base: '+moneyBR(confirmedTariff.frete)+' — '+(confirmedTariff.nome_marvel||'Marvel')+'. Não é necessário cadastrar spot; confira a integração operacional.';section.appendChild(info);}
             if(fixed){table.value=fixed.tabela_marvel||fixed.nome_marvel||'';table.readOnly=true;table.title='Tabela fixa salva no Supabase';}
-            const existingSpots=(savedMarvelData.spots||[]).filter(x=>group.some(g=>String(g.id||g.pv)===String(x.pc_id))&&x.status==='validado');
+            const existingSpots=(savedMarvelData.spotsRotas||[]).filter(sameRoute);
             if(existingSpots.length){
               const distinct=[...new Set(existingSpots.map(x=>Number(x.frete)))];
               if(distinct.length===1){spot.value=distinct[0].toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
-              const note=document.createElement('small');note.textContent='Spot anterior: '+existingSpots.map(x=>'PC '+x.pc_id+' — '+moneyBR(x.frete)).join(' | ')+'. Confirme para manter ou altere o valor.';note.style.cssText='display:block;color:#b9d7f6;margin-top:5px;';controls.appendChild(note);
+              const note=document.createElement('small');note.textContent='Spot da rota: '+moneyBR(existingSpots[0].frete)+'. Altere na aba Spots quando houver renegociação.';note.style.cssText='display:block;color:#b9d7f6;margin-top:5px;';controls.appendChild(note);
             }
             try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){if(!table.value)table.value=previous.tabela||'';if(!spot.value)spot.value=previous.spot||'';if(previous.pcs?.length)checks.forEach(({check,x})=>check.checked=previous.pcs.includes(String(x.pv||x.id)));}}catch(_){}
             table.addEventListener('change',async()=>{if(!table.value.trim()||table.readOnly)return;try{await marvelApi('alias',{...first,tabelaMarvel:table.value.trim()});table.readOnly=true;feedback.textContent='Tabela Marvel salva como fixa no Supabase.';}catch(e){feedback.textContent='Erro ao salvar tabela: '+e.message;}});
