@@ -2824,6 +2824,12 @@ initApp();
             }
           }catch(e){console.warn('Marvel: fila persistida indisponível',e);}
 
+          // Resolve PCs ja cobertas por tarifa fixa ou spot validado antes de criar pendencias.
+          const normFrete=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
+          const routeMatches=(a,b)=>[a.pagador,a.origem||a.municipio_origem,a.ufOrigem||a.uf_origem,a.destino||a.municipio_destino,a.ufDestino||a.uf_destino].every((v,i)=>normFrete(v)===normFrete([b.pagador,b.municipio_origem,b.uf_origem,b.municipio_destino,b.uf_destino][i]));
+          const spotMatches=(a,b)=>{const id=String(a.id||a.pv||'');const saved=String(b.pc_id||'');return saved===id||saved.endsWith('|'+String(a.pv||''))&&String(a.pv||'')!=='';};
+          const resolvedMarvel=x=>(savedMarvelData.tarifas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t))||(savedMarvelData.spots||[]).some(t=>t.status==='validado'&&Number(t.frete)>0&&spotMatches(x,t));
+          pending=pending.filter(x=>!resolvedMarvel(x));
           out.replaceChildren();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
@@ -3006,7 +3012,7 @@ initApp();
             });
             save.addEventListener('click',async()=>{
               const chosen=checks.filter(v=>v.check.checked&&!v.check.disabled).map(v=>v.x);
-              const raw=spot.value.trim().replace(/\\s/g,'').replace(/\\./g,'').replace(',','.');
+              const raw=spot.value.trim().replace(/[^\\d,.-]/g,'').replace(/\\./g,'').replace(',','.');
               const value=Number(raw);
               if(!raw||!Number.isFinite(value)||value<=0||!chosen.length){feedback.textContent='Confira o valor spot ('+spot.value+') e as PCs marcadas ('+chosen.length+').';return;}
               if(!confirm('Salvar '+moneyBR(value)+' como spot para '+chosen.length+' PC(s)?'))return;
