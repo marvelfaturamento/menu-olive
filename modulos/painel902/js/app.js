@@ -1688,6 +1688,30 @@ async function parseExcelRows(matrix){
     });
   }
 
+  // Fonte de frete validado: spot por rota > tarifa Marvel. Preserve o valor
+  // operacional existente se a rota ainda não estiver cadastrada.
+  let regrasFrete902={spotsRotas:[],tarifas:[]};
+  try{
+    const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
+    const token=JSON.parse(raw||'null')?.access_token;
+    if(token){
+      const response=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{
+        method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},
+        body:JSON.stringify({action:'list'})
+      });
+      if(response.ok)regrasFrete902=await response.json();
+    }
+  }catch(e){console.warn('902: regras de frete indisponíveis; preservando valores existentes',e);}
+  const freteNorm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
+  const fretePorRota902=row=>{
+    const rota=[row.pagador,row.cidadeOrigem,row.ufRem,row.cidadeDestino,row.ufDest].map(freteNorm);
+    if(rota.some(v=>!v))return null;
+    const matches=x=>[x.pagador,x.municipio_origem,x.uf_origem,x.municipio_destino,x.uf_destino].map(freteNorm).every((v,i)=>v===rota[i]);
+    const spot=(regrasFrete902.spotsRotas||[]).find(x=>x.ativo!==false&&Number(x.frete)>0&&matches(x));
+    if(spot)return Number(spot.frete);
+    const tarifa=(regrasFrete902.tarifas||[]).find(x=>x.ativo!==false&&Number(x.frete)>0&&matches(x));
+    return tarifa?Number(tarifa.frete):null;
+  };
   const oldActiveMap = new Map(state.rows.map(r => [r.id, r]));
   const oldFinalMap = new Map(state.finalizados.map(r => [r.id, r]));
   const remoteFinalizedIds = state.remoteFinalizedIds || new Set();
@@ -1768,10 +1792,13 @@ async function parseExcelRows(matrix){
       pagador: col(r, 'PAGADOR_PC', 'PAGADOR PC', 'PAGADOR'),
       talhao: col(r, 'TALHAO', 'TALHÃO'),
       referencia: col(r, 'REFERENCIA', 'REFERÊNCIA'),
+      frete: null,
       foiAduana: old?.foiAduana || false,
       passouCheckpoint: old?.passouCheckpoint || false,
       finalizadoEm: old?.finalizadoEm || null
     };
+    const tarifaRota=fretePorRota902(baseRow);
+    baseRow.frete=tarifaRota??Number(old?.frete||0);
     const novoStatus = (oldFinalMap.has(id) || remoteFinalizedIds.has(id) || old?.status === 'Finalizado' || autoFinalizar) ? 'Finalizado' : (old?.status || '');
     const candidatoComparacao = {...baseRow,status:novoStatus};
     if(!old) novos++; else if(rowFingerprint902({...old,status:old.status||''}) === rowFingerprint902(candidatoComparacao)) semAlteracao++; else atualizados++;
