@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "module": "Painel 902",
+  "productionWrite": false,
+  "scenarios": [
+    {
+      "id": "902-doc-finaliza",
+      "area": "902",
+      "given": {
+        "filial": "1",
+        "pc": "159213",
+        "numeroDocumento": "34126"
+      },
+      "expect": {
+        "status": "Finalizado"
+      },
+      "protects": "NUMERO_DOCUMENTO preenchido finaliza a programação."
+    },
+    {
+      "id": "902-pc-mesmo-numero-filial-diferente",
+      "area": "902",
+      "given": [
+        {
+          "filial": "1",
+          "pc": "159213",
+          "numeroDocumento": "34126"
+        },
+        {
+          "filial": "5",
+          "pc": "159213",
+          "numeroDocumento": ""
+        }
+      ],
+      "expect": [
+        {
+          "filial": "1",
+          "status": "Finalizado"
+        },
+        {
+          "filial": "5",
+          "notStatus": "Finalizado"
+        }
+      ],
+      "protects": "Filial + PC é a identidade mínima; PC sozinho não cruza finalização."
+    },
+    {
+      "id": "624-pedido-rota-confere",
+      "area": "624",
+      "given": {
+        "pc902": {
+          "referencia": "PED123",
+          "ufOrigem": "EX",
+          "ufDestino": "SP"
+        },
+        "cte624": {
+          "pedido": "PED123",
+          "ufOrigem": "EX",
+          "ufDestino": "SP"
+        }
+      },
+      "expect": {
+        "finaliza": true
+      },
+      "protects": "Pedido/Referência + UF origem + UF destino."
+    },
+    {
+      "id": "624-pedido-rota-diverge",
+      "area": "624",
+      "given": {
+        "pc902": {
+          "referencia": "PED123",
+          "ufOrigem": "EX",
+          "ufDestino": "SP"
+        },
+        "cte624": {
+          "pedido": "PED123",
+          "ufOrigem": "SP",
+          "ufDestino": "PE"
+        }
+      },
+      "expect": {
+        "finaliza": false
+      },
+      "protects": "Pedido igual não basta quando a rota diverge."
+    },
+    {
+      "id": "expo-na-origem",
+      "area": "classificacao",
+      "given": {
+        "ufOrigem": "SC",
+        "ufDestino": "EX",
+        "cidadeOrigem": "FORQUILHINHA",
+        "posicao": "FORQUILHINHA SC BRASIL"
+      },
+      "expect": {
+        "bucket": "ativo",
+        "status": "Coleta"
+      },
+      "protects": "Estar na origem não significa coleta concluída."
+    },
+    {
+      "id": "expo-no-exterior",
+      "area": "classificacao",
+      "given": {
+        "ufOrigem": "SC",
+        "ufDestino": "EX",
+        "cidadeOrigem": "FORQUILHINHA",
+        "posicao": "BUENOS AIRES ARGENTINA"
+      },
+      "expect": {
+        "bucket": "alertaExpo",
+        "status": "Faturar"
+      },
+      "protects": "Posição inequivocamente fora do Brasil comprova avanço da exportação."
+    },
+    {
+      "id": "impo-regra-aduana-origem-exterior",
+      "area": "classificacao",
+      "config": {
+        "paga": [
+          "CLIENTE IMPO"
+        ]
+      },
+      "given": {
+        "pagador": "CLIENTE IMPO",
+        "ufOrigem": "EX",
+        "ufDestino": "SC",
+        "cidadeOrigem": "CHONCHI",
+        "posicao": "CHONCHI CHILE"
+      },
+      "expect": {
+        "bucket": "agNota",
+        "status": "AG Nota"
+      },
+      "protects": "Regra especial IMPO vence a trava geral de origem."
+    },
+    {
+      "id": "impo-na-aduana",
+      "area": "classificacao",
+      "config": {
+        "paga": [
+          "CLIENTE IMPO"
+        ],
+        "aduanas": [
+          "SAO BORJA"
+        ]
+      },
+      "given": {
+        "pagador": "CLIENTE IMPO",
+        "ufOrigem": "EX",
+        "ufDestino": "SC",
+        "posicao": "SAO BORJA ADUANA BRASIL"
+      },
+      "expect": {
+        "bucket": "aduana",
+        "status": "Aduana"
+      },
+      "protects": "Cliente IMPO em aduana monitorada permanece na Aduana."
+    },
+    {
+      "id": "impo-saiu-aduana",
+      "area": "classificacao",
+      "config": {
+        "paga": [
+          "CLIENTE IMPO"
+        ],
+        "aduanas": [
+          "SAO BORJA"
+        ]
+      },
+      "given": {
+        "pagador": "CLIENTE IMPO",
+        "ufOrigem": "EX",
+        "ufDestino": "SC",
+        "posicao": "PASSO FUNDO RS BRASIL",
+        "foiAduana": true
+      },
+      "expect": {
+        "bucket": "alertaInt",
+        "status": "Faturar"
+      },
+      "protects": "Após entrada/liberação da aduana, IMPO avança para faturamento."
+    },
+    {
+      "id": "alerta-nacional-prioridade",
+      "area": "classificacao",
+      "config": {
+        "alerta": [
+          "CLIENTE NAC"
+        ]
+      },
+      "given": {
+        "pagador": "CLIENTE NAC",
+        "ufOrigem": "SC",
+        "ufDestino": "SP",
+        "cidadeOrigem": "CHAPECO",
+        "posicao": "CHAPECO SC BRASIL"
+      },
+      "expect": {
+        "bucket": "alertaNac",
+        "status": "Faturar"
+      },
+      "protects": "Cliente de alerta nacional prevalece sobre a trava geral de origem."
+    },
+    {
+      "id": "checkpoint-pendente-persiste",
+      "area": "checkpoint",
+      "given": {
+        "pendenteCheckpoint": true,
+        "posicaoAtualizada": true
+      },
+      "expect": {
+        "continuaPendente": true
+      },
+      "protects": "Mudança posterior de posição não apaga pendência."
+    },
+    {
+      "id": "checkpoint-status-avancado-nao-lista",
+      "area": "checkpoint",
+      "given": {
+        "statuses": [
+          "AG Nota",
+          "Aduana",
+          "Faturar",
+          "Finalizado"
+        ]
+      },
+      "expect": {
+        "checkpointNaoConfirmado": false
+      },
+      "protects": "Fluxos já avançados não coexistem com checkpoint não confirmado."
+    }
+  ]
+}
