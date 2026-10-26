@@ -1751,8 +1751,16 @@ function usuariosErroAggregate(){
 
   });
 
+  // Incluir usuários da produtividade e do cadastro, mesmo sem erros no período.
+  const registrados=new Set();
+  monitoredProdUsers().forEach(u=>registrados.add(prodNorm(u)));
+  (state.prodRows||[]).forEach(r=>registrados.add(prodNorm(r.usuario)));
+  registrados.forEach(user=>{
+    if(!user||map.has(user))return;
+    map.set(user,{user,qtdRef:0,qtdSub:0,qty:0,refaturado:0,substituto:0,total:0});
+  });
   return Array.from(map.values())
-    .sort((a,b)=> b.total - a.total);
+    .sort((a,b)=>b.total-a.total||a.user.localeCompare(b.user,'pt-BR'));
 }function reduzidoDemaisSetoresAggregate(){
   const setores = allSectorNames().filter(s => s !== 'FATURAMENTO');
   return setores.map(setor => {
@@ -1763,7 +1771,7 @@ function usuariosErroAggregate(){
 
 function renderUsuariosView(){
 
-  const users = usuariosErroAggregate().slice(0,10);
+  const users = usuariosErroAggregate();
 
   makeBarChart(
     'chartUsuariosErroQtd',
