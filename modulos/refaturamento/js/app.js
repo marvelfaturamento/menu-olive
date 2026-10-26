@@ -213,6 +213,16 @@ async function applyMonthViewSelection(){
 const TRACKED_USERS = [
   'ademir.fernandes','angelita.santos','carolina.pasquali','elisangela.vieira','geovana.silva','jhonatan.ghizzi','jonatan.balestrin','josete.gabriel','karllin','karoline.romanini','multisoft.service','tiago.carniel','matheus.devise','adenilson.filho','angelica.lucca','leia.mattos'
 ];
+function monitoredProdUsers(){
+  const users=new Set(TRACKED_USERS);
+  try{
+    const stored=JSON.parse(localStorage.getItem('refaturamento_prod_usuarios_monitorados_v1')||'null');
+    if(Array.isArray(stored))stored.forEach(u=>{
+      if(u&&u.ativo!==false&&u.nome)users.add(prodNorm(u.nome));
+    });
+  }catch(e){console.warn('Cadastro local de produtividade indisponível',e);}
+  return [...users];
+}
 const DOC_TYPES = ['ctrc','manifesto','nf.fat','ost'];
 function prodNorm(v){
   return normalizeText(v)
@@ -273,7 +283,7 @@ function parseProdWorkbook(workbook){
     if(!rowHasAny) continue;
   }
 
-  return out.filter(r => TRACKED_USERS.includes(r.usuario));
+  return out; // Preserva operadores cadastrados manualmente e novos usuários do relatório.
 }
 
 function impactoTotal(v){
@@ -285,7 +295,7 @@ function impactoTotal(v){
 
 function aggregateProd(){
   const map = new Map();
-  TRACKED_USERS.forEach(u => map.set(u, { usuario:u, 'ctrc':0, 'manifesto':0, 'nf.fat':0, 'ost':0, erros:0, performance:null, totalDocs:0 }));
+  monitoredProdUsers().forEach(u => map.set(u, { usuario:u, 'ctrc':0, 'manifesto':0, 'nf.fat':0, 'ost':0, erros:0, performance:null, totalDocs:0 }));
   (state.prodRows || []).forEach(r => {
     const u = prodNorm(r.usuario); const t = normalizeDocType(r.tipo);
     if(!u || !DOC_TYPES.includes(t)) return;
@@ -3248,7 +3258,7 @@ function impactoTotal(v){
 
 function aggregateProd(){
   const map = new Map();
-  TRACKED_USERS.forEach(u => map.set(u, { usuario:u, 'ctrc':0, 'manifesto':0, 'nf.fat':0, 'ost':0, erros:0, erroValor:0, performance:null, totalDocs:0 }));
+  monitoredProdUsers().forEach(u => map.set(u, { usuario:u, 'ctrc':0, 'manifesto':0, 'nf.fat':0, 'ost':0, erros:0, erroValor:0, performance:null, totalDocs:0 }));
   (state.prodRows || []).forEach(r => {
     const u = prodNorm(r.usuario); const t = normalizeDocType(r.tipo);
     if(!u || !DOC_TYPES.includes(t)) return;
