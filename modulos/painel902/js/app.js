@@ -41,13 +41,14 @@ function marvelAdvDisplay(r){
  if(!Number.isFinite(frete)||frete<=0)return '';
  const k=marvelAdvKey(r.pagador,r.cidadeOrigem||r.municipio_origem,r.ufRem||r.uf_origem,r.cidadeDestino||r.municipio_destino,r.ufDest||r.uf_destino);
  const t=marvelAdvCache.get(k);
- const hasActual=t?.adv_percentual!==null&&t?.adv_percentual!==undefined;
- const value=hasActual?Number(t.adv_percentual):0.101;
- if(!Number.isFinite(value)||value<0||value>100)return '';
+ if(!t||t.adv_percentual===null||t.adv_percentual===undefined){
+  return '<div class="small" style="color:#e5b568" title="ADV ainda não conferido com a tarifa Marvel">ADV: não validado</div>';
+ }
+ const value=Number(t.adv_percentual);
+ if(!Number.isFinite(value)||value<0||value>100)return '<div class="small" style="color:#e5b568">ADV: inválido</div>';
  const formatted=value.toLocaleString('pt-BR',{maximumFractionDigits:5});
- const suffix=hasActual?' (Marvel)':' (padrão; não confirmado na Marvel)';
- const moeda=t?.moeda==='USD'?' · Tarifa USD':'';
- return '<div class="small" style="color:#8ed4ff" title="ADV calculado sobre o valor da mercadoria, não sobre o frete">ADV: '+formatted+'%'+suffix+moeda+'</div>';
+ const moeda=t.moeda==='USD'?' · Tarifa USD':'';
+ return '<div class="small" style="color:#8ed4ff" title="Percentual registrado na tarifa Marvel">ADV: '+formatted+'% (cadastrado)'+moeda+'</div>';
 }
 async function refreshMarvelAdv(){
  if(marvelAdvLoading||!state.supabase||Date.now()-marvelAdvLoadedAt<60000)return;
