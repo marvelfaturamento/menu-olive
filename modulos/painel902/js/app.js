@@ -1209,7 +1209,44 @@ function columns(includeFrete=false, fromFinalizados=false, alertMode=false){
     ['Talhão', r => copyable(r.talhao || '-', 'talhão')],
     ['Referência', r => copyable(r.referencia || '-', 'referência')]
   ];
-  if(includeFrete) cols.push(['Frete', r => copyable(money(r.frete || 0), 'frete')]);
+
+const marvelAdvCache=new Map();
+let marvelAdvLoading=false,marvelAdvLoadedAt=0;
+const marvelAdvKey=(pagador,orig,ufOrig,dest,ufDest)=>[pagador,orig,ufOrig,dest,ufDest].map(v=>norm(v).replace(/[^A-Z0-9]/g,'')).join('|');
+function marvelAdvDisplay(r){
+ const k=marvelAdvKey(r.pagador,r.cidadeOrigem||r.municipio_origem,r.ufRem||r.uf_origem,r.cidadeDestino||r.municipio_destino,r.ufDest||r.uf_destino);
+ const t=marvelAdvCache.get(k);
+ if(!t)return '';
+ const value=t.adv_percentual==null?0.101:Number(t.adv_percentual);
+ if(!Number.isFinite(value)||value<0||value>100)return '';
+ const formatted=value.toLocaleString('pt-BR',{maximumFractionDigits:5});
+ const suffix=t.adv_percentual==null?' (padrão)':'';
+ const moeda=t.moeda==='USD'?' · Tarifa USD':t.moeda==='BRL'?'':' · Moeda não identificada';
+ return '<div class="small" style="color:#8ed4ff" title="ADV sobre o valor da mercadoria, não sobre o frete">ADV: '+formatted+'%'+suffix+moeda+'</div>';
+}
+async function refreshMarvelAdv(){
+ if(marvelAdvLoading||!state.supabase||Date.now()-marvelAdvLoadedAt<60000)return;
+ marvelAdvLoading=true;
+ try{
+  const {data,error}=await state.supabase.from('config_frete_marvel_rotas')
+   .select('pagador,municipio_origem,uf_origem,municipio_destino,uf_destino,adv_percentual,moeda,ativo')
+   .eq('ativo',true).limit(5000);
+  if(error)throw error;
+  const grouped=new Map();
+  for(const t of data||[]){
+   const k=marvelAdvKey(t.pagador,t.municipio_origem,t.uf_origem,t.municipio_destino,t.uf_destino);
+   if(!grouped.has(k))grouped.set(k,[]);
+   grouped.get(k).push(t);
+  }
+  marvelAdvCache.clear();
+  for(const [k,rows] of grouped)if(rows.length===1)marvelAdvCache.set(k,rows[0]);
+  marvelAdvLoadedAt=Date.now();
+  renderAll();
+ }catch(e){console.warn('ADV Marvel: leitura indisponível',e);marvelAdvLoadedAt=Date.now();}
+ finally{marvelAdvLoading=false;}
+}
+
+  if(includeFrete) cols.push(['Frete', r => copyable(money(r.frete || 0), 'frete')+marvelAdvDisplay(r)]);
   cols.push(fromFinalizados ? ['Status', r => statusSelect(r, true)] : ['Tratativa', r => tratativaButton(r)]);
   cols.push(['Ações', r => rowButtons(r, fromFinalizados)]);
   return cols;
@@ -1555,6 +1592,7 @@ btnSalvarCfg.onclick = () => {
 };
 
 function renderAll(full=false){
+  if(!marvelAdvLoading && Date.now()-marvelAdvLoadedAt>=60000) setTimeout(refreshMarvelAdv,0);
   setTimeout(renderExcluirFinalizadosMes,0);
   const rawSets = currentSets();
   const sets = {
