@@ -31,7 +31,11 @@ const state = {
 
 const marvelAdvCache=new Map();
 let marvelAdvLoading=false,marvelAdvLoadedAt=0;
-const marvelAdvKey=(pagador,orig,ufOrig,dest,ufDest)=>[pagador,orig,ufOrig,dest,ufDest].map(v=>norm(v).replace(/[^A-Z0-9]/g,'')).join('|');
+const marvelAdvKey=(pagador,orig,ufOrig,dest,ufDest)=>{
+ const normalize=v=>norm(v).replace(/[^A-Z0-9]/g,'');
+ const payer=norm(pagador).replace(/\\b(S\\s*\\.?A\\.?|LTDA|EIRELI)\\s*$/,'').trim();
+ return [payer,orig,ufOrig,dest,ufDest].map(normalize).join('|');
+};
 function marvelAdvDisplay(r){
  const k=marvelAdvKey(r.pagador,r.cidadeOrigem||r.municipio_origem,r.ufRem||r.uf_origem,r.cidadeDestino||r.municipio_destino,r.ufDest||r.uf_destino);
  const t=marvelAdvCache.get(k);
