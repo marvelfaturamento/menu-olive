@@ -8,10 +8,10 @@ function init(){
 const trigger=document.getElementById('fretesImpoOpen');
 if(!trigger)return;
 const layer=document.createElement('div');layer.id='fretesImpoLayer';layer.hidden=true;
-layer.style.cssText='position:fixed;inset:0;z-index:9999;background:#081528ee;overflow:auto;padding:24px;color:#e8f2ff';
-layer.innerHTML='<div style="max-width:1200px;margin:auto"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h2>Fretes de Importação</h2><p>Todos os cards operacionais · apenas origem EX e destino Brasil</p></div><button id="fiClose" type="button">✕ Fechar</button></div><div id="fiCounts" style="margin:16px 0"></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0"><button id="fiMissing" type="button">Processar somente sem frete</button><button id="fiAll" type="button">Rastrear todos os fretes</button><button id="fiReload" type="button">Atualizar lista</button><input id="fiSearch" placeholder="Buscar PC, cliente ou destino" style="padding:8px;min-width:250px"></div><p id="fiStatus" role="status">Aguardando carregamento.</p><div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>PC</th><th>Cliente</th><th>Origem</th><th>Destino</th><th>Frete no 902</th><th>Situação</th></tr></thead><tbody id="fiRows"></tbody></table></div></div>';
+layer.style.cssText='position:fixed;inset:0;z-index:9999;background:#081528f5;overflow:auto;padding:24px;color:#e8f2ff';
+layer.innerHTML='<div style="max-width:1200px;margin:auto"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h2>💰 Fretes Marvel — Importação</h2><p>Sincronização Marvel, pendências, spots e histórico · Origem EX e destino Brasil, sem divisão por cards</p></div><button id="fiClose" type="button">✕ Fechar</button></div><div id="fiCounts" style="margin:16px 0;padding:16px;border:1px solid #314b7a;border-radius:10px;background:#101f44"></div><div style="padding:16px;border:1px solid #314b7a;border-radius:10px;background:#101b3c;margin:12px 0"><h3>Fretes Marvel — Sincronização de importação</h3><p style="font-size:13px;color:#b7c8e6">A consulta utiliza as rotas ativas de importação, independentemente do status operacional. Valores já confirmados só serão atualizados após validação da tarifa na Marvel. ADV e spots são preservados.</p><div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0"><button id="fiMissing" type="button">Processar sem tarifa</button><button id="fiAll" type="button">Reprocessar todos</button><button id="fiReload" type="button">Atualizar lista de PCs</button><input id="fiSearch" placeholder="Buscar PC, cliente ou destino" style="padding:8px;min-width:250px"></div><p id="fiStatus" role="status">Aguardando carregamento.</p><div style="display:flex;flex-wrap:wrap;gap:8px;margin:16px 0"><button type="button" id="fiFilterMissing">Sem tarifa / spot</button><button type="button" id="fiFilterAll">Todas as importações</button></div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>PC</th><th>Cliente</th><th>Origem</th><th>Destino</th><th>Frete no 902</th><th>Situação</th></tr></thead><tbody id="fiRows"></tbody></table></div></div>';
 document.body.appendChild(layer);
-const $=id=>document.getElementById(id);let pcs=[],busy=false;
+const $=id=>document.getElementById(id);let pcs=[],busy=false,filter='all';
 const money=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const cell=(tr,v)=>{const td=document.createElement('td');td.textContent=String(v??'');td.style.cssText='padding:9px;border-bottom:1px solid #32465d';tr.appendChild(td);};
 async function load(){
@@ -29,7 +29,7 @@ function render(){
  const unique=new Set(pcs.map(routeKey));const missing=pcs.filter(p=>!(Number(p.frete_padrao)>0));
  $('fiCounts').textContent=pcs.length+' PCs de importação · '+unique.size+' rotas distintas · '+missing.length+' PCs sem frete';
  const q=norm($('fiSearch').value),body=$('fiRows');body.replaceChildren();
- pcs.filter(p=>!q||norm([p.pv,p.pagador,p.municipio_destino].join(' ')).includes(q)).slice(0,500).forEach(p=>{
+ pcs.filter(p=>(filter==='all'||!(Number(p.frete_padrao)>0))&&(!q||norm([p.pv,p.pagador,p.municipio_destino].join(' ')).includes(q))).slice(0,500).forEach(p=>{
  const tr=document.createElement('tr');cell(tr,p.pv||p.id);cell(tr,p.pagador);cell(tr,p.municipio_origem);cell(tr,p.municipio_destino+' / '+p.uf_destino);cell(tr,Number(p.frete_padrao)>0?money(p.frete_padrao):'—');cell(tr,Number(p.frete_padrao)>0?'Com frete':'Sem frete');body.appendChild(tr);
  });
 }
@@ -55,6 +55,8 @@ function process(mode){
 trigger.addEventListener('click',()=>{layer.hidden=false;load();});
 $('fiClose').addEventListener('click',()=>{layer.hidden=true;});
 $('fiReload').addEventListener('click',load);
+$('fiFilterMissing').addEventListener('click',()=>{filter='missing';render();});
+$('fiFilterAll').addEventListener('click',()=>{filter='all';render();});
 $('fiSearch').addEventListener('input',render);
 $('fiMissing').addEventListener('click',()=>process('missing'));
 $('fiAll').addEventListener('click',()=>process('all'));
