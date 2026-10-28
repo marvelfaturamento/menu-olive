@@ -628,12 +628,26 @@ function auto(id,sug,key){
     cidades[key]=c.coordinates;
     if(!mostrarAlternativas)box.replaceChildren();
   };
-  const exibir=(items,autoSelecionar)=>{
+  const exibir=(items,autoSelecionar,textoOriginal)=>{
     box.replaceChildren();
     if(!items.length){box.textContent='Nenhuma cidade encontrada.';return;}
-    if(autoSelecionar)selecionar(items[0],true);
-    // Outras opções continuam disponíveis para corrigir a primeira sugestão.
-    items.forEach(c=>{
+    const normalizar=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+    const termo=normalizar(textoOriginal);
+    const validos=items.filter(c=>paisCidadePermitido(c));
+    // Prioriza correspondência exata do nome da cidade, antes de bairros e pontos de interesse.
+    const ordenados=validos.map((c,idx)=>{
+      const nome=normalizar(c.label.split(',')[0]);
+      return {c,idx,score:nome===termo?0:nome.startsWith(termo)?1:2};
+    }).sort((a,b)=>a.score-b.score||a.idx-b.idx);
+    if(autoSelecionar&&ordenados.length){
+      selecionar(ordenados[0].c);
+      return; // Não deixar a lista aberta após o preenchimento automático.
+    }
+    const vistos=new Set();
+    ordenados.forEach(({c})=>{
+      const chave=normalizar(c.label);
+      if(vistos.has(chave))return;
+      vistos.add(chave);
       const div=document.createElement('div');
       div.textContent=c.label;
       div.onclick=()=>{selecionar(c);++seq;controller?.abort();};
@@ -648,13 +662,13 @@ function auto(id,sug,key){
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
-      if(locais.length){if(minhaSeq===seq)exibir(locais,true);return;}
+      if(locais.length){if(minhaSeq===seq)exibir(locais,true,texto);return;}
       box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
         const items=await consultarCidadesRapido(texto,controller.signal);
         if(minhaSeq!==seq)return;
-        exibir(items,true);
+        exibir(items,true,texto);
       }catch(e){
         if(minhaSeq!==seq)return;
         console.warn('Autocomplete indisponível:',e);
