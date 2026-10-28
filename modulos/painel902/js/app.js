@@ -917,14 +917,16 @@ function reclassify(){
     // PCs futuras permanecem ativas até a data programada, no calendário de Brasília.
     // Não altera status persistido nem histórico de finalização.
     const dataOperacao = isoDayFromDataPC902(row.dataPC || row.data_pc || '');
-    const hojeOperacional = new Intl.DateTimeFormat('en-CA', {
+    // Referência congelada na última importação: a meia-noite não libera PCs.
+    const dataUltimoExcel = state.lastExcelImport?.em;
+    const referenciaOperacional = new Intl.DateTimeFormat('en-CA', {
       timeZone:'America/Sao_Paulo', year:'numeric', month:'2-digit', day:'2-digit'
-    }).format(new Date());
+    }).format(dataUltimoExcel ? new Date(dataUltimoExcel) : new Date());
     if(row.status === 'Finalizado'){
       row.bucket = 'finalizados';
       return;
     }
-    if(dataOperacao && dataOperacao > hojeOperacional){
+    if(dataOperacao && dataOperacao > referenciaOperacional){
       row.bucket = 'ativo';
       return;
     }
@@ -1931,6 +1933,8 @@ async function parseExcelRows(matrix){
   setStatusText('Importação 902: aplicando regras e alertas...');
   await new Promise(resolve => requestAnimationFrame(resolve));
 
+  // A nova posição foi recebida: liberar PCs com data de operação já alcançada.
+  state.lastExcelImport = {...(state.lastExcelImport||{}), em:new Date().toISOString()};
   state.rows = uniqueRowsById([...importedActiveMap.values()]);
   state.finalizados = uniqueRowsById([...importedFinalMap.values()]);
   reclassify();
