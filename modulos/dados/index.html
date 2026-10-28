@@ -619,53 +619,51 @@ async function consultarCidadesRapido(texto,signal){
   return [];
 }
 function auto(id,sug,key){
-  const i=document.getElementById(id);
-  const box=document.getElementById(sug);
+  const i=document.getElementById(id),box=document.getElementById(sug);
   if(!i||!box)return;
   let timer=null,seq=0,controller=null;
+  const selecionar=(c,mostrarAlternativas=false)=>{
+    if(!c||!paisCidadePermitido(c))return;
+    i.value=c.label;
+    cidades[key]=c.coordinates;
+    if(!mostrarAlternativas)box.replaceChildren();
+  };
+  const exibir=(items,autoSelecionar)=>{
+    box.replaceChildren();
+    if(!items.length){box.textContent='Nenhuma cidade encontrada.';return;}
+    if(autoSelecionar)selecionar(items[0],true);
+    // Outras opções continuam disponíveis para corrigir a primeira sugestão.
+    items.forEach(c=>{
+      const div=document.createElement('div');
+      div.textContent=c.label;
+      div.onclick=()=>{selecionar(c);++seq;controller?.abort();};
+      box.appendChild(div);
+    });
+  };
   i.addEventListener('input',()=>{
     cidades[key]=null;
     clearTimeout(timer);
-    if(controller)controller.abort();
-    const minhaSeq=++seq;
-    const texto=i.value.trim();
-    if(texto.length<3){box.innerHTML='';return;}
-    const locais=cidadesLocais(texto);
-    if(locais.length){
-      box.innerHTML='';
-      locais.forEach(c=>{
-        const div=document.createElement('div');div.textContent=c.label;
-        div.onclick=()=>{i.value=c.label;cidades[key]=c.coordinates;box.innerHTML='';++seq;};
-        box.appendChild(div);
-      });
-      return;
-    }
-    box.textContent='Buscando cidades...';
+    controller?.abort();
+    const minhaSeq=++seq,texto=i.value.trim();
+    if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
+      const locais=cidadesLocais(texto);
+      if(locais.length){if(minhaSeq===seq)exibir(locais,true);return;}
+      box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
         const items=await consultarCidadesRapido(texto,controller.signal);
         if(minhaSeq!==seq)return;
-        box.innerHTML='';
-        if(!items.length){box.textContent='Nenhuma cidade encontrada.';return;}
-        items.forEach(c=>{
-          const div=document.createElement('div');
-          div.textContent=c.label;
-          div.onclick=()=>{
-            i.value=c.label;
-            cidades[key]=c.coordinates;
-            box.innerHTML='';
-            ++seq;
-            controller?.abort();
-          };
-          box.appendChild(div);
-        });
+        exibir(items,true);
       }catch(e){
         if(minhaSeq!==seq)return;
         console.warn('Autocomplete indisponível:',e);
         box.textContent='Busca indisponível no momento. Tente novamente.';
       }
-    },230);
+    },350);
+  });
+  i.addEventListener('keydown',e=>{
+    if(e.key==='Escape')box.replaceChildren();
   });
 }
 auto("origem","sugOrigem","origem");
