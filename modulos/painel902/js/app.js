@@ -914,6 +914,23 @@ function reclassify(){
 
     const checkpointRule = hasCheckpointRule(row);
 
+    // PCs futuras permanecem ativas até a data programada, no calendário de Brasília.
+    // Não altera status persistido nem histórico de finalização.
+    const dataOperacao = isoDayFromDataPC902(row.dataPC || row.data_pc || '');
+    // Referência congelada na última importação: a meia-noite não libera PCs.
+    const dataUltimoExcel = state.lastExcelImport?.em;
+    const referenciaOperacional = new Intl.DateTimeFormat('en-CA', {
+      timeZone:'America/Sao_Paulo', year:'numeric', month:'2-digit', day:'2-digit'
+    }).format(dataUltimoExcel ? new Date(dataUltimoExcel) : new Date());
+    if(row.status === 'Finalizado'){
+      row.bucket = 'finalizados';
+      return;
+    }
+    if(dataOperacao && dataOperacao > referenciaOperacional){
+      row.bucket = 'ativo';
+      return;
+    }
+
     // Monitora aproximação da coleta. Até 20 km confirma automaticamente; entre
     // 20 e 40 km apenas guarda evidência. O alerta só nasce se depois houver afastamento.
     atualizarMonitorColeta(row);
@@ -922,10 +939,6 @@ function reclassify(){
     if(checkpointRule && rowInCheckpointCity(row, checkpointRule)) row.passouCheckpoint = true;
     if(row.aduana) row.foiAduana = true;
 
-    if(row.status === 'Finalizado'){
-      row.bucket = 'finalizados';
-      return;
-    }
 
     // Confirmação MANUAL de coleta no quadro "Checkpoint não confirmado":
     // o operador validou a coleta e liberou a programação para faturamento.
@@ -1920,6 +1933,8 @@ async function parseExcelRows(matrix){
   setStatusText('Importação 902: aplicando regras e alertas...');
   await new Promise(resolve => requestAnimationFrame(resolve));
 
+  // A nova posição foi recebida: liberar PCs com data de operação já alcançada.
+  state.lastExcelImport = {...(state.lastExcelImport||{}), em:new Date().toISOString()};
   state.rows = uniqueRowsById([...importedActiveMap.values()]);
   state.finalizados = uniqueRowsById([...importedFinalMap.values()]);
   reclassify();
