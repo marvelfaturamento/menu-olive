@@ -853,3 +853,6 @@ button:hover,.btn:hover,.navbtn:hover,.menu button:hover{transform:translateY(-1
   .topUpdateBox .excelGuideSep{display:none}
   .topUpdateBox .excelGuideInline{white-space:normal}
 }
+
+/* Fretes de Importação: ícone no mesmo padrão do menu 902 */
+@media(min-width:861px){.navbtn#fretesImpoOpen::before{content:'💰';}}
