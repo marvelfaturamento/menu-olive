@@ -2887,39 +2887,32 @@ initApp();
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
           const items=Array.isArray(d.casos)?[...d.casos]:[];
-          // Complementa a fila com PCs operacionais zeradas que a extensão não retornou.
-          // A própria base é a fonte de verdade para detectar pendências faltantes.
+          // Escopo único: todas as importações não finalizadas, inclusive PCs Ativas.
+          // A consulta é paginada para não omitir PCs acima do limite padrão de 1000.
+          const activeKeys=new Set();
           try{
-            if(state.supabase){
-              const {data:zeros,error:zeroError}=await state.supabase
-                .from('painel_902')
+            if(!state.supabase)throw Error('Supabase indisponível');
+            for(let from=0;from<20000;from+=1000){
+              const {data,error}=await state.supabase.from('painel_902')
                 .select('id,pv,pagador,municipio_origem,uf_origem,municipio_destino,uf_destino,frete_padrao,bucket_atual,ref,referencia,cavalo')
-                .in('bucket_atual',['agNota','aduana','alertaInt'])
-                .eq('frete_padrao',0)
-                .limit(1000);
-              if(zeroError)throw zeroError;
-              const known=new Set(items.map(x=>String(x.id||x.pv||'')));
-              for(const p of zeros||[]){
-                const key=String(p.id||p.pv||'');
-                if(!key||known.has(key))continue;
-                known.add(key);
+                .eq('uf_origem','EX').neq('uf_destino','EX')
+                .in('bucket_atual',['ativo','agNota','aduana','alertaInt'])
+                .range(from,from+999);
+              if(error)throw error;
+              const page=data||[];
+              for(const p of page){
+                activeKeys.add(String(p.id||''));activeKeys.add(String(p.pv||''));
+                if(Number(p.frete_padrao)>0)continue;
+                if(items.some(x=>String(x.id||'')===String(p.id||'')||String(x.pv||'')===String(p.pv||'')))continue;
                 items.push({id:p.id,pv:p.pv,pagador:p.pagador,origem:p.municipio_origem,
                   ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,
                   referencia:p.referencia||p.ref,cavalo:p.cavalo,estado:'Não encontrado'});
               }
+              if(page.length<1000)break;
             }
-          }catch(e){console.warn('Marvel: não foi possível complementar PCs sem frete',e);}
-
-          // Somente PCs presentes no espelho operacional ativo entram na fila.
-          // Evita reprocessar pendências históricas de PCs já encerradas.
-          const activeKeys=new Set();
-          try{
-            const active=await state.supabase.from('painel_902').select('id,pv').in('bucket_atual',['agNota','aduana','alertaInt']).limit(1000);
-            if(active.error)throw active.error;
-            for(const p of active.data||[]){activeKeys.add(String(p.id||''));activeKeys.add(String(p.pv||''));}
-          }catch(e){console.warn('Marvel: não foi possível validar PCs ativas',e);}
-          const isActivePc=x=>!activeKeys.size||activeKeys.has(String(x.id||''))||activeKeys.has(String(x.pv||''))||activeKeys.has(String(x.pc_id||''));
-          for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
+          }catch(e){console.warn('Marvel: falha ao carregar importações ativas',e);status.textContent='Não foi possível validar todas as importações: '+e.message;}
+          const isActivePc=x=>activeKeys.has(String(x.id||''))||activeKeys.has(String(x.pv||''))||activeKeys.has(String(x.pc_id||''));
+          if(activeKeys.size)for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
