@@ -3061,8 +3061,7 @@ initApp();
           loadSaved().catch(e=>{status.textContent='Conferência concluída, mas a leitura da base falhou: '+e.message;});
           // Guarda todas as PCs não resolvidas na fila persistente.
           if(!restored)pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
-          const recheck=document.createElement('button');recheck.type='button';recheck.textContent='↻ Conferir novamente na Marvel';recheck.style.cssText='margin:8px 0;padding:11px 16px;background:#174c78;color:#fff;border:1px solid #4da4e0;border-radius:9px;font-weight:700;';
-          recheck.addEventListener('click',()=>button.click());out.insertBefore(recheck,shell);
+          // Rechecagem geral é feita pelos dois comandos principais da sincronização.
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
           found.forEach(async x=>{
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||x.pagador||'').trim();
