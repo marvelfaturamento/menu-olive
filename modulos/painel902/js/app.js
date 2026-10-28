@@ -914,6 +914,21 @@ function reclassify(){
 
     const checkpointRule = hasCheckpointRule(row);
 
+    // PCs futuras permanecem ativas até a data programada, no calendário de Brasília.
+    // Não altera status persistido nem histórico de finalização.
+    const dataOperacao = isoDayFromDataPC902(row.dataPC || row.data_pc || '');
+    const hojeOperacional = new Intl.DateTimeFormat('en-CA', {
+      timeZone:'America/Sao_Paulo', year:'numeric', month:'2-digit', day:'2-digit'
+    }).format(new Date());
+    if(row.status === 'Finalizado'){
+      row.bucket = 'finalizados';
+      return;
+    }
+    if(dataOperacao && dataOperacao > hojeOperacional){
+      row.bucket = 'ativo';
+      return;
+    }
+
     // Monitora aproximação da coleta. Até 20 km confirma automaticamente; entre
     // 20 e 40 km apenas guarda evidência. O alerta só nasce se depois houver afastamento.
     atualizarMonitorColeta(row);
@@ -922,10 +937,6 @@ function reclassify(){
     if(checkpointRule && rowInCheckpointCity(row, checkpointRule)) row.passouCheckpoint = true;
     if(row.aduana) row.foiAduana = true;
 
-    if(row.status === 'Finalizado'){
-      row.bucket = 'finalizados';
-      return;
-    }
 
     // Confirmação MANUAL de coleta no quadro "Checkpoint não confirmado":
     // o operador validou a coleta e liberou a programação para faturamento.
