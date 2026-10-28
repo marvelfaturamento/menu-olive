@@ -544,11 +544,13 @@ let cidades={origem:null,aduana:null,destino:null};
 
 // Cache compartilhado entre Origem, Aduana e Destino, sem alterar as coordenadas usadas no cálculo.
 const cacheCidades=new Map();
-const CHAVE_CIDADES='marvel_cidades_autocomplete_v1';
+const CHAVE_CIDADES='marvel_cidades_autocomplete_mercosul_v2';
+const PAISES_CIDADES=new Set(['BR','CL','AR','PY','UY','PE']);
+const paisCidadePermitido=c=>PAISES_CIDADES.has(String(c?.countryCode||'').toUpperCase());
 try{
   const salvas=JSON.parse(localStorage.getItem(CHAVE_CIDADES)||'[]');
   if(Array.isArray(salvas))salvas.forEach(c=>{
-    if(c&&typeof c.label==='string'&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
+    if(paisCidadePermitido(c)&&typeof c.label==='string'&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
       cacheCidades.set(c.label.toLocaleLowerCase('pt-BR'),[c]);
   });
 }catch(e){console.warn('Cache de cidades não disponível',e);}
@@ -556,6 +558,7 @@ function cidadesLocais(texto){
   const termo=normalizarBuscaCidade(texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const resultado=[],vistos=new Set();
   for(const lista of cacheCidades.values())for(const c of lista){
+    if(!paisCidadePermitido(c))continue;
     const nome=c.label.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     if(nome.includes(termo)&&!vistos.has(nome)){vistos.add(nome);resultado.push(c);}
   }
@@ -563,7 +566,7 @@ function cidadesLocais(texto){
 }
 function guardarCidades(lista){
   for(const c of lista){
-    if(c?.label&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
+    if(paisCidadePermitido(c)&&c?.label&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite))
       cacheCidades.set(normalizarBuscaCidade(c.label),[c]);
   }
   try{
@@ -586,23 +589,23 @@ async function consultarCidadesRapido(texto,signal){
     try{
       const r=await fetch(url,{signal:controller.signal});
       if(!r.ok)throw new Error('HTTP '+r.status);
-      return converter(await r.json()).filter(c=>c?.label&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite));
+      return converter(await r.json()).filter(c=>paisCidadePermitido(c)&&c?.label&&Array.isArray(c.coordinates)&&c.coordinates.length===2&&c.coordinates.every(Number.isFinite));
     }finally{
       clearTimeout(timer);
       signal.removeEventListener('abort',cancelar);
     }
   };
-  const photon=()=>buscar('https://photon.komoot.io/api/?q='+encodeURIComponent(texto)+'&limit=7',d=>(d.features||[]).map(c=>{
+  const photon=()=>buscar('https://photon.komoot.io/api/?q='+encodeURIComponent(texto)+'&limit=20',d=>(d.features||[]).map(c=>{
     const p=c.properties||{};
     const partes=[p.name,p.city,p.state,p.country].filter((v,i,a)=>v&&a.indexOf(v)===i);
-    return {label:partes.join(', ')||texto,coordinates:c.geometry.coordinates};
+    return {label:partes.join(', ')||texto,coordinates:c.geometry.coordinates,countryCode:p.countrycode||p.countryCode};
   }),2500);
-  const nominatim=()=>buscar('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=7&q='+encodeURIComponent(texto),d=>d.map(c=>({
-    label:c.display_name,coordinates:[Number(c.lon),Number(c.lat)]
+  const nominatim=()=>buscar('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=20&countrycodes=br,cl,ar,py,uy,pe&q='+encodeURIComponent(texto),d=>d.map(c=>({
+    label:c.display_name,coordinates:[Number(c.lon),Number(c.lat)],countryCode:c.address?.country_code
   })),3500);
-  const openMeteo=()=>buscar('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(texto)+'&count=10&language=pt&format=json',d=>(d.results||[]).map(c=>({
+  const openMeteo=()=>buscar('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(texto)+'&count=20&language=pt&format=json',d=>(d.results||[]).map(c=>({
     label:[c.name,c.admin1,c.country].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', '),
-    coordinates:[Number(c.longitude),Number(c.latitude)]
+    coordinates:[Number(c.longitude),Number(c.latitude)],countryCode:c.country_code
   })),3500);
   let ultimoErro=null;
   for(const provider of [photon,openMeteo,nominatim]){
@@ -616,53 +619,65 @@ async function consultarCidadesRapido(texto,signal){
   return [];
 }
 function auto(id,sug,key){
-  const i=document.getElementById(id);
-  const box=document.getElementById(sug);
+  const i=document.getElementById(id),box=document.getElementById(sug);
   if(!i||!box)return;
   let timer=null,seq=0,controller=null;
+  const selecionar=(c,mostrarAlternativas=false)=>{
+    if(!c||!paisCidadePermitido(c))return;
+    i.value=c.label;
+    cidades[key]=c.coordinates;
+    if(!mostrarAlternativas)box.replaceChildren();
+  };
+  const exibir=(items,autoSelecionar,textoOriginal)=>{
+    box.replaceChildren();
+    if(!items.length){box.textContent='Nenhuma cidade encontrada.';return;}
+    const normalizar=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+    const termo=normalizar(textoOriginal);
+    const validos=items.filter(c=>paisCidadePermitido(c));
+    // Prioriza correspondência exata do nome da cidade, antes de bairros e pontos de interesse.
+    const ordenados=validos.map((c,idx)=>{
+      const nome=normalizar(c.label.split(',')[0]);
+      return {c,idx,score:nome===termo?0:nome.startsWith(termo)?1:2};
+    }).sort((a,b)=>a.score-b.score||a.idx-b.idx);
+    if(autoSelecionar&&ordenados.length){
+      selecionar(ordenados[0].c);
+      return; // Não deixar a lista aberta após o preenchimento automático.
+    }
+    const vistos=new Set();
+    ordenados.forEach(({c})=>{
+      const chave=normalizar(c.label);
+      if(vistos.has(chave))return;
+      vistos.add(chave);
+      const div=document.createElement('div');
+      div.textContent=c.label;
+      div.onclick=()=>{selecionar(c);++seq;controller?.abort();};
+      box.appendChild(div);
+    });
+  };
   i.addEventListener('input',()=>{
     cidades[key]=null;
     clearTimeout(timer);
-    if(controller)controller.abort();
-    const minhaSeq=++seq;
-    const texto=i.value.trim();
-    if(texto.length<3){box.innerHTML='';return;}
-    const locais=cidadesLocais(texto);
-    if(locais.length){
-      box.innerHTML='';
-      locais.forEach(c=>{
-        const div=document.createElement('div');div.textContent=c.label;
-        div.onclick=()=>{i.value=c.label;cidades[key]=c.coordinates;box.innerHTML='';++seq;};
-        box.appendChild(div);
-      });
-      return;
-    }
-    box.textContent='Buscando cidades...';
+    controller?.abort();
+    const minhaSeq=++seq,texto=i.value.trim();
+    if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
+      const locais=cidadesLocais(texto);
+      if(locais.length){if(minhaSeq===seq)exibir(locais,true,texto);return;}
+      box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
         const items=await consultarCidadesRapido(texto,controller.signal);
         if(minhaSeq!==seq)return;
-        box.innerHTML='';
-        if(!items.length){box.textContent='Nenhuma cidade encontrada.';return;}
-        items.forEach(c=>{
-          const div=document.createElement('div');
-          div.textContent=c.label;
-          div.onclick=()=>{
-            i.value=c.label;
-            cidades[key]=c.coordinates;
-            box.innerHTML='';
-            ++seq;
-            controller?.abort();
-          };
-          box.appendChild(div);
-        });
+        exibir(items,true,texto);
       }catch(e){
         if(minhaSeq!==seq)return;
         console.warn('Autocomplete indisponível:',e);
         box.textContent='Busca indisponível no momento. Tente novamente.';
       }
-    },230);
+    },350);
+  });
+  i.addEventListener('keydown',e=>{
+    if(e.key==='Escape')box.replaceChildren();
   });
 }
 auto("origem","sugOrigem","origem");
@@ -957,6 +972,7 @@ function copiarTextoSimples(texto){
 
 
 
+<script src="js/consulta-902.js?v=teste-1"></script>
 </body></html>
 </template>
 
