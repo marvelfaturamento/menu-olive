@@ -202,10 +202,10 @@ button:disabled{opacity:.55!important;cursor:wait!important}
 <div class="cfgGroup" id="marvelTestPanel">
   <p class="small">Tarifas confirmadas atualizam automaticamente o frete operacional das PCs correspondentes. Fretes spot prevalecem por PC.</p>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0">
-    <button type="button" id="marvelTestRun">Conferir Fretes Marvel</button><button type="button" id="fiMissing" title="Consultar somente importações sem tarifa">Processar sem tarifa</button><button type="button" id="fiAll" title="Revalidar todas as importações">Reprocessar todos</button>
+    <button type="button" id="marvelTestRun" hidden aria-hidden="true" tabindex="-1">Conferir Fretes Marvel (legado)</button><button type="button" id="fiMissing" title="Consultar somente importações sem tarifa">Processar sem tarifa</button><button type="button" id="fiAll" title="Revalidar todas as importações">Reprocessar todos</button>
     <span id="marvelTestStatus" class="small" role="status" aria-live="polite">Aguardando conferência pela extensão Marvel.</span>
   </div>
-  <div class="small">Conferir Fretes Marvel mantém o escopo anterior. Os novos botões consultam todas as PCs de importação ativas (origem EX, destino Brasil), independentemente do card. Atualizações somente após confirmação da Marvel; ADV e spots preservados.</div>
+  <div class="small">Processar sem tarifa consulta apenas importações pendentes; Reprocessar todos revalida todas as importações ativas. Sem divisão por cards. ADV e spots preservados.</div>
   <div id="marvelTestResults" class="small" style="margin-top:12px"></div>
 </div>
 </div>
