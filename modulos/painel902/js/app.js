@@ -65,13 +65,21 @@ async function refreshMarvelAdv(){
   const payload=await response.json();
   if(!response.ok||!payload.ok)throw Error(payload.error||'Falha na leitura do ADV');
   const grouped=new Map();
-  for(const t of [...(payload.tarifas||[]),...(payload.spots||[]).filter(x=>x.adv_percentual!==null&&x.adv_percentual!==undefined)]){
+  for(const t of payload.tarifas||[]){
    const k=marvelAdvKey(t.pagador,t.municipio_origem,t.uf_origem,t.municipio_destino,t.uf_destino);
    if(!grouped.has(k))grouped.set(k,[]);
    grouped.get(k).push(t);
   }
   marvelAdvCache.clear();
   for(const [k,rows] of grouped)if(rows.length===1)marvelAdvCache.set(k,rows[0]);
+  const spotGroups=new Map();
+  for(const t of payload.spots||[]){
+   if(t.adv_percentual===null||t.adv_percentual===undefined)continue;
+   const k=marvelAdvKey(t.pagador,t.municipio_origem,t.uf_origem,t.municipio_destino,t.uf_destino);
+   if(!spotGroups.has(k))spotGroups.set(k,[]);
+   spotGroups.get(k).push(t);
+  }
+  for(const [k,rows] of spotGroups)if(rows.length===1)marvelAdvCache.set(k,rows[0]);
   marvelAdvLoadedAt=Date.now();
   renderAll();
  }catch(e){console.warn('ADV Marvel: leitura indisponível',e);marvelAdvLoadedAt=Date.now();}
