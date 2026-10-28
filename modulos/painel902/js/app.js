@@ -3185,15 +3185,33 @@ initApp();
     const button=document.getElementById('marvelTestRun');
     const status=document.getElementById('marvelTestStatus');
     if(!button||!status)return;
+    const authKey='sb-rqwmhywgckuwhbidqves-auth-token';
+    let raw=null;
+    try{raw=JSON.parse(localStorage.getItem(authKey)||'null');}catch(_){}
+    let token=raw?.access_token||'';
+    if(!token){
+      status.replaceChildren();
+      const label=document.createElement('span');
+      label.textContent='Para restaurar spots, pendências e histórico, entre no Menu Olive desta versão de testes. ';
+      const link=document.createElement('a');
+      link.href=new URL('../../index.html',location.href).href;
+      link.textContent='Entrar no Menu Olive';
+      link.style.cssText='color:#86d9ff;text-decoration:underline;font-weight:700';
+      status.append(label,link);
+      return;
+    }
     try{
-      const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
-      const token=JSON.parse(raw||'null')?.access_token;
-      if(!token)throw Error('Sessão do Olive não disponível');
-      const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
+      status.textContent='Restaurando tarifas, spots, pendências e histórico...';
+      const res=await fetch(SUPABASE_URL+'/functions/v1/marvel-frete-registros',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
+        body:JSON.stringify({action:'list'})
+      });
       const data=await res.json();
       if(!res.ok||data.error)throw Error(data.error||'HTTP '+res.status);
       button.dispatchEvent(new CustomEvent('click',{detail:{restoreData:data}}));
-    }catch(e){status.textContent='Não foi possível restaurar pendências e histórico: '+e.message;}
+    }catch(e){
+      status.textContent='Não foi possível restaurar os dados: '+e.message;
+    }
   }
   function bootMarvel(){initMarvelTest();restoreMarvelSaved();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootMarvel,{once:true});else bootMarvel();
