@@ -65,7 +65,7 @@ async function refreshMarvelAdv(){
   const payload=await response.json();
   if(!response.ok||!payload.ok)throw Error(payload.error||'Falha na leitura do ADV');
   const grouped=new Map();
-  for(const t of payload.tarifas||[]){
+  for(const t of [...(payload.tarifas||[]),...(payload.spots||[]).filter(x=>x.adv_percentual!==null&&x.adv_percentual!==undefined)]){
    const k=marvelAdvKey(t.pagador,t.municipio_origem,t.uf_origem,t.municipio_destino,t.uf_destino);
    if(!grouped.has(k))grouped.set(k,[]);
    grouped.get(k).push(t);
@@ -2969,6 +2969,16 @@ initApp();
               for(const x of routes){
                 const line=document.createElement('div');line.style.cssText='padding:12px;margin:8px 0;border:1px solid #38517b;border-radius:9px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;';
                 const label=document.createElement('span');label.textContent=x.pagador+' | '+routeLabel(x);
+                const advInput=document.createElement('input');advInput.type='text';advInput.placeholder='ADV (%)';advInput.value=x.adv_percentual==null?'':Number(x.adv_percentual).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:5});advInput.setAttribute('aria-label','ADV manual da rota '+routeLabel(x));advInput.style.cssText='width:100px;padding:9px;background:#0e2043;color:white;border:1px solid #5679aa;border-radius:6px;';
+                const saveAdv=document.createElement('button');saveAdv.type='button';saveAdv.textContent='Salvar ADV';saveAdv.style.cssText='padding:9px 12px;background:#17685b;color:white;border:1px solid #48a998;border-radius:7px;';
+                const advMsg=document.createElement('small');
+                saveAdv.addEventListener('click',async()=>{
+                  const raw=advInput.value.trim().replace(',','.');const value=Number(raw);
+                  if(!raw||!Number.isFinite(value)||value<0||value>100){advMsg.textContent='Informe um percentual de 0 a 100.';return;}
+                  saveAdv.disabled=true;advMsg.textContent='Salvando...';
+                  try{await marvelApi('spot_adv',{id:x.id,adv_percentual:value});advMsg.textContent='ADV salvo no Supabase.';marvelAdvLoadedAt=0;await refreshMarvelAdv();await loadSaved();}
+                  catch(e){advMsg.textContent='Erro: '+e.message;}finally{saveAdv.disabled=false;}
+                });
                 const input=document.createElement('input');input.type='text';input.value=Number(x.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});input.setAttribute('aria-label','Frete spot da rota '+routeLabel(x));input.style.cssText='width:145px;padding:9px;background:#0e2043;color:white;border:1px solid #5679aa;border-radius:6px;';
                 const save=document.createElement('button');save.textContent='Atualizar rota';save.type='button';save.style.cssText='padding:9px 12px;background:#31548a;color:white;border:1px solid #679be3;border-radius:7px;';
                 const msg=document.createElement('small');
@@ -2981,7 +2991,7 @@ initApp();
                   try{const result=await marvelApi('spot_route',{id:'ROTA',...x,frete:value});msg.textContent='Salvo. PCs ativas atualizadas: '+result.pcs_atualizadas;await loadSaved();}
                   catch(e){msg.textContent='Erro: '+e.message;}finally{save.disabled=false;}
                 });
-                line.append(label,input,save,msg);views.spots.appendChild(line);
+                line.append(label,input,save,msg,advInput,saveAdv,advMsg);views.spots.appendChild(line);
               }
               tabButtons.salvos.textContent='Salvos na base ('+entries.length+')';
               tabButtons.spots.textContent='Spots ('+routes.length+')';
