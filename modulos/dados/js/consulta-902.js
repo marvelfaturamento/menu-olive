@@ -18,7 +18,7 @@ const apply=p=>{
  set("frota",String(p.cavalo||"").split("-")[0].trim());
  set("adv",p.adv_percentual===null||p.adv_percentual===undefined||Number(p.adv_percentual)===0?"0.101":p.adv_percentual);
  $("pd902Desfazer").hidden=false;
- status.textContent="Carga "+(p.pv||p.id)+" selecionada. Confira país e selecione as cidades e aduana nas sugestões antes de calcular. Campos continuam editáveis. ADV não identificado ou zerado: aplicado padrão provisório de 0,101%.";
+ status.textContent="PC "+(p.pv||p.id)+" selecionada.";
  results.replaceChildren();
 };
 $("pd902Desfazer").addEventListener("click",()=>{if(!snapshot)return;Object.entries(snapshot).forEach(([k,v])=>set(k,v));snapshot=null;$("pd902Desfazer").hidden=true;status.textContent="Preenchimento anterior restaurado.";});
