@@ -856,3 +856,6 @@ button:hover,.btn:hover,.navbtn:hover,.menu button:hover{transform:translateY(-1
 
 /* Fretes de Importação: ícone no mesmo padrão do menu 902 */
 @media(min-width:861px){.navbtn#fretesImpoOpen::before{content:'💰';}}
+
+/* Hide legacy Marvel action without disabling its existing restore handler. */
+#marvelTestRun[hidden]{display:none!important}
