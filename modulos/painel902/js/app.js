@@ -2972,21 +2972,6 @@ initApp();
               for(const x of entries){
                 const line=document.createElement('div');line.style.cssText='padding:10px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
                 line.textContent=x.kind+' | '+x.pagador+' | '+routeLabel(x)+' | '+(x.nome_marvel||x.tabela_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-                if(x.kind==='Tarifa Marvel'){
-                  const controls=document.createElement('div');controls.style.cssText='display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;';
-                  const labelAdv=document.createElement('label');labelAdv.textContent='ADV (%)';
-                  const advField=document.createElement('input');advField.type='text';advField.placeholder='Ex.: 0,12';advField.value=x.adv_percentual==null?'':Number(x.adv_percentual).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:5});advField.style.cssText='width:90px;padding:7px;background:#0e2043;color:white;border:1px solid #5679aa;border-radius:6px;';
-                  const saveTariffAdv=document.createElement('button');saveTariffAdv.type='button';saveTariffAdv.textContent='Salvar ADV';saveTariffAdv.style.cssText='padding:7px 12px;background:#17685b;color:white;border:1px solid #48a998;border-radius:7px;';
-                  const feedbackAdv=document.createElement('small');
-                  saveTariffAdv.addEventListener('click',async()=>{
-                    const raw=advField.value.trim().replace(',','.');const value=Number(raw);
-                    if(!raw||!Number.isFinite(value)||value<0||value>100){feedbackAdv.textContent='Percentual inválido.';return;}
-                    saveTariffAdv.disabled=true;feedbackAdv.textContent='Salvando...';
-                    try{await marvelApi('tariff_adv',{id:x.id,adv_percentual:value});marvelAdvLoadedAt=0;await refreshMarvelAdv();await loadSaved();}
-                    catch(e){feedbackAdv.textContent='Erro: '+e.message;}finally{saveTariffAdv.disabled=false;}
-                  });
-                  controls.append(labelAdv,advField,saveTariffAdv,feedbackAdv);line.appendChild(controls);
-                }
                 views.salvos.appendChild(line);
               }
               for(const x of routes){
