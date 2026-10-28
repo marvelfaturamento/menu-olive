@@ -54,12 +54,18 @@ async function refreshMarvelAdv(){
  if(marvelAdvLoading||!state.supabase||Date.now()-marvelAdvLoadedAt<60000)return;
  marvelAdvLoading=true;
  try{
-  const {data,error}=await state.supabase.from('config_frete_marvel_rotas')
-   .select('pagador,municipio_origem,uf_origem,municipio_destino,uf_destino,adv_percentual,moeda,ativo')
-   .eq('ativo',true).limit(5000);
-  if(error)throw error;
+  const sessionRaw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
+  const session=sessionRaw?JSON.parse(sessionRaw):null;
+  const jwt=session?.access_token;
+  if(!jwt)throw Error('Sessão Menu Olive não encontrada');
+  const response=await fetch(SUPABASE_URL+'/functions/v1/marvel-frete-registros',{
+   method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+jwt,'apikey':SUPABASE_ANON_KEY},
+   body:JSON.stringify({action:'adv_read'})
+  });
+  const payload=await response.json();
+  if(!response.ok||!payload.ok)throw Error(payload.error||'Falha na leitura do ADV');
   const grouped=new Map();
-  for(const t of data||[]){
+  for(const t of payload.tarifas||[]){
    const k=marvelAdvKey(t.pagador,t.municipio_origem,t.uf_origem,t.municipio_destino,t.uf_destino);
    if(!grouped.has(k))grouped.set(k,[]);
    grouped.get(k).push(t);
@@ -71,7 +77,6 @@ async function refreshMarvelAdv(){
  }catch(e){console.warn('ADV Marvel: leitura indisponível',e);marvelAdvLoadedAt=Date.now();}
  finally{marvelAdvLoading=false;}
 }
-
 
 
 function norm(v){ return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
