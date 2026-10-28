@@ -2975,7 +2975,7 @@ initApp();
                 views.salvos.appendChild(line);
               }
               for(const x of routes){
-                const line=document.createElement('div');line.style.cssText='padding:12px;margin:8px 0;border:1px solid #38517b;border-radius:9px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;';
+                const line=document.createElement('div');line.style.cssText='padding:12px;margin:8px 0;border:1px solid #38517b;border-radius:9px;display:grid;grid-template-columns:minmax(240px,1fr) 145px 132px 100px 115px;align-items:center;column-gap:12px;row-gap:8px;';
                 const label=document.createElement('span');label.textContent=x.pagador+' | '+routeLabel(x);
                 const advInput=document.createElement('input');advInput.type='text';advInput.placeholder='ADV (%)';advInput.value=x.adv_percentual==null?'':Number(x.adv_percentual).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:5});advInput.setAttribute('aria-label','ADV manual da rota '+routeLabel(x));advInput.style.cssText='width:100px;padding:9px;background:#0e2043;color:white;border:1px solid #5679aa;border-radius:6px;';
                 const saveAdv=document.createElement('button');saveAdv.type='button';saveAdv.textContent='Salvar ADV';saveAdv.style.cssText='padding:9px 12px;background:#17685b;color:white;border:1px solid #48a998;border-radius:7px;';
@@ -2999,7 +2999,13 @@ initApp();
                   try{const result=await marvelApi('spot_route',{id:'ROTA',...x,frete:value});msg.textContent='Salvo. PCs ativas atualizadas: '+result.pcs_atualizadas;await loadSaved();}
                   catch(e){msg.textContent='Erro: '+e.message;}finally{save.disabled=false;}
                 });
-                line.append(label,input,save,msg,advInput,saveAdv,advMsg);views.spots.appendChild(line);
+                const freteWrap=document.createElement('div');freteWrap.style.cssText='display:flex;flex-direction:column;gap:4px;';const freteLabel=document.createElement('small');freteLabel.textContent='Frete spot (R$)';freteWrap.append(freteLabel,input);
+                const advWrap=document.createElement('div');advWrap.style.cssText='display:flex;flex-direction:column;gap:4px;';const advLabel=document.createElement('small');advLabel.textContent='ADV (%)';advWrap.append(advLabel,advInput);
+                const notes=document.createElement('div');notes.style.cssText='grid-column:1/-1;display:flex;gap:16px;flex-wrap:wrap;';notes.append(msg,advMsg);
+                label.style.cssText='min-width:0;overflow-wrap:anywhere;';
+                input.style.width='100%';input.style.boxSizing='border-box';advInput.style.width='100%';advInput.style.boxSizing='border-box';
+                save.style.alignSelf='end';saveAdv.style.alignSelf='end';
+                line.append(label,freteWrap,save,advWrap,saveAdv,notes);views.spots.appendChild(line);
               }
               tabButtons.salvos.textContent='Salvos na base ('+entries.length+')';
               tabButtons.spots.textContent='Spots ('+routes.length+')';
