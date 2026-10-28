@@ -42,7 +42,7 @@ function marvelAdvDisplay(r){
  const k=marvelAdvKey(r.pagador,r.cidadeOrigem||r.municipio_origem,r.ufRem||r.uf_origem,r.cidadeDestino||r.municipio_destino,r.ufDest||r.uf_destino);
  const t=marvelAdvCache.get(k);
  if(!t||t.adv_percentual===null||t.adv_percentual===undefined){
-  return '<div class="small" style="color:#e5b568" title="ADV ainda não conferido com a tarifa Marvel">ADV: não validado</div>';
+  return '<div class="small" style="color:#e5b568" title="Sem percentual gravado para esta rota no Supabase. Pode ser captura ausente, tarifa não localizada ou sincronização rejeitada.">ADV: pendente de captura/sincronização</div>';
  }
  const value=Number(t.adv_percentual);
  if(!Number.isFinite(value)||value<0||value>100)return '<div class="small" style="color:#e5b568">ADV: inválido</div>';
