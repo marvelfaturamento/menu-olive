@@ -46,7 +46,7 @@ function marvelAdvDisplay(r){
  }
  const value=Number(t.adv_percentual);
  if(!Number.isFinite(value)||value<0||value>100)return '<div class="small" style="color:#e5b568">ADV: inválido</div>';
- const formatted=value.toLocaleString('pt-BR',{maximumFractionDigits:5});
+ const formatted=value.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:5});
  const moeda=t.moeda==='USD'?' · Tarifa USD':'';
  return '<div class="small" style="color:#8ed4ff" title="Percentual registrado na tarifa Marvel">ADV: '+formatted+'% (cadastrado)'+moeda+'</div>';
 }
