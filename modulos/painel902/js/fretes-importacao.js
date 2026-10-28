@@ -42,12 +42,12 @@ function process(mode){
  busy=true;$('fiMissing').disabled=$('fiAll').disabled=true;
  $('fiStatus').textContent='Solicitando '+routes.length+' rotas à extensão Marvel. Aguardando confirmação...';
  let finished=false;
- const timer=setTimeout(()=>finish('A extensão não confirmou o processamento. Nenhum resultado foi assumido.'),30000);
+ const timer=setTimeout(()=>finish('A extensão não confirmou a consulta em 5 minutos. Nenhum resultado foi assumido.'),30000);
  function finish(msg){if(finished)return;finished=true;clearTimeout(timer);window.removeEventListener('message',receive);busy=false;$('fiMissing').disabled=$('fiAll').disabled=false;$('fiStatus').textContent=msg;}
  function receive(e){if(e.source!==window||e.origin!==location.origin)return;const d=e.data;
  if(d?.source!=='marvel-frete-ext'||d.requestId!==requestId)return;
  if(d.type==='marvel-frete-902-progress-v1'){$('fiStatus').textContent='Consultando: '+(d.done||0)+'/'+(d.total||routes.length);return;}
- if(d.type==='marvel-frete-902-test-response-v1'||d.type==='marvel-frete-902-process-result-v1'){finish(d.ok?'Extensão respondeu. Recarregue a lista para verificar os fretes salvos.':'Falha: '+String(d.erro||'desconhecida'));}
+ if(d.type==='marvel-frete-902-test-response-v1'||d.type==='marvel-frete-902-process-result-v1'){finish(d.ok?'Consulta Marvel concluída. Resultados recebidos; gravação automática ainda não habilitada.':'Falha: '+String(d.erro||'desconhecida'));}
  }
  window.addEventListener('message',receive);
  window.postMessage({source:'painel-902',type:'marvel-frete-902-process-v1',requestId,mode,pcs:routes.map(p=>({id:p.id,pv:p.pv,pagador:p.pagador,municipio_origem:p.municipio_origem,uf_origem:p.uf_origem,municipio_destino:p.municipio_destino,uf_destino:p.uf_destino,frete_padrao:p.frete_padrao}))},location.origin);
