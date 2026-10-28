@@ -16,9 +16,9 @@ const apply=p=>{
  // A aduana não está cadastrada no 902: preservar preenchimento atual.
  if(Number(p.frete_padrao)>0)set("freteBRL",p.frete_padrao);
  set("frota",String(p.cavalo||"").split("-")[0].trim());
- if(p.adv_percentual!==null&&p.adv_percentual!==undefined)set("adv",Number(p.adv_percentual)===0?"0.101":p.adv_percentual);
+ set("adv",p.adv_percentual===null||p.adv_percentual===undefined||Number(p.adv_percentual)===0?"0.101":p.adv_percentual);
  $("pd902Desfazer").hidden=false;
- status.textContent="Carga "+(p.pv||p.id)+" selecionada. Confira país e selecione as cidades e aduana nas sugestões antes de calcular. Campos continuam editáveis.";
+ status.textContent="Carga "+(p.pv||p.id)+" selecionada. Confira país e selecione as cidades e aduana nas sugestões antes de calcular. Campos continuam editáveis. ADV não identificado ou zerado: aplicado padrão provisório de 0,101%.";
  results.replaceChildren();
 };
 $("pd902Desfazer").addEventListener("click",()=>{if(!snapshot)return;Object.entries(snapshot).forEach(([k,v])=>set(k,v));snapshot=null;$("pd902Desfazer").hidden=true;status.textContent="Preenchimento anterior restaurado.";});
