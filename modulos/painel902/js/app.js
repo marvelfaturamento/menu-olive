@@ -1467,7 +1467,7 @@ window.encerrarCompetenciasAnteriores=async function(){
     state.competenciasZeradas.add(x.mes); state.competenciasZeradasMeta[x.mes]=marker;
   }
   state.finalizados=state.finalizados.filter(r=>!meses.includes(r.competencia));
-  await saveLocal(); renderAll(true); renderConfigEditors();
+  delete dbMonthCounts902[m]; await saveLocal(); renderAll(true); renderConfigEditors();
   alert(`${total} finalizado(s) removido(s).\n${meses.length} competência(s) encerrada(s) e bloqueada(s) para futuras importações.`);
 };
 
@@ -1480,33 +1480,66 @@ function renderExcluirFinalizadosMes(){
  const refresh=()=>{const m=sel.value,q=counts[m]||0;if(info)info.textContent=m?`${q} finalizado(s). PCs em andamento permanecem.`:'';}; sel.onchange=refresh;refresh();
 }
 
-function renderMonthsPanel(){
-  const box = mesesBox;
-  const compet = {};
-  state.rows.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)) compet[r.competencia] = true; });
-  state.finalizados.forEach(r => { if(r.competencia && !state.competenciasZeradas.has(r.competencia)) compet[r.competencia] = true; });
-  const months = Object.keys(compet).sort();
-  const closed = [...state.competenciasZeradas].sort();
-  box.innerHTML = '';
-  if(!months.length && !closed.length){ box.innerHTML = '<div class="small">Ainda não há competências carregadas.</div>'; return; }
-  months.forEach(m => {
-    const abertos = state.rows.filter(r => r.competencia === m).length;
-    const finalizados = state.finalizados.filter(r => r.competencia === m).length;
-    const div = document.createElement('div');
-    div.className = 'monthCard';
-    div.innerHTML = `<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small" style="margin-top:8px">Em andamento: ${abertos} | Finalizados: ${finalizados}</div></div><div class="monthStatus ${finalizados ? 'ok' : 'warn'}">${finalizados ? 'Finalizados disponíveis para limpeza' : 'Sem finalizados para limpar'}</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" ${finalizados?'':'disabled'} onclick="zerarCompetenciaSupabase('${m}')">Limpar finalizados</button></div>`;
-    box.appendChild(div);
-  });
-  if(closed.length){
-    const title=document.createElement('div'); title.className='small'; title.style.margin='12px 0 6px'; title.innerHTML='<b>Competências encerradas / bloqueadas</b>';
-    box.appendChild(title);
-    closed.forEach(m=>{
-      const meta=state.competenciasZeradasMeta?.[m]||{};
-      const d=document.createElement('div'); d.className='monthCard';
-      d.innerHTML=`<div><div style="font-size:22px;font-weight:900">${m}</div><div class="small">Encerrada ${meta.em?formatDateTimeBR(meta.em):''}${meta.usuario?' • '+escHtml(meta.usuario):''}</div></div><div class="monthStatus ok">Bloqueada para novas importações</div><div class="monthActions"><button class="mini btn-green" onclick="reabrirCompetencia('${m}')">Reabrir competência</button></div>`;
-      box.appendChild(d);
-    });
+let dbMonthCounts902={};
+let dbMonthFetched902=false;
+let dbMonthLoad902=null;
+function mesDb902(r){
+ const c=String(r.competencia_mes||'').slice(0,7);
+ if(/^\d{4}-\d{2}$/.test(c))return c;
+ const d=String(r.data_pc||'');
+ const br=d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+ if(br)return br[3]+'-'+br[2];
+ return /^\d{4}-\d{2}/.test(d)?d.slice(0,7):'';
+}
+async function carregarMesesSupabase902(){
+ if(!state.supabase)return;
+ if(dbMonthLoad902)return dbMonthLoad902;
+ dbMonthLoad902=(async()=>{
+  const counts={};
+  for(const table of ['painel_902','painel_902_finalizados']){
+   for(let from=0;from<30000;from+=1000){
+    const {data,error}=await state.supabase.from(table).select('id,data_pc,competencia_mes,status').range(from,from+999);
+    if(error)throw error;
+    for(const r of data||[]){
+     const m=mesDb902(r);if(!m)continue;
+     const item=counts[m]||(counts[m]={total:0,finalizados:0});
+     item.total++;
+     if(table==='painel_902_finalizados'||norm(r.status)==='FINALIZADO')item.finalizados++;
+    }
+    if(!data||data.length<1000)break;
+   }
   }
+  dbMonthCounts902=counts;
+  dbMonthFetched902=true;
+  renderMonthsPanel();
+ })().catch(e=>{console.warn('Controle mensal: consulta de competências falhou',e);const info=document.getElementById('mesesDbStatus902');if(info)info.textContent='Falha ao consultar Supabase: '+e.message;}).finally(()=>{dbMonthLoad902=null;});
+ return dbMonthLoad902;
+}
+function renderMonthsPanel(){
+ if(state.supabase&&!dbMonthFetched902&&!dbMonthLoad902)void carregarMesesSupabase902();
+ const box=mesesBox;
+ const compet={};
+ state.rows.forEach(r=>{if(r.competencia&&!state.competenciasZeradas.has(r.competencia))compet[r.competencia]=true;});
+ state.finalizados.forEach(r=>{if(r.competencia&&!state.competenciasZeradas.has(r.competencia))compet[r.competencia]=true;});
+ Object.keys(dbMonthCounts902).forEach(m=>{if(!state.competenciasZeradas.has(m))compet[m]=true;});
+ const months=Object.keys(compet).sort();
+ const closed=[...state.competenciasZeradas].sort();
+ box.innerHTML='<div id="mesesDbStatus902" class="small">Contagem do Supabase; limpeza restrita aos finalizados.</div>';
+ if(!months.length&&!closed.length)box.innerHTML+='<div class="small">Nenhuma competência encontrada.</div>';
+ months.forEach(m=>{
+  const localOpen=state.rows.filter(r=>r.competencia===m).length;
+  const localFinal=state.finalizados.filter(r=>r.competencia===m).length;
+  const db=dbMonthCounts902[m];
+  const finalizados=db?db.finalizados:localFinal;
+  const abertos=db?Math.max(0,db.total-db.finalizados):localOpen;
+  const div=document.createElement('div');div.className='monthCard';
+  div.innerHTML=`<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small">Em andamento: ${abertos} | Finalizados: ${finalizados}${db?' (Supabase)':' (painel)'}</div></div><div class="monthStatus ${finalizados?'ok':'warn'}">${finalizados?'Finalizados disponíveis para limpeza':'Sem finalizados para limpar'}</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" ${finalizados?'':'disabled'} onclick="zerarCompetenciaSupabase('${m}')">Limpar finalizados</button></div>`;
+  box.appendChild(div);
+ });
+ if(closed.length){
+  const title=document.createElement('div');title.className='small';title.style.margin='12px 0 6px';title.innerHTML='<b>Competências encerradas / bloqueadas</b>';box.appendChild(title);
+  closed.forEach(m=>{const meta=state.competenciasZeradasMeta?.[m]||{};const d=document.createElement('div');d.className='monthCard';d.innerHTML=`<div><div style="font-size:22px;font-weight:900">${m}</div><div class="small">Encerrada ${meta.em?formatDateTimeBR(meta.em):''}${meta.usuario?' • '+escHtml(meta.usuario):''}</div></div><div class="monthStatus ok">Bloqueada para novas importações</div><div class="monthActions"><button class="mini btn-green" onclick="reabrirCompetencia('${m}')">Reabrir competência</button></div>`;box.appendChild(d);});
+ }
 }
 window.exportarCompetencia = function(m){
   const payload = { competencia:m, ativos:state.rows.filter(r => r.competencia === m), finalizados:state.finalizados.filter(r => r.competencia === m) };
@@ -1534,8 +1567,8 @@ window.reabrirCompetencia = async function(m){
 window.zerarCompetenciaSupabase = async function(m){
   if(!state.supabase){ alert('Preencha a conexão no HTML.'); return; }
   const qtd=state.finalizados.filter(r=>{ const c=r.competencia||competenciaMes(r.dataPC||r.data_pc||''); return c===m; }).length;
-  if(!qtd){ alert(`Não há finalizados em ${m} para limpar.`); return; }
-  if(!confirm(`Limpar ${qtd} programação(ões) FINALIZADA(S) de ${m}?\n\nProgramações ainda em andamento NÃO serão apagadas.\nA competência ficará bloqueada para que o Excel ou a futura sincronização automática não recriem registros deste mês.`)) return;
+  if(!qtd && !(dbMonthCounts902[m]?.finalizados>0)){ alert(`Não há finalizados em ${m} para limpar.`); return; }
+  if(!confirm(`Limpar ${dbMonthCounts902[m]?.finalizados??qtd} programação(ões) FINALIZADA(S) de ${m}?\n\nProgramações ainda em andamento NÃO serão apagadas.\nA competência ficará bloqueada para que o Excel ou a futura sincronização automática não recriem registros deste mês.`)) return;
   let error=null;
   try{
     const dbRows=await fetchAllRows('painel_902','id,data_pc,competencia_mes,status','id',true,1000);
@@ -3198,3 +3231,7 @@ initApp();
   function bootMarvel(){initMarvelTest();restoreMarvelSaved();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootMarvel,{once:true});else bootMarvel();
 })();
+
+// A lista mensal deve incluir competências existentes no banco mesmo que não
+// apareçam nos cards atuais. Consulta somente leitura ao abrir a tela.
+(function(){const b=document.querySelector('.navbtn[data-tab="config"]');if(b)b.addEventListener('click',()=>{setTimeout(carregarMesesSupabase902,250);});})();
