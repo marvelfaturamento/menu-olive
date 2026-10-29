@@ -3256,7 +3256,8 @@ initApp();
               const selected=checks.filter(v=>v.check.checked);
               if(!table.value.trim()){feedback.textContent='Informe o nome da tabela Marvel antes de reprocessar.';return;}
               if(!selected.length){feedback.textContent='Selecione pelo menos uma PC.';return;}
-              if(!table.readOnly){marvelApi('alias',{...first,tabelaMarvel:table.value.trim()}).then(()=>{table.readOnly=true;}).catch(e=>{feedback.textContent='Não foi possível salvar tabela fixa: '+e.message;});}
+              // O vínculo precisa estar persistido ANTES da nova pesquisa, não em paralelo.
+              // O pedido de reprocessamento é enviado após a confirmação do Supabase.
               const requestId='marvel-route-'+Date.now()+'-'+Math.random().toString(36).slice(2);
               routeButton.disabled=true;
               const routeProgress=document.createElement('div');routeProgress.style.cssText='height:9px;background:#35516b;border-radius:8px;overflow:hidden;margin-top:8px;';
@@ -3276,7 +3277,12 @@ initApp();
                   const x={...found,pagador:first.pagador,origem:first.origem,ufOrigem:first.ufOrigem,destino:first.destino,ufDestino:first.ufDestino};
                   const pc=pcKey(x),amount=Number(x.freteMarvel);
                   const row=appendTariff(x,table.value.trim());
-                  feedback.textContent='Tarifa encontrada. Salvando no Supabase...';
+                  // Havendo várias tarifas, a extensão deve enviar a primeira linha na ordem Marvel.
+                  // O painel jamais grava sem confirmação explícita do usuário.
+                  const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
+                  if(moeda==='USD'){row.textContent+=' | USD: requer conversão';done('Tarifa em USD. Não foi salva.');return;}
+                  if(!confirm('Confirmar a PRIMEIRA tarifa retornada pela Marvel para esta rota?\\nTabela: '+table.value.trim()+'\\nFrete: '+moneyBR(amount)+'\\nPC: '+pc+'\\nAtenção: este cadastro NÃO altera automaticamente o frete da PC.')){done('Tarifa localizada, aguardando validação. Nenhuma gravação realizada.');return;}
+                  feedback.textContent='Tarifa confirmada. Salvando no Supabase...';
                   persistTariff(x,table.value.trim()).then(()=>{
                     row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo na base');
                     moveToFound(x,table.value.trim());
@@ -3288,7 +3294,15 @@ initApp();
                 }else done('Consulta concluída, mas não encontrou tarifa única para esta rota. Verifique tabela e cidades.');
               }
               window.addEventListener('message',handle);
-              window.postMessage({source:'painel-902',type:'marvel-frete-902-route-request-v1',requestId,route:{pcId:String(selected[0].x.id||selected[0].x.pv),tabela:table.value.trim()}},location.origin);
+              (async()=>{
+                try{
+                  if(!table.readOnly){
+                    await marvelApi('alias',{...first,tabelaMarvel:table.value.trim()});
+                    table.readOnly=true;
+                  }
+                  window.postMessage({source:'painel-902',type:'marvel-frete-902-route-request-v1',requestId,route:{pcId:String(selected[0].x.id||selected[0].x.pv),tabela:table.value.trim()}},location.origin);
+                }catch(e){done('Não foi possível confirmar o vínculo no Supabase: '+e.message);}
+              })();
             });
             save.addEventListener('click',async()=>{
               const chosen=checks.filter(v=>v.check.checked&&!v.check.disabled).map(v=>v.x);
