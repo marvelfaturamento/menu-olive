@@ -3287,9 +3287,10 @@ initApp();
     const status=document.getElementById('marvelTestStatus');
     if(!button||!status)return;
     try{
-      const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
-      const token=JSON.parse(raw||'null')?.access_token;
-      if(!token)throw Error('Sessão do Olive não disponível');
+      // Usa a sessão ativa do próprio Painel 902, sem depender da chave do Menu Olive.
+      const session=await state.supabase?.auth.getSession();
+      const token=session?.data?.session?.access_token;
+      if(!token){status.textContent='Histórico indisponível sem sessão autenticada. A conferência pela extensão continua disponível.';return;}
       const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
       const data=await res.json();
       if(!res.ok||data.error)throw Error(data.error||'HTTP '+res.status);
