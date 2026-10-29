@@ -2937,11 +2937,20 @@ initApp();
     const button=document.getElementById('marvelTestRun');
     const status=document.getElementById('marvelTestStatus');
     if(!button||!status)return;
+    // Dois modos explícitos de auditoria; ambos são somente leitura.
+    const bar=button.parentElement;
+    const allButton=document.createElement('button');
+    allButton.type='button';allButton.textContent='Reprocessar todos';
+    allButton.style.marginLeft='8px';
+    button.textContent='Processar sem tarifa';
+    button.after(allButton);
+    let requestedMode='sem-tarifa';
+    allButton.addEventListener('click',()=>{requestedMode='todos';button.click();});
     button.addEventListener('click',(clickEvent)=>{
       if(button.disabled)return;
       const restored=clickEvent?.detail?.restoreData||null;
       const requestId='marvel-test-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-      button.disabled=true;
+      button.disabled=true;allButton.disabled=true;
       status.textContent=restored?'Carregando pendências e histórico salvos no Supabase...':'Solicitação enviada à extensão local. Aguardando resposta...';
       const progress=document.createElement('div');
       progress.style.cssText='margin:12px 0;padding:12px;border:1px solid #326a91;background:#122945;border-radius:10px;color:#eef7ff;';
@@ -2969,7 +2978,7 @@ initApp();
       }
       window.addEventListener('message',receiveProgress);
       const timer=setTimeout(()=>finish('Extensão Marvel não respondeu em 20 segundos. Confirme se a extensão está ativa e atualizada para este painel. Nenhuma PC foi alterada.'),20000);
-      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;status.textContent=message;progress.remove();}
+      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;status.textContent=message;progress.remove();}
       async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
@@ -3269,7 +3278,8 @@ initApp();
       if(restored){
         const casos=(restored.pendencias||[]).map(p=>({id:p.pc_id,pv:String(p.pc_id||'').split('|').pop(),pagador:p.pagador,origem:p.municipio_origem,ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,estado:p.estado||'Não encontrado',referencia:p.referencia,cavalo:p.cavalo}));
         receive({source:window,origin:location.origin,data:{source:'marvel-frete-ext',type:'marvel-frete-902-test-response-v1',requestId,ok:true,casos,total:casos.length}});
-      }else window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId,modo:'sem-tarifa',escopo:'importacao',somenteLeitura:true,campos:['frete','adv_percentual','seguro_ativo','moeda']},location.origin);
+      }else window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId,modo:requestedMode,escopo:'importacao',somenteLeitura:true,campos:['frete','adv_percentual','seguro_ativo','moeda']},location.origin);
+      requestedMode='sem-tarifa';
     });
   }
   async function restoreMarvelSaved(){
