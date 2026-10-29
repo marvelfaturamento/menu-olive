@@ -1511,7 +1511,7 @@ async function carregarMesesSupabase902(){
  if(dbMonthLoad902)return dbMonthLoad902;
  dbMonthLoad902=(async()=>{
   const counts={};
-  for(const table of ['painel_902','painel_902_finalizados']){
+  for(const table of ['painel_902','painel_902_finalizados','pcs_finalizadas']){
    for(let from=0;from<30000;from+=1000){
     const {data,error}=await state.supabase.from(table).select('id,data_pc,filial,competencia_mes,status').range(from,from+999);
     if(error)throw error;
@@ -1519,7 +1519,7 @@ async function carregarMesesSupabase902(){
      const m=mesDb902(r)||'sem-competencia';
      const item=counts[m]||(counts[m]={total:0,finalizados:0});
      item.total++;
-     if(table==='painel_902_finalizados'||norm(r.status)==='FINALIZADO')item.finalizados++;
+     if(table==='painel_902_finalizados'||table==='pcs_finalizadas'||norm(r.status)==='FINALIZADO')item.finalizados++;
     }
     if(!data||data.length<1000)break;
    }
@@ -1567,7 +1567,7 @@ async function obterCompetenciaCompleta902(m){
  if(!/^\d{4}-\d{2}$/.test(m))throw Error('Competência inválida');
  if(!state.supabase)throw Error('Supabase indisponível');
  const result={competencia:m,gerado_em:new Date().toISOString(),tabelas:{}};
- for(const tabela of ['painel_902','painel_902_finalizados']){
+ for(const tabela of ['painel_902','painel_902_finalizados','pcs_finalizadas']){
   const rows=await fetchAllRows(tabela,'*','id',true,1000);
   if(!Array.isArray(rows))throw Error('Não foi possível ler '+tabela);
   result.tabelas[tabela]=rows.filter(r=>mesDb902(r)===m);
@@ -1584,7 +1584,7 @@ function baixarBackup902(payload){
 window.exportarSemCompetencia902=async function(){
  try{
   const payload={competencia:'sem-competencia',gerado_em:new Date().toISOString(),tabelas:{}};
-  for(const tabela of ['painel_902','painel_902_finalizados']){
+  for(const tabela of ['painel_902','painel_902_finalizados','pcs_finalizadas']){
    const rows=await fetchAllRows(tabela,'*','id',true,1000);
    if(!Array.isArray(rows))throw Error('Falha ao consultar '+tabela);
    payload.tabelas[tabela]=rows.filter(r=>!mesDb902(r));
@@ -1633,7 +1633,7 @@ window.zerarCompetenciaSupabase=async function(m){
   const marker={zerada:true,em:new Date().toISOString(),usuario:usuarioAtual902(),registros:payload.total,limpeza_completa:true};
   const mk=await state.supabase.from('configuracoes_902').upsert({chave:'competencia_zerada:'+m,valor:JSON.stringify(marker),updated_at:new Date().toISOString()},{onConflict:'chave'});
   if(mk.error)throw Error('Não foi possível bloquear a competência: '+mk.error.message);
-  for(const tabela of ['painel_902','painel_902_finalizados']){
+  for(const tabela of ['painel_902','painel_902_finalizados','pcs_finalizadas']){
    const ids=payload.tabelas[tabela].map(r=>r.id).filter(x=>x!==null&&x!==undefined);
    for(let i=0;i<ids.length;i+=150){
     const {error}=await state.supabase.from(tabela).delete().in('id',ids.slice(i,i+150));
