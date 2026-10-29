@@ -1481,14 +1481,15 @@ function renderExcluirFinalizadosMes(){
 }
 
 let dbMonthCounts902={};
+let dbMonthFetched902=false;
 let dbMonthLoad902=null;
 function mesDb902(r){
  const c=String(r.competencia_mes||'').slice(0,7);
- if(/^\\d{4}-\\d{2}$/.test(c))return c;
+ if(/^\d{4}-\d{2}$/.test(c))return c;
  const d=String(r.data_pc||'');
- const br=d.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})/);
+ const br=d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
  if(br)return br[3]+'-'+br[2];
- return /^\\d{4}-\\d{2}/.test(d)?d.slice(0,7):'';
+ return /^\d{4}-\d{2}/.test(d)?d.slice(0,7):'';
 }
 async function carregarMesesSupabase902(){
  if(!state.supabase)return;
@@ -1509,11 +1510,13 @@ async function carregarMesesSupabase902(){
    }
   }
   dbMonthCounts902=counts;
+  dbMonthFetched902=true;
   renderMonthsPanel();
  })().catch(e=>{console.warn('Controle mensal: consulta de competências falhou',e);const info=document.getElementById('mesesDbStatus902');if(info)info.textContent='Falha ao consultar Supabase: '+e.message;}).finally(()=>{dbMonthLoad902=null;});
  return dbMonthLoad902;
 }
 function renderMonthsPanel(){
+ if(state.supabase&&!dbMonthFetched902&&!dbMonthLoad902)void carregarMesesSupabase902();
  const box=mesesBox;
  const compet={};
  state.rows.forEach(r=>{if(r.competencia&&!state.competenciasZeradas.has(r.competencia))compet[r.competencia]=true;});
