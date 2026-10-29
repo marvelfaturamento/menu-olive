@@ -2977,7 +2977,7 @@ initApp();
         updateProgress(Number(d.done),Number(d.total),String(d.stage||''));
       }
       window.addEventListener('message',receiveProgress);
-      const timer=setTimeout(()=>finish('Extensão Marvel não respondeu em 20 segundos. Confirme se a extensão está ativa e atualizada para este painel. Nenhuma PC foi alterada.'),20000);
+      const timer=setTimeout(()=>finish('A extensão não confirmou a conclusão em 15 minutos. Verifique o histórico na aba da extensão antes de repetir a consulta. Nenhuma gravação operacional foi iniciada pelo painel.'),900000);
       function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;status.textContent=message;progress.remove();}
       async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
