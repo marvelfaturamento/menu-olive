@@ -3287,20 +3287,16 @@ initApp();
     const status=document.getElementById('marvelTestStatus');
     if(!button||!status)return;
     try{
-      // Usa a sessão ativa do próprio Painel 902, sem depender da chave do Menu Olive.
-      const session=await state.supabase?.auth.getSession();
-      const token=session?.data?.session?.access_token;
+      // A autenticação do Menu Olive é mantida no projeto de login, distinto do Painel 902.
+      const authKey='sb-rqwmhywgckuwhbidqves-auth-token';
+      let token='';
+      try{token=JSON.parse(localStorage.getItem(authKey)||'null')?.access_token||'';}catch(_){}
       if(!token){
-        // O painel pode ser aberto pelo menu sem uma sessão Auth no submódulo.
-        // Nesse caso, restaurar a visualização diretamente das tabelas permitidas por RLS.
-        const tables=['frete_marvel_pendencias','config_frete_marvel_rotas','config_frete_marvel_spot_rotas','config_frete_marvel_vinculos'];
-        const results=await Promise.all(tables.map(t=>state.supabase.from(t).select('*').limit(1000)));
-        const failures=results.map((r,i)=>r.error?tables[i]+': '+r.error.message:null).filter(Boolean);
-        if(failures.length)throw Error('Leitura bloqueada: '+failures.join('; '));
-        const [pendencias,tarifas,spotsRotas,vinculos]=results.map(r=>r.data||[]);
-        button.dispatchEvent(new CustomEvent('click',{detail:{restoreData:{pendencias,tarifas,spotsRotas,vinculos,spots:[]}}}));
-        return;
+        const authClient=window.supabase.createClient('https://rqwmhywgckuwhbidqves.supabase.co','sb_publishable_r4Ftl_7kEjwZVTOlY04pKg_Jp03aBH1',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+        const {data}=await authClient.auth.getSession();
+        token=data?.session?.access_token||'';
       }
+      if(!token)throw Error('Faça login no Menu Olive e reabra o Painel 902 para consultar os dados salvos.');
       const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
       const data=await res.json();
       if(!res.ok||data.error)throw Error(data.error||'HTTP '+res.status);
