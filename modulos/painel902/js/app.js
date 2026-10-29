@@ -3051,7 +3051,10 @@ initApp();
           const routeMatches=(a,b)=>[a.pagador,a.origem||a.municipio_origem,a.ufOrigem||a.uf_origem,a.destino||a.municipio_destino,a.ufDestino||a.uf_destino].every((v,i)=>normFrete(v)===normFrete([b.pagador,b.municipio_origem,b.uf_origem,b.municipio_destino,b.uf_destino][i]));
           const spotMatches=(a,b)=>{const id=String(a.id||a.pv||'');const saved=String(b.pc_id||'');return saved===id||saved.endsWith('|'+String(a.pv||''))&&String(a.pv||'')!=='';};
           const resolvedMarvel=x=>(savedMarvelData.tarifas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t))||(savedMarvelData.spotsRotas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t));
-          pending=pending.filter(x=>!resolvedMarvel(x));
+          // Não mostrar como pendência uma PC já resolvida na mesma resposta da extensão.
+          // Uma tarifa gravada anteriormente também encerra a pendência visual da rota.
+          const foundKeys=new Set(found.map(x=>String(x.id||x.pv||'')));
+          pending=pending.filter(x=>!resolvedMarvel(x)&&!foundKeys.has(String(x.id||x.pv||'')));
           out.replaceChildren();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
@@ -3173,6 +3176,9 @@ initApp();
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
             const row=appendTariff(x,tabela);
             const currency=String(x.moeda||x.moedaMarvel||'').toUpperCase();
+            const matchStatus=String(x.estado||'');
+            const diagnostic='Tabela: '+(tabela||'não identificada')+' | Moeda: '+(currency||'não informada')+' | Identificador: '+(x.id||'ausente');
+            const diag=document.createElement('small');diag.style.cssText='display:block;margin:6px 0;color:#b9d7f6;';diag.textContent=diagnostic;row.appendChild(diag);
             const eligible=Boolean(x.id&&x.pagador&&x.origem&&x.destino&&x.ufOrigem&&x.ufDestino&&tabela
               &&Number(x.freteMarvel)>0&&currency==='BRL'
               &&['Cadastrar','Atualizar'].includes(String(x.estado))
