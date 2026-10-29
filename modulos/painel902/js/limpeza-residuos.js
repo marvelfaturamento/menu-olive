@@ -10,8 +10,23 @@
     if(!reopen||card.querySelector('.btn-residuos-902'))return;
     const month=(reopen.getAttribute('onclick')||'').match(/\d{4}-\d{2}/)?.[0];
     if(!month)return;
+    const summary=card.querySelector('.small');
+    const count=dbMonthCounts902[month];
+    if(summary){
+     const old=card.querySelector('.residuos-count-902');
+     if(old)old.remove();
+     const info=document.createElement('div');
+     info.className='small residuos-count-902';
+     info.style.marginTop='6px';
+     if(!dbMonthFetched902) info.textContent='Resíduos: consultando Supabase...';
+     else if(count&&count.total>0) info.textContent='Resíduos: '+count.total+' | Finalizados: '+count.finalizados+' | Em andamento: '+(count.total-count.finalizados);
+     else info.textContent='Resíduos identificados: 0';
+     summary.parentNode.appendChild(info);
+    }
     const btn=document.createElement('button');
     btn.type='button';btn.className='mini btn-red btn-residuos-902';btn.textContent='Limpar resíduos';
+    btn.disabled=!dbMonthFetched902||!count||count.total===0;
+    btn.title=btn.disabled?'Nenhum resíduo identificado para esta competência':'Exportar backup e limpar resíduos';
     btn.onclick=()=>window.limparResiduos902(month);
     reopen.parentNode.insertBefore(btn,reopen);
    });
