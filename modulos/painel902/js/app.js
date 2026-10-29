@@ -2983,7 +2983,11 @@ initApp();
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
         if(d?.source!=='marvel-frete-ext'||d?.type!=='marvel-frete-902-test-response-v1'||d?.requestId!==requestId)return;
-        if(d.ok){fill.style.width='100%';heading.textContent='Conferência Marvel: 100% — concluída';stage.textContent='Resultados recebidos. Nenhum frete operacional foi alterado.';}finish(d.ok?'Extensão respondeu. Conferência recebida (sem gravação de PCs).':'Falha na extensão: '+String(d.erro||'desconhecida'));
+        const casesReceived=Array.isArray(d.casos)?d.casos.length:0;
+        const reportedTotal=Number(d.total)||0;
+        const emptyResponse=Boolean(d.ok)&&casesReceived===0&&reportedTotal===0&&!restored;
+        if(d.ok&&!emptyResponse){fill.style.width='100%';heading.textContent='Resposta Marvel recebida';stage.textContent='Validando PCs e resultados, sem gravar fretes operacionais.';}
+        finish(emptyResponse?'A extensão encerrou sem consultar nenhuma PC. Conferência NÃO realizada. Verifique se a extensão instalada reconhece este modo de teste.':d.ok?'Extensão respondeu com '+casesReceived+' caso(s). Validando pendências e tarifas...':'Falha na extensão: '+String(d.erro||'desconhecida'));
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
           const items=Array.isArray(d.casos)?[...d.casos]:[];
