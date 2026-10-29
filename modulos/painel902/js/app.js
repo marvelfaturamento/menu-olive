@@ -1486,9 +1486,12 @@ let dbMonthLoad902=null;
 function mesDb902(r){
  const c=String(r.competencia_mes||'').slice(0,7);
  if(/^\d{4}-\d{2}$/.test(c))return c;
- const d=String(r.data_pc||'');
- const br=d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
- if(br)return br[3]+'-'+br[2];
+ const d=String(r.data_pc||'').trim();
+ let match=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+ if(match&&Number(match[1])<=31&&Number(match[2])<=12)return match[3]+'-'+match[2].padStart(2,'0');
+ match=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+ // Dates like 7/29/26 are US mm/dd/yy, never interpreted as July 2029.
+ if(match&&Number(match[2])>12&&Number(match[1])<=12)return '20'+match[3]+'-'+match[1].padStart(2,'0');
  return /^\d{4}-\d{2}/.test(d)?d.slice(0,7):'';
 }
 async function carregarMesesSupabase902(){
@@ -1501,7 +1504,7 @@ async function carregarMesesSupabase902(){
     const {data,error}=await state.supabase.from(table).select('id,data_pc,competencia_mes,status').range(from,from+999);
     if(error)throw error;
     for(const r of data||[]){
-     const m=mesDb902(r);if(!m)continue;
+     const m=mesDb902(r)||'sem-competencia';
      const item=counts[m]||(counts[m]={total:0,finalizados:0});
      item.total++;
      if(table==='painel_902_finalizados'||norm(r.status)==='FINALIZADO')item.finalizados++;
@@ -1521,7 +1524,8 @@ function renderMonthsPanel(){
  const compet={};
  state.rows.forEach(r=>{if(r.competencia&&!state.competenciasZeradas.has(r.competencia))compet[r.competencia]=true;});
  state.finalizados.forEach(r=>{if(r.competencia&&!state.competenciasZeradas.has(r.competencia))compet[r.competencia]=true;});
- Object.keys(dbMonthCounts902).forEach(m=>{if(!state.competenciasZeradas.has(m))compet[m]=true;});
+ Object.keys(dbMonthCounts902).forEach(m=>{if(m!=='sem-competencia'&&!state.competenciasZeradas.has(m))compet[m]=true;});
+ const unknown=dbMonthCounts902['sem-competencia']?.total||0;
  const months=Object.keys(compet).sort();
  const closed=[...state.competenciasZeradas].sort();
  box.innerHTML='<div id="mesesDbStatus902" class="small">Contagem do Supabase; limpeza integral da competência com backup.</div>';
@@ -1537,6 +1541,11 @@ function renderMonthsPanel(){
   div.innerHTML=`<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small">Total: ${total} | Em andamento: ${abertos} | Finalizados: ${finalizados}${db?' (Supabase)':' (painel)'}</div></div><div class="monthStatus ok">Limpeza completa disponível</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" ${total?'':'disabled'} onclick="zerarCompetenciaSupabase('${m}')">Limpar mês</button></div>`;
   box.appendChild(div);
  });
+ if(unknown){
+  const warning=document.createElement('div');warning.className='monthCard';
+  warning.innerHTML='<div><b>Registros sem competência identificável</b><div class="small">'+unknown+' registros históricos com data ausente ou ambígua. Não incluídos em limpeza mensal automática.</div></div><div class="monthStatus warn">Revisão necessária</div><div class="monthActions"><button class="mini" onclick="exportarSemCompetencia902()">Exportar para análise</button></div>';
+  box.appendChild(warning);
+ }
  if(closed.length){
   const title=document.createElement('div');title.className='small';title.style.margin='12px 0 6px';title.innerHTML='<b>Competências encerradas / bloqueadas</b>';box.appendChild(title);
   closed.forEach(m=>{const meta=state.competenciasZeradasMeta?.[m]||{};const d=document.createElement('div');d.className='monthCard';d.innerHTML=`<div><div style="font-size:22px;font-weight:900">${m}</div><div class="small">Encerrada ${meta.em?formatDateTimeBR(meta.em):''}${meta.usuario?' • '+escHtml(meta.usuario):''}</div></div><div class="monthStatus ok">Bloqueada para novas importações</div><div class="monthActions"><button class="mini btn-green" onclick="reabrirCompetencia('${m}')">Reabrir competência</button></div>`;box.appendChild(d);});
@@ -1560,6 +1569,18 @@ function baixarBackup902(payload){
  a.href=url;a.download='backup_painel902_'+payload.competencia+'_'+new Date().toISOString().slice(0,10)+'.json';
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
+window.exportarSemCompetencia902=async function(){
+ try{
+  const payload={competencia:'sem-competencia',gerado_em:new Date().toISOString(),tabelas:{}};
+  for(const tabela of ['painel_902','painel_902_finalizados']){
+   const rows=await fetchAllRows(tabela,'*','id',true,1000);
+   if(!Array.isArray(rows))throw Error('Falha ao consultar '+tabela);
+   payload.tabelas[tabela]=rows.filter(r=>!mesDb902(r));
+  }
+  payload.total=Object.values(payload.tabelas).reduce((n,a)=>n+a.length,0);
+  baixarBackup902(payload);
+ }catch(e){alert('Falha ao exportar registros sem competência: '+e.message);}
+};
 window.exportarCompetencia=async function(m){
  try{
   const payload=await obterCompetenciaCompleta902(m);
