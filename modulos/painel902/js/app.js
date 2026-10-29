@@ -2994,7 +2994,8 @@ initApp();
               const {data:zeros,error:zeroError}=await state.supabase
                 .from('painel_902')
                 .select('id,pv,pagador,municipio_origem,uf_origem,municipio_destino,uf_destino,frete_padrao,bucket_atual,ref,referencia,cavalo')
-                .in('bucket_atual',['agNota','aduana','alertaInt'])
+                .in('bucket_atual',['ativo','agNota','aduana','alertaInt'])
+                .eq('uf_origem','EX')
                 .eq('frete_padrao',0)
                 .limit(1000);
               if(zeroError)throw zeroError;
@@ -3014,7 +3015,7 @@ initApp();
           // Evita reprocessar pendências históricas de PCs já encerradas.
           const activeKeys=new Set();
           try{
-            const active=await state.supabase.from('painel_902').select('id,pv').in('bucket_atual',['agNota','aduana','alertaInt']).limit(1000);
+            const active=await state.supabase.from('painel_902').select('id,pv').eq('uf_origem','EX').in('bucket_atual',['ativo','agNota','aduana','alertaInt']).limit(1000);
             if(active.error)throw active.error;
             for(const p of active.data||[]){activeKeys.add(String(p.id||''));activeKeys.add(String(p.pv||''));}
           }catch(e){console.warn('Marvel: não foi possível validar PCs ativas',e);}
