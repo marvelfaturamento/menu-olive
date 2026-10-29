@@ -3290,7 +3290,17 @@ initApp();
       // Usa a sessão ativa do próprio Painel 902, sem depender da chave do Menu Olive.
       const session=await state.supabase?.auth.getSession();
       const token=session?.data?.session?.access_token;
-      if(!token){status.textContent='Histórico indisponível sem sessão autenticada. A conferência pela extensão continua disponível.';return;}
+      if(!token){
+        // O painel pode ser aberto pelo menu sem uma sessão Auth no submódulo.
+        // Nesse caso, restaurar a visualização diretamente das tabelas permitidas por RLS.
+        const tables=['frete_marvel_pendencias','config_frete_marvel_rotas','config_frete_marvel_spot_rotas','config_frete_marvel_vinculos'];
+        const results=await Promise.all(tables.map(t=>state.supabase.from(t).select('*').limit(1000)));
+        const failures=results.map((r,i)=>r.error?tables[i]+': '+r.error.message:null).filter(Boolean);
+        if(failures.length)throw Error('Leitura bloqueada: '+failures.join('; '));
+        const [pendencias,tarifas,spotsRotas,vinculos]=results.map(r=>r.data||[]);
+        button.dispatchEvent(new CustomEvent('click',{detail:{restoreData:{pendencias,tarifas,spotsRotas,vinculos,spots:[]}}}));
+        return;
+      }
       const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'list'})});
       const data=await res.json();
       if(!res.ok||data.error)throw Error(data.error||'HTTP '+res.status);
