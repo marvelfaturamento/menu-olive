@@ -1524,7 +1524,7 @@ function renderMonthsPanel(){
  Object.keys(dbMonthCounts902).forEach(m=>{if(!state.competenciasZeradas.has(m))compet[m]=true;});
  const months=Object.keys(compet).sort();
  const closed=[...state.competenciasZeradas].sort();
- box.innerHTML='<div id="mesesDbStatus902" class="small">Contagem do Supabase; limpeza restrita aos finalizados.</div>';
+ box.innerHTML='<div id="mesesDbStatus902" class="small">Contagem do Supabase; limpeza integral da competência com backup.</div>';
  if(!months.length&&!closed.length)box.innerHTML+='<div class="small">Nenhuma competência encontrada.</div>';
  months.forEach(m=>{
   const localOpen=state.rows.filter(r=>r.competencia===m).length;
@@ -1532,8 +1532,9 @@ function renderMonthsPanel(){
   const db=dbMonthCounts902[m];
   const finalizados=db?db.finalizados:localFinal;
   const abertos=db?Math.max(0,db.total-db.finalizados):localOpen;
+  const total=db?db.total:localOpen+localFinal;
   const div=document.createElement('div');div.className='monthCard';
-  div.innerHTML=`<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small">Em andamento: ${abertos} | Finalizados: ${finalizados}${db?' (Supabase)':' (painel)'}</div></div><div class="monthStatus ${finalizados?'ok':'warn'}">${finalizados?'Finalizados disponíveis para limpeza':'Sem finalizados para limpar'}</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" ${finalizados?'':'disabled'} onclick="zerarCompetenciaSupabase('${m}')">Limpar finalizados</button></div>`;
+  div.innerHTML=`<div><div style="font-size:30px;font-weight:900;line-height:1">${m}</div><div class="small">Total: ${total} | Em andamento: ${abertos} | Finalizados: ${finalizados}${db?' (Supabase)':' (painel)'}</div></div><div class="monthStatus ok">Limpeza completa disponível</div><div class="monthActions"><button class="mini" onclick="exportarCompetencia('${m}')">Exportar</button><button class="mini btn-red" ${total?'':'disabled'} onclick="zerarCompetenciaSupabase('${m}')">Limpar mês</button></div>`;
   box.appendChild(div);
  });
  if(closed.length){
@@ -1541,10 +1542,30 @@ function renderMonthsPanel(){
   closed.forEach(m=>{const meta=state.competenciasZeradasMeta?.[m]||{};const d=document.createElement('div');d.className='monthCard';d.innerHTML=`<div><div style="font-size:22px;font-weight:900">${m}</div><div class="small">Encerrada ${meta.em?formatDateTimeBR(meta.em):''}${meta.usuario?' • '+escHtml(meta.usuario):''}</div></div><div class="monthStatus ok">Bloqueada para novas importações</div><div class="monthActions"><button class="mini btn-green" onclick="reabrirCompetencia('${m}')">Reabrir competência</button></div>`;box.appendChild(d);});
  }
 }
-window.exportarCompetencia = function(m){
-  const payload = { competencia:m, ativos:state.rows.filter(r => r.competencia === m), finalizados:state.finalizados.filter(r => r.competencia === m) };
-  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `competencia_${m}.json`; a.click(); URL.revokeObjectURL(a.href);
+async function obterCompetenciaCompleta902(m){
+ if(!/^\d{4}-\d{2}$/.test(m))throw Error('Competência inválida');
+ if(!state.supabase)throw Error('Supabase indisponível');
+ const result={competencia:m,gerado_em:new Date().toISOString(),tabelas:{}};
+ for(const tabela of ['painel_902','painel_902_finalizados']){
+  const rows=await fetchAllRows(tabela,'*','id',true,1000);
+  if(!Array.isArray(rows))throw Error('Não foi possível ler '+tabela);
+  result.tabelas[tabela]=rows.filter(r=>mesDb902(r)===m);
+ }
+ result.total=Object.values(result.tabelas).reduce((n,a)=>n+a.length,0);
+ return result;
+}
+function baixarBackup902(payload){
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='backup_painel902_'+payload.competencia+'_'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+window.exportarCompetencia=async function(m){
+ try{
+  const payload=await obterCompetenciaCompleta902(m);
+  baixarBackup902(payload);
+  alert('Backup de '+m+' preparado com '+payload.total+' registros das duas tabelas. Confirme que o arquivo foi baixado antes de limpar.');
+ }catch(e){alert('Falha ao exportar competência: '+(e.message||e));}
 };
 window.reabrirCompetencia = async function(m){
   if(!state.supabase){ alert('Preencha a conexão no HTML.'); return; }
@@ -1564,35 +1585,39 @@ window.reabrirCompetencia = async function(m){
   }
 };
 
-window.zerarCompetenciaSupabase = async function(m){
-  if(!state.supabase){ alert('Preencha a conexão no HTML.'); return; }
-  const qtd=state.finalizados.filter(r=>{ const c=r.competencia||competenciaMes(r.dataPC||r.data_pc||''); return c===m; }).length;
-  if(!qtd && !(dbMonthCounts902[m]?.finalizados>0)){ alert(`Não há finalizados em ${m} para limpar.`); return; }
-  if(!confirm(`Limpar ${dbMonthCounts902[m]?.finalizados??qtd} programação(ões) FINALIZADA(S) de ${m}?\n\nProgramações ainda em andamento NÃO serão apagadas.\nA competência ficará bloqueada para que o Excel ou a futura sincronização automática não recriem registros deste mês.`)) return;
-  let error=null;
-  try{
-    const dbRows=await fetchAllRows('painel_902','id,data_pc,competencia_mes,status','id',true,1000);
-    const ids=(dbRows||[]).filter(r=>{
-      const c=competenciaMes(r.data_pc||''); const cm=String(r.competencia_mes||'').slice(0,7);
-      return (c===m||cm===m) && norm(r.status)==='FINALIZADO';
-    }).map(r=>r.id).filter(Boolean);
-    for(let i=0;i<ids.length;i+=200){ const x=await state.supabase.from('painel_902').delete().in('id',ids.slice(i,i+200)); if(x.error){error=x.error;break;} }
-    if(!error){
-      const hist=await fetchAllRows('painel_902_finalizados','id,data_pc,competencia_mes','id',true,1000);
-      const hids=(hist||[]).filter(r=>competenciaMes(r.data_pc||'')===m||String(r.competencia_mes||'').slice(0,7)===m).map(r=>r.id).filter(Boolean);
-      for(let i=0;i<hids.length;i+=200){ const x=await state.supabase.from('painel_902_finalizados').delete().in('id',hids.slice(i,i+200)); if(x.error){error=x.error;break;} }
-    }
-  }catch(e){error=e;}
-  if(error){ alert('Erro ao limpar finalizados: '+(error.message||error)); return; }
-  const marker={zerada:true,em:new Date().toISOString(),usuario:usuarioAtual902(),registros:qtd};
-  const mk=await state.supabase.from('configuracoes_902').upsert({chave:`competencia_zerada:${m}`,valor:JSON.stringify(marker),updated_at:new Date().toISOString()},{onConflict:'chave'});
-  if(mk.error){ alert('Finalizados apagados, mas não foi possível registrar o bloqueio: '+mk.error.message); return; }
-  state.competenciasZeradas.add(m); state.competenciasZeradasMeta[m]=marker;
-  state.finalizados=state.finalizados.filter(r=>{ const c=r.competencia||competenciaMes(r.dataPC||r.data_pc||''); return c!==m; });
-  await saveLocal(); renderAll(true); renderConfigEditors();
-  alert(`${qtd} finalizado(s) de ${m} removido(s). A competência ficou bloqueada para futuras importações.`);
+window.zerarCompetenciaSupabase=async function(m){
+ if(!state.supabase){alert('Supabase indisponível.');return;}
+ if(!/^\d{4}-\d{2}$/.test(m)){alert('Competência inválida.');return;}
+ if(state.competenciasZeradas.has(m)){alert('Competência já encerrada.');return;}
+ try{
+  const payload=await obterCompetenciaCompleta902(m);
+  if(!payload.total){alert('Não há registros de '+m+' para limpar.');return;}
+  baixarBackup902(payload);
+  if(!confirm('Backup de '+m+' preparado ('+payload.total+' registros).\n\nConfirme que o arquivo JSON foi baixado e está salvo. A limpeza removerá TODOS os registros desse mês nas duas tabelas, inclusive os que não estiverem finalizados.\n\nDeseja continuar?'))return;
+  const typed=prompt('Para confirmar a exclusão definitiva de '+payload.total+' registros, digite exatamente '+m+':');
+  if(typed!==m){alert('Limpeza cancelada: confirmação não corresponde à competência.');return;}
+  // Bloqueio ANTES da exclusão, para impedir reimportação durante o processo.
+  const marker={zerada:true,em:new Date().toISOString(),usuario:usuarioAtual902(),registros:payload.total,limpeza_completa:true};
+  const mk=await state.supabase.from('configuracoes_902').upsert({chave:'competencia_zerada:'+m,valor:JSON.stringify(marker),updated_at:new Date().toISOString()},{onConflict:'chave'});
+  if(mk.error)throw Error('Não foi possível bloquear a competência: '+mk.error.message);
+  for(const tabela of ['painel_902','painel_902_finalizados']){
+   const ids=payload.tabelas[tabela].map(r=>r.id).filter(x=>x!==null&&x!==undefined);
+   for(let i=0;i<ids.length;i+=150){
+    const {error}=await state.supabase.from(tabela).delete().in('id',ids.slice(i,i+150));
+    if(error)throw Error('Falha em '+tabela+': '+error.message);
+   }
+  }
+  // Checagem após a limpeza: nunca informar sucesso se houver registros restantes.
+  const remaining=await obterCompetenciaCompleta902(m);
+  if(remaining.total)throw Error('Restaram '+remaining.total+' registros; competência permanece bloqueada. Não reimporte o mês.');
+  state.competenciasZeradas.add(m);state.competenciasZeradasMeta[m]=marker;
+  state.rows=state.rows.filter(r=>(r.competencia||competenciaMes(r.dataPC||r.data_pc||''))!==m);
+  state.finalizados=state.finalizados.filter(r=>(r.competencia||competenciaMes(r.dataPC||r.data_pc||''))!==m);
+  delete dbMonthCounts902[m];
+  await saveLocal();renderAll(true);renderConfigEditors();
+  alert('Competência '+m+' limpa: '+payload.total+' registros removidos e novas importações bloqueadas.');
+ }catch(e){alert('Limpeza não concluída: '+(e.message||e)+'. Se iniciou a exclusão, mantenha a competência bloqueada e verifique a base.');}
 };
-
 function renderConfigEditors(){
   state.config.aduanas = dedupeList(state.config.aduanas);
   state.config.alerta = dedupeList(state.config.alerta);
@@ -2524,7 +2549,7 @@ async function syncToSupabase(silent=false){
       missingFinalIds
     });
     setStatusText(`Supabase: ERRO DE INTEGRIDADE • local ${expectedIds.size} / banco ${remoteIds.size}`);
-    if(!silent) alert(msg + '\\n\\nA base local foi preservada. O painel não considerará esta sincronização concluída.');
+    if(!silent) alert(msg + '\n\nA base local foi preservada. O painel não considerará esta sincronização concluída.');
     throw new Error(msg);
   }
 
