@@ -39,7 +39,7 @@
     baixarBackup902(backup);
     if(!confirm('Backup preparado com '+backup.total+' registros. Confira o arquivo baixado. A competência continuará bloqueada. Prosseguir?'))return;
     if(prompt('Digite exatamente '+month+' para confirmar a exclusão:')!==month)return;
-    for(const table of ['painel_902','painel_902_finalizados']){
+    for(const table of ['painel_902','painel_902_finalizados','pcs_finalizadas']){
      const ids=backup.tabelas[table].map(r=>r.id).filter(id=>id!==null&&id!==undefined);
      for(let i=0;i<ids.length;i+=150){
       const {error}=await state.supabase.from(table).delete().in('id',ids.slice(i,i+150));
