@@ -11,15 +11,21 @@ function init(){
  open.addEventListener('click',()=>{document.querySelector('.navbtn[data-tab="config"]')?.click();setTimeout(()=>{document.getElementById('marvelTestPanel')?.scrollIntoView({behavior:'smooth',block:'start'});},120);});
  let running=false;
  async function fetchPcs(){
-  if(!state.supabase)throw Error('Supabase ainda não conectado');
-  const rows=[];
-  for(let from=0;from<20000;from+=1000){
-   const {data,error}=await state.supabase.from('painel_902').select('id,pv,pagador,municipio_origem,uf_origem,municipio_destino,uf_destino,frete_padrao,bucket_atual,ref,referencia,cavalo').eq('uf_origem','EX').range(from,from+999);
-   if(error)throw error;
-   rows.push(...(data||[]));
-   if(!data||data.length<1000)break;
+  // A fonte correta é o espelho operacional exibido no 902, NÃO o histórico
+  // acumulado da tabela painel_902 (que contém PCs já encerradas).
+  const sets=currentSets();
+  const live=[...sets.ativo,...sets.agNota,...sets.aduana,...sets.alertaInt];
+  const unique=new Map();
+  for(const p of live){
+   if(norm(p.ufRem)!=='EX'||norm(p.ufDest)==='EX')continue;
+   const id=String(p.id||p.pv||'');
+   if(!id)continue;
+   unique.set(id,{id:p.id,pv:p.pv,pagador:p.pagador,municipio_origem:p.cidadeOrigem,
+     uf_origem:p.ufRem,municipio_destino:p.cidadeDestino,uf_destino:p.ufDest,
+     frete_padrao:Number(p.frete||0),bucket_atual:p.bucket,ref:p.ref,
+     referencia:p.referencia,cavalo:p.cavalo});
   }
-  return rows.filter(active);
+  return [...unique.values()];
  }
  async function process(mode){
   if(running)return;
