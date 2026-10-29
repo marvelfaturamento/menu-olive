@@ -1486,13 +1486,25 @@ let dbMonthLoad902=null;
 function mesDb902(r){
  const c=String(r.competencia_mes||'').slice(0,7);
  if(/^\d{4}-\d{2}$/.test(c))return c;
- const d=String(r.data_pc||'').trim();
- let match=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
- if(match&&Number(match[1])<=31&&Number(match[2])<=12)return match[3]+'-'+match[2].padStart(2,'0');
- match=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
- // Dates like 7/29/26 are US mm/dd/yy, never interpreted as July 2029.
- if(match&&Number(match[2])>12&&Number(match[1])<=12)return '20'+match[3]+'-'+match[1].padStart(2,'0');
- return /^\d{4}-\d{2}/.test(d)?d.slice(0,7):'';
+ const parseDate=(value)=>{
+  const d=String(value||'').trim();
+  let match=d.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s|$)/);
+  if(match&&Number(match[1])>=1&&Number(match[1])<=31&&Number(match[2])>=1&&Number(match[2])<=12)return match[3]+'-'+match[2];
+  match=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if(match&&Number(match[1])>=1&&Number(match[1])<=12&&Number(match[2])>12&&Number(match[2])<=31)return '20'+match[3]+'-'+match[1].padStart(2,'0');
+  return /^\d{4}-\d{2}/.test(d)?d.slice(0,7):'';
+ };
+ const direct=parseDate(r.data_pc);
+ if(direct)return direct;
+ // Historical imports sometimes stored the PC date in filial and in the composite ID.
+ const filial=parseDate(r.filial);
+ if(filial)return filial;
+ const parts=String(r.id||'').split('|');
+ for(const part of parts){
+  const date=parseDate(part);
+  if(date)return date;
+ }
+ return '';
 }
 async function carregarMesesSupabase902(){
  if(!state.supabase)return;
@@ -1501,7 +1513,7 @@ async function carregarMesesSupabase902(){
   const counts={};
   for(const table of ['painel_902','painel_902_finalizados']){
    for(let from=0;from<30000;from+=1000){
-    const {data,error}=await state.supabase.from(table).select('id,data_pc,competencia_mes,status').range(from,from+999);
+    const {data,error}=await state.supabase.from(table).select('id,data_pc,filial,competencia_mes,status').range(from,from+999);
     if(error)throw error;
     for(const r of data||[]){
      const m=mesDb902(r)||'sem-competencia';
