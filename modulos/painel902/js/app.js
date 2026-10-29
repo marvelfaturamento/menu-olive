@@ -2887,32 +2887,25 @@ initApp();
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
           const items=Array.isArray(d.casos)?[...d.casos]:[];
-          // Escopo único: todas as importações não finalizadas, inclusive PCs Ativas.
-          // A consulta é paginada para não omitir PCs acima do limite padrão de 1000.
+          // Somente PCs presentes nos cards operacionais atuais do 902.
+          // A tabela Supabase contém histórico acumulado e NÃO pode definir o escopo.
+          const liveSets=currentSets();
+          const live=[...liveSets.ativo,...liveSets.agNota,...liveSets.aduana,...liveSets.alertaInt]
+            .filter(p=>norm(p.ufRem)==='EX'&&norm(p.ufDest)!=='EX');
           const activeKeys=new Set();
-          try{
-            if(!state.supabase)throw Error('Supabase indisponível');
-            for(let from=0;from<20000;from+=1000){
-              const {data,error}=await state.supabase.from('painel_902')
-                .select('id,pv,pagador,municipio_origem,uf_origem,municipio_destino,uf_destino,frete_padrao,bucket_atual,ref,referencia,cavalo')
-                .eq('uf_origem','EX').neq('uf_destino','EX')
-                .in('bucket_atual',['ativo','agNota','aduana','alertaInt'])
-                .range(from,from+999);
-              if(error)throw error;
-              const page=data||[];
-              for(const p of page){
-                activeKeys.add(String(p.id||''));activeKeys.add(String(p.pv||''));
-                if(Number(p.frete_padrao)>0)continue;
-                if(items.some(x=>String(x.id||'')===String(p.id||'')||String(x.pv||'')===String(p.pv||'')))continue;
-                items.push({id:p.id,pv:p.pv,pagador:p.pagador,origem:p.municipio_origem,
-                  ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,
-                  referencia:p.referencia||p.ref,cavalo:p.cavalo,estado:'Não encontrado'});
-              }
-              if(page.length<1000)break;
-            }
-          }catch(e){console.warn('Marvel: falha ao carregar importações ativas',e);status.textContent='Não foi possível validar todas as importações: '+e.message;}
+          const seen=new Set(items.map(x=>String(x.id||x.pv||'')));
+          for(const p of live){
+            activeKeys.add(String(p.id||''));activeKeys.add(String(p.pv||''));
+            if(Number(p.frete)>0)continue;
+            const id=String(p.id||p.pv||'');
+            if(!id||seen.has(id))continue;
+            seen.add(id);
+            items.push({id:p.id,pv:p.pv,pagador:p.pagador,origem:p.cidadeOrigem,
+              ufOrigem:p.ufRem,destino:p.cidadeDestino,ufDestino:p.ufDest,
+              referencia:p.referencia||p.ref,cavalo:p.cavalo,estado:'Não encontrado'});
+          }
           const isActivePc=x=>activeKeys.has(String(x.id||''))||activeKeys.has(String(x.pv||''))||activeKeys.has(String(x.pc_id||''));
-          if(activeKeys.size)for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
+          for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
