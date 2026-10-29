@@ -2968,7 +2968,7 @@ initApp();
         updateProgress(Number(d.done),Number(d.total),String(d.stage||''));
       }
       window.addEventListener('message',receiveProgress);
-      const timer=setTimeout(()=>finish('Tempo limite de 5 minutos. Verifique a aba Marvel e a extensão; nenhuma tarifa foi gravada.'),300000);
+      const timer=setTimeout(()=>finish('Extensão Marvel não respondeu em 20 segundos. Confirme se a extensão está ativa e atualizada para este painel. Nenhuma PC foi alterada.'),20000);
       function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;status.textContent=message;progress.remove();}
       async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
@@ -3269,7 +3269,7 @@ initApp();
       if(restored){
         const casos=(restored.pendencias||[]).map(p=>({id:p.pc_id,pv:String(p.pc_id||'').split('|').pop(),pagador:p.pagador,origem:p.municipio_origem,ufOrigem:p.uf_origem,destino:p.municipio_destino,ufDestino:p.uf_destino,estado:p.estado||'Não encontrado',referencia:p.referencia,cavalo:p.cavalo}));
         receive({source:window,origin:location.origin,data:{source:'marvel-frete-ext',type:'marvel-frete-902-test-response-v1',requestId,ok:true,casos,total:casos.length}});
-      }else window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId},location.origin);
+      }else window.postMessage({source:'painel-902',type:'marvel-frete-902-test-request-v1',requestId,modo:'sem-tarifa',escopo:'importacao',somenteLeitura:true,campos:['frete','adv_percentual','seguro_ativo','moeda']},location.origin);
     });
   }
   async function restoreMarvelSaved(){
