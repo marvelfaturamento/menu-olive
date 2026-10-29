@@ -3170,39 +3170,56 @@ initApp();
           // Guarda todas as PCs não resolvidas na fila persistente.
           if(!restored)pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
-          // Conferências não podem gravar tarifas automaticamente: exigem revisão humana,
-          // identificação inequívoca da PC e moeda BRL.
+          // Tarifa inequívoca da Marvel: cadastro/atualização automática, sem confirmação manual.
+          // Somente registros completos, em BRL e com vínculo conhecido podem ser gravados.
+          const eligibleTariff=x=>{
+            const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
+            const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
+            return Boolean(x.id&&x.pagador&&x.origem&&x.destino&&x.ufOrigem&&x.ufDestino
+              &&tabela&&Number(x.freteMarvel)>0&&moeda==='BRL'
+              &&['Cadastrar','Atualizar'].includes(String(x.estado))
+              &&!x.ambiguo&&!x.semVinculo);
+          };
+          const toSync=found.filter(eligibleTariff);
+          const syncConcurrency=3;
+          let syncIndex=0,syncSuccess=0,syncErrors=0;
           found.forEach(x=>{
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
             const row=appendTariff(x,tabela);
-            const currency=String(x.moeda||x.moedaMarvel||'').toUpperCase();
-            const matchStatus=String(x.estado||'');
-            const diagnostic='Tabela: '+(tabela||'não identificada')+' | Moeda: '+(currency||'não informada')+' | Identificador: '+(x.id||'ausente');
-            const diag=document.createElement('small');diag.style.cssText='display:block;margin:6px 0;color:#b9d7f6;';diag.textContent=diagnostic;row.appendChild(diag);
-            const eligible=Boolean(x.id&&x.pagador&&x.origem&&x.destino&&x.ufOrigem&&x.ufDestino&&tabela
-              &&Number(x.freteMarvel)>0&&currency==='BRL'
-              &&['Cadastrar','Atualizar'].includes(String(x.estado))
-              &&!x.ambiguo&&!x.semVinculo);
-            const action=document.createElement('button');
-            action.type='button';action.textContent=eligible?'Validar e salvar tarifa':'Revisão necessária — não gravar';
-            action.disabled=!eligible;
-            action.style.cssText='display:block;margin-top:9px;padding:9px 12px;border-radius:7px;background:#146c62;color:white;border:1px solid #59b7a7;';
-            if(!eligible){
-              const reason=document.createElement('small');reason.style.display='block';
-              reason.textContent='Exige PC identificada, tabela vinculada, rota completa, frete positivo e moeda BRL explícita. Casos USD ou sem vínculo não serão gravados.';
+            const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
+            const diag=document.createElement('small');diag.style.cssText='display:block;margin:6px 0;color:#b9d7f6;';
+            diag.textContent='Tabela: '+(tabela||'não identificada')+' | Moeda: '+(moeda||'não informada')+' | Identificador: '+(x.id||'ausente');
+            row.appendChild(diag);
+            if(!eligibleTariff(x)){
+              const reason=document.createElement('small');reason.style.cssText='display:block;color:#ffd69c;';
+              reason.textContent='Revisão necessária: tabela, PC, rota, moeda BRL ou vínculo não confirmado. Nenhuma gravação.';
               row.appendChild(reason);
+            }else{
+              row.dataset.syncStatus='queued';
+              const info=document.createElement('small');info.style.display='block';info.textContent='Sincronização automática aguardando...';row.appendChild(info);
             }
-            action.addEventListener('click',async()=>{
-              if(!eligible||action.disabled)return;
-              if(!confirm('Salvar somente a tarifa desta rota na base Marvel? PC '+x.id+' | '+tabela+' | '+moneyBR(x.freteMarvel)+'. Não altera o frete operacional da PC.'))return;
-              action.disabled=true;action.textContent='Salvando...';
+          });
+          async function syncWorker(){
+            while(syncIndex<toSync.length){
+              const x=toSync[syncIndex++];
+              const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
+              const row=Array.from(views.encontrados.children).find(el=>el.dataset.marvelPc===pcKey(x));
+              if(row?.dataset.syncStatus==='saved')continue;
+              if(row)row.dataset.syncStatus='saving';
               try{
                 await persistTariff(x,tabela);
-                row.textContent=row.textContent.replace('Aguardando gravação na base','Tarifa salva e confirmada no Supabase');
-              }catch(e){action.disabled=false;action.textContent='Tentar salvar novamente';row.appendChild(document.createTextNode(' | ERRO: '+e.message));}
-            });
-            row.appendChild(action);
-          });
+                syncSuccess++;
+                if(row){row.dataset.syncStatus='saved';row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo automaticamente no Supabase');}
+                moveToFound(x,tabela);
+              }catch(e){
+                syncErrors++;
+                if(row){row.dataset.syncStatus='error';row.appendChild(document.createTextNode(' | Falha ao salvar: '+e.message));}
+              }
+              status.textContent='Sincronização Marvel: '+syncSuccess+' salva(s), '+syncErrors+' falha(s), '+(toSync.length-syncIndex)+' aguardando.';
+            }
+          }
+          if(!restored&&toSync.length)Promise.all(Array.from({length:Math.min(syncConcurrency,toSync.length)},()=>syncWorker()))
+            .then(()=>{status.textContent='Sincronização concluída: '+syncSuccess+' tarifa(s) salva(s), '+syncErrors+' falha(s).';});
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
           for(const group of groups.values()){
@@ -3281,7 +3298,7 @@ initApp();
                   // O painel jamais grava sem confirmação explícita do usuário.
                   const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
                   if(moeda==='USD'){row.textContent+=' | USD: requer conversão';done('Tarifa em USD. Não foi salva.');return;}
-                  if(!confirm('Confirmar a PRIMEIRA tarifa retornada pela Marvel para esta rota?\\nTabela: '+table.value.trim()+'\\nFrete: '+moneyBR(amount)+'\\nPC: '+pc+'\\nAtenção: este cadastro NÃO altera automaticamente o frete da PC.')){done('Tarifa localizada, aguardando validação. Nenhuma gravação realizada.');return;}
+                  // Reprocessamento de rota com vínculo confirmado também sincroniza automaticamente.
                   feedback.textContent='Tarifa confirmada. Salvando no Supabase...';
                   persistTariff(x,table.value.trim()).then(()=>{
                     row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo na base');
