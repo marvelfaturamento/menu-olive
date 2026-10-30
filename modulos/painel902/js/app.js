@@ -2960,13 +2960,33 @@ initApp();
     clientButton.type='button';clientButton.textContent='Reprocessar cliente';
     toolsBar.append(filterInput,clientInput,clientButton);
     bar.after(toolsBar);
-    filterInput.addEventListener('input',()=>{
-      const needle=filterInput.value.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
-      document.querySelectorAll('[data-marvel-view] > *').forEach(el=>{
-        const text=(el.textContent||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
-        el.style.display=!needle||text.includes(needle)?'':'none';
+    const normalizeFilter=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+    // Aceita uma letra trocada, ausente ou adicional em buscas de pelo menos 5 letras.
+    const fuzzyWord=(word,query)=>{
+      if(word.includes(query))return true;
+      if(query.length<5)return false;
+      for(let i=0;i<word.length;i++)if(word.slice(0,i)+word.slice(i+1)===query)return true;
+      for(let i=0;i<query.length;i++)if(query.slice(0,i)+query.slice(i+1)===word)return true;
+      if(word.length===query.length){
+        let errors=0;for(let i=0;i<word.length;i++)if(word[i]!==query[i]&&++errors>1)return false;
+        return errors===1;
+      }
+      return false;
+    };
+    const applyMarvelFilter=()=>{
+      const needle=normalizeFilter(filterInput.value);
+      const results=document.querySelectorAll('[data-marvel-view] > *');
+      let visible=0;
+      results.forEach(el=>{
+        const content=normalizeFilter(el.textContent);
+        const matches=!needle||content.includes(needle)||content.split(' ').some(word=>fuzzyWord(word,needle));
+        el.style.display=matches?'':'none';
+        if(matches)visible++;
       });
-    });
+      const empty=document.getElementById('marvelFilterEmpty');
+      if(empty)empty.hidden=!needle||visible>0;
+    };
+    filterInput.addEventListener('input',applyMarvelFilter);
     clientButton.addEventListener('click',()=>{
       const client=clientInput.value.trim();
       if(!client){clientInput.focus();return;}
@@ -3088,6 +3108,12 @@ initApp();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
           out.appendChild(summary);
+          // Informações técnicas permanecem acessíveis no código, mas não ocupam a tela.
+          summary.hidden=true;
+          const emptyFilter=document.createElement('p');
+          emptyFilter.id='marvelFilterEmpty';
+          emptyFilter.textContent='Nenhum resultado corresponde ao filtro informado.';
+          emptyFilter.hidden=true;emptyFilter.style.cssText='padding:12px;color:#b6c9e8;';
           if(!items.length && !restored){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
           const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Novas tarifas Marvel',found.length],['salvos','Salvos na base','carregando'],['spots','Spots','carregando']];
@@ -3104,11 +3130,11 @@ initApp();
             tab.addEventListener('click',()=>{Object.entries(views).forEach(([k,v])=>v.hidden=k!==key);});
           }
           out.appendChild(shell);
-          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.spots);out.appendChild(tabsBody);
+          const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.spots);out.appendChild(tabsBody);out.appendChild(emptyFilter);
           // Aplicar o filtro geral também aos resultados recebidos posteriormente.
-          const filterObserver=new MutationObserver(()=>filterInput.dispatchEvent(new Event('input')));
+          const filterObserver=new MutationObserver(applyMarvelFilter);
           filterObserver.observe(tabsBody,{childList:true,subtree:true});
-          filterInput.dispatchEvent(new Event('input'));
+          applyMarvelFilter();
           async function marvelApi(action,item){
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
             let token='';
