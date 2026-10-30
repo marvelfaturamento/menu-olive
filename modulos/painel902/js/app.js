@@ -3106,6 +3106,8 @@ initApp();
           out.appendChild(shell);
           const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.spots);out.appendChild(tabsBody);
           // Aplicar o filtro geral também aos resultados recebidos posteriormente.
+          const filterObserver=new MutationObserver(()=>filterInput.dispatchEvent(new Event('input')));
+          filterObserver.observe(tabsBody,{childList:true,subtree:true});
           filterInput.dispatchEvent(new Event('input'));
           async function marvelApi(action,item){
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
