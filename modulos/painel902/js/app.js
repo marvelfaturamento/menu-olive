@@ -931,7 +931,8 @@ function reclassify(){
       return;
     }
 
-    // Status Faturar persistido: respeitar a decisão operacional antes de regras de posição.\n    if(row.status === 'Faturar'){
+    // Status Faturar persistido: respeitar a decisão operacional antes de regras de posição.
+    if(row.status === 'Faturar'){
 
       if(
         !isUFEx(row.ufRem) &&
