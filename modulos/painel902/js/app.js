@@ -951,49 +951,6 @@ function reclassify(){
       return;
     }
 
-    // Comando manual Faturar deve prevalecer sobre localização, aduana e checkpoint.\n    // Mantém o status persistido nas próximas sincronizações, sem exigir chegada ao destino.\n    if(row.status === 'Faturar'){
-
-      if(
-        !isUFEx(row.ufRem) &&
-        isUFEx(row.ufDest)
-      ){
-        row.bucket = 'alertaExpo';
-        return;
-      }
-
-      if(
-        isUFEx(row.ufRem)
-      ){
-        row.bucket = 'alertaInt';
-        return;
-      }
-
-      if(
-        !isUFEx(row.ufRem) &&
-        !isUFEx(row.ufDest)
-      ){
-        row.bucket = 'alertaNac';
-        return;
-      }
-
-      if(checkpointRule){
-        if(row.passouCheckpoint && !rowInCheckpointCity(row, checkpointRule)){
-          row.bucket = checkpointRule.destinoBucket || 'alertaInt';
-        }else{
-          row.bucket = 'ativo';
-        }
-        return;
-      }
-
-      if(isUFEx(row.ufRem)){
-        row.bucket = 'alertaInt';
-        return;
-      }
-
-      row.bucket = 'alertaNac';
-      return;
-    }
-
     /* PRIORIDADE MÁXIMA: regra de aduana/checkpoint antes de qualquer alerta.
        Correção v5: clientes cadastrados em "Clientes com regra de aduana"
        que ainda estejam em cidade/posição de aduana devem permanecer na aba Aduana,
@@ -1034,6 +991,49 @@ function reclassify(){
     ){
       row.bucket = 'ativo';
       row.status = 'Coleta';
+      return;
+    }
+
+    if(row.status === 'Faturar'){
+
+      if(
+        !isUFEx(row.ufRem) &&
+        isUFEx(row.ufDest)
+      ){
+        row.bucket = 'alertaExpo';
+        return;
+      }
+
+      if(
+        isUFEx(row.ufRem)
+      ){
+        row.bucket = 'alertaInt';
+        return;
+      }
+
+      if(
+        !isUFEx(row.ufRem) &&
+        !isUFEx(row.ufDest)
+      ){
+        row.bucket = 'alertaNac';
+        return;
+      }
+
+      if(checkpointRule){
+        if(row.passouCheckpoint && !rowInCheckpointCity(row, checkpointRule)){
+          row.bucket = checkpointRule.destinoBucket || 'alertaInt';
+        }else{
+          row.bucket = 'ativo';
+        }
+        return;
+      }
+
+      if(isUFEx(row.ufRem)){
+        row.bucket = 'alertaInt';
+        return;
+      }
+
+      row.bucket = 'alertaNac';
       return;
     }
 
