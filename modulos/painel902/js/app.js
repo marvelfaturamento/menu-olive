@@ -3153,7 +3153,7 @@ initApp();
               const routeLabel=x=>(x.municipio_origem||'Origem não identificada')+'/'+(x.uf_origem||'—')+' → '+(x.municipio_destino||'Destino não identificado')+'/'+(x.uf_destino||'—');
               for(const x of entries){
                 const line=document.createElement('div');line.style.cssText='padding:10px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
-                line.textContent=x.kind+' | '+x.pagador+' | '+routeLabel(x)+' | '+(x.nome_marvel||x.tabela_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+                line.textContent=x.kind+' | '+x.pagador+' | '+routeLabel(x)+' | '+(x.nome_marvel||x.tabela_marvel||'')+' | '+Number(x.frete).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+(x.moeda_original==='USD'?' (original US$ '+Number(x.frete_original).toLocaleString('pt-BR',{minimumFractionDigits:2})+' × '+Number(x.cotacao_aplicada).toFixed(4)+'; PTAX '+(x.data_cotacao||'')+')':'');
                 views.salvos.appendChild(line);
               }
               for(const x of routes){
@@ -3222,7 +3222,7 @@ initApp();
             if(old)old.remove();
             const row=document.createElement('div');row.dataset.marvelPc=pc;
             row.style.cssText='background:#102f3c;border:1px solid #318879;border-left:5px solid #4bcca0;border-radius:10px;padding:12px;margin:9px 0;color:#e5fff5;';
-            row.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+moneyBR(x.freteMarvel)+' | '+(tabela||'Tabela não identificada')+' | Aguardando gravação na base';
+            row.textContent='PC '+pc+' | '+x.pagador+' | '+x.origem+'/'+x.ufOrigem+' → '+x.destino+'/'+x.ufDestino+' | Marvel: '+(String(x.moeda||x.moedaMarvel||'').toUpperCase()==='USD'?'US$ '+Number(x.freteMarvel).toLocaleString('pt-BR',{minimumFractionDigits:2}):moneyBR(x.freteMarvel))+' | '+(tabela||'Tabela não identificada')+' | Aguardando gravação na base';
             views.encontrados.appendChild(row);return row;
           }
           loadSaved().catch(e=>{status.textContent='Conferência concluída, mas a leitura da base falhou: '+e.message;});
@@ -3235,7 +3235,7 @@ initApp();
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
             const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
             return Boolean(x.id&&x.pagador&&x.origem&&x.destino&&x.ufOrigem&&x.ufDestino
-              &&tabela&&Number(x.freteMarvel)>0&&moeda==='BRL'
+              &&tabela&&Number(x.freteMarvel)>0&&['BRL','USD'].includes(moeda)
               &&['Cadastrar','Atualizar','Correto'].includes(String(x.estado))
               &&!x.ambiguo&&!x.semVinculo);
           };
@@ -3251,7 +3251,7 @@ initApp();
             row.appendChild(diag);
             if(!eligibleTariff(x)){
               const reason=document.createElement('small');reason.style.cssText='display:block;color:#ffd69c;';
-              reason.textContent='Revisão necessária: tabela, PC, rota, moeda BRL ou vínculo não confirmado. Nenhuma gravação.';
+              reason.textContent='Revisão necessária: tabela, PC, rota, moeda BRL/USD ou vínculo não confirmado. Nenhuma gravação.';
               row.appendChild(reason);
             }else{
               row.dataset.syncStatus='queued';
