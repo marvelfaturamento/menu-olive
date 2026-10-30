@@ -3075,7 +3075,7 @@ initApp();
           const isActivePc=x=>!activeKeys.size||activeKeys.has(String(x.id||''))||activeKeys.has(String(x.pv||''))||activeKeys.has(String(x.pc_id||''));
           for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
-          let found=items.filter(x=>['Cadastrar','Atualizar','Correto','USD — requer conversão'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
+          let found=items.filter(x=>(['Cadastrar','Atualizar','USD — requer conversão'].includes(String(x.estado)) || (String(x.estado)==='Correto' && String(x.moeda||x.moedaMarvel||'').toUpperCase()==='USD')) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
           let savedMarvelData={vinculos:[],tarifas:[],spots:[],spotsRotas:[]};
           try{
