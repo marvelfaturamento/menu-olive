@@ -3075,7 +3075,7 @@ initApp();
           const isActivePc=x=>!activeKeys.size||activeKeys.has(String(x.id||''))||activeKeys.has(String(x.pv||''))||activeKeys.has(String(x.pc_id||''));
           for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
-          let found=items.filter(x=>['Cadastrar','Atualizar'].includes(x.estado) && Number(x.freteMarvel)>0);
+          let found=items.filter(x=>['Cadastrar','Atualizar','Correto','USD — requer conversão'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
           let savedMarvelData={vinculos:[],tarifas:[],spots:[],spotsRotas:[]};
           try{
@@ -3230,13 +3230,13 @@ initApp();
           if(!restored)pending.forEach(async x=>{try{await marvelApi('pending',x);}catch(e){console.warn('Marvel: pendência não persistida',x.pv||x.id,e.message);}});
           if(!found.length)views.encontrados.textContent='Nenhuma tarifa encontrada aguardando cadastro nesta conferência.';
           // Tarifa inequívoca da Marvel: cadastro/atualização automática, sem confirmação manual.
-          // Somente registros completos, em BRL e com vínculo conhecido podem ser gravados.
+          // Somente registros completos, em BRL ou USD e com vínculo conhecido podem ser gravados.
           const eligibleTariff=x=>{
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
             const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
             return Boolean(x.id&&x.pagador&&x.origem&&x.destino&&x.ufOrigem&&x.ufDestino
               &&tabela&&Number(x.freteMarvel)>0&&['BRL','USD'].includes(moeda)
-              &&['Cadastrar','Atualizar','Correto'].includes(String(x.estado))
+              &&['Cadastrar','Atualizar','Correto','USD — requer conversão'].includes(String(x.estado))
               &&!x.ambiguo&&!x.semVinculo);
           };
           const toSync=found.filter(eligibleTariff);
