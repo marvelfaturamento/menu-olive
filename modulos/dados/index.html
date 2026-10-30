@@ -662,13 +662,13 @@ function auto(id,sug,key){
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
-      if(locais.length){if(minhaSeq===seq)exibir(locais,true,texto);return;}
+      if(locais.length){if(minhaSeq===seq)exibir(locais,false,texto);return;}
       box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
         const items=await consultarCidadesRapido(texto,controller.signal);
         if(minhaSeq!==seq)return;
-        exibir(items,true,texto);
+        exibir(items,false,texto);
       }catch(e){
         if(minhaSeq!==seq)return;
         console.warn('Autocomplete indisponível:',e);
@@ -1409,13 +1409,13 @@ function auto(id,sug,key){
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
-      if(locais.length){if(minhaSeq===seq)exibir(locais,true,texto);return;}
+      if(locais.length){if(minhaSeq===seq)exibir(locais,false,texto);return;}
       box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
         const items=await consultarCidadesRapido(texto,controller.signal);
         if(minhaSeq!==seq)return;
-        exibir(items,true,texto);
+        exibir(items,false,texto);
       }catch(e){
         if(minhaSeq!==seq)return;
         console.warn('Autocomplete indisponível:',e);
