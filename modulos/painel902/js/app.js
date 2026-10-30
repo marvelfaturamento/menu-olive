@@ -2945,13 +2945,41 @@ initApp();
     allButton.style.marginLeft='8px';
     button.textContent='Processar sem tarifa';
     button.after(allButton);
+    // Busca geral e processamento isolado por cliente, sem refazer as demais tabelas.
+    const toolsBar=document.createElement('div');
+    toolsBar.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;align-items:center;';
+    const filterInput=document.createElement('input');
+    filterInput.placeholder='Filtrar clientes, rotas, PCs ou tabelas...';
+    filterInput.setAttribute('aria-label','Filtro geral Fretes Marvel');
+    filterInput.style.cssText='flex:2;min-width:220px;padding:10px;border-radius:8px;border:1px solid #46628a;background:#12254b;color:white;';
+    const clientInput=document.createElement('input');
+    clientInput.placeholder='Cliente ou tabela: GARDEN, PARKER...';
+    clientInput.setAttribute('aria-label','Cliente para reprocessar');
+    clientInput.style.cssText='flex:1;min-width:200px;padding:10px;border-radius:8px;border:1px solid #46628a;background:#12254b;color:white;';
+    const clientButton=document.createElement('button');
+    clientButton.type='button';clientButton.textContent='Reprocessar cliente';
+    toolsBar.append(filterInput,clientInput,clientButton);
+    bar.after(toolsBar);
+    filterInput.addEventListener('input',()=>{
+      const needle=filterInput.value.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+      document.querySelectorAll('[data-marvel-view] > *').forEach(el=>{
+        const text=(el.textContent||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+        el.style.display=!needle||text.includes(needle)?'':'none';
+      });
+    });
+    clientButton.addEventListener('click',()=>{
+      const client=clientInput.value.trim();
+      if(!client){clientInput.focus();return;}
+      requestedMode='cliente:'+client;
+      button.click();
+    });
     let requestedMode='sem-tarifa';
     allButton.addEventListener('click',()=>{requestedMode='todos';button.click();});
     button.addEventListener('click',(clickEvent)=>{
       if(button.disabled)return;
       const restored=clickEvent?.detail?.restoreData||null;
       const requestId='marvel-test-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-      button.disabled=true;allButton.disabled=true;
+      button.disabled=true;allButton.disabled=true;clientButton.disabled=true;
       status.textContent=restored?'Carregando pendências e histórico salvos no Supabase...':'Solicitação enviada à extensão local. Aguardando resposta...';
       const progress=document.createElement('div');
       progress.style.cssText='margin:12px 0;padding:12px;border:1px solid #326a91;background:#122945;border-radius:10px;color:#eef7ff;';
@@ -2979,7 +3007,7 @@ initApp();
       }
       window.addEventListener('message',receiveProgress);
       const timer=setTimeout(()=>finish('A extensão não confirmou a conclusão em 15 minutos. Verifique o histórico na aba da extensão antes de repetir a consulta. Nenhuma gravação operacional foi iniciada pelo painel.'),900000);
-      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;status.textContent=message;progress.remove();}
+      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;clientButton.disabled=false;status.textContent=message;progress.remove();}
       async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
@@ -3077,6 +3105,8 @@ initApp();
           }
           out.appendChild(shell);
           const tabsBody=document.createElement('div');tabsBody.append(views.pendentes,views.encontrados,views.salvos,views.spots);out.appendChild(tabsBody);
+          // Aplicar o filtro geral também aos resultados recebidos posteriormente.
+          filterInput.dispatchEvent(new Event('input'));
           async function marvelApi(action,item){
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
             let token='';
