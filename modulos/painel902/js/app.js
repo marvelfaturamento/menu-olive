@@ -3178,7 +3178,7 @@ initApp();
             const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
             return Boolean(x.id&&x.pagador&&x.origem&&x.destino&&x.ufOrigem&&x.ufDestino
               &&tabela&&Number(x.freteMarvel)>0&&moeda==='BRL'
-              &&['Cadastrar','Atualizar'].includes(String(x.estado))
+              &&['Cadastrar','Atualizar','Correto'].includes(String(x.estado))
               &&!x.ambiguo&&!x.semVinculo);
           };
           const toSync=found.filter(eligibleTariff);
