@@ -931,6 +931,49 @@ function reclassify(){
       return;
     }
 
+    // Status Faturar persistido: respeitar a decisão operacional antes de regras de posição.\n    if(row.status === 'Faturar'){
+
+      if(
+        !isUFEx(row.ufRem) &&
+        isUFEx(row.ufDest)
+      ){
+        row.bucket = 'alertaExpo';
+        return;
+      }
+
+      if(
+        isUFEx(row.ufRem)
+      ){
+        row.bucket = 'alertaInt';
+        return;
+      }
+
+      if(
+        !isUFEx(row.ufRem) &&
+        !isUFEx(row.ufDest)
+      ){
+        row.bucket = 'alertaNac';
+        return;
+      }
+
+      if(checkpointRule){
+        if(row.passouCheckpoint && !rowInCheckpointCity(row, checkpointRule)){
+          row.bucket = checkpointRule.destinoBucket || 'alertaInt';
+        }else{
+          row.bucket = 'ativo';
+        }
+        return;
+      }
+
+      if(isUFEx(row.ufRem)){
+        row.bucket = 'alertaInt';
+        return;
+      }
+
+      row.bucket = 'alertaNac';
+      return;
+    }
+
     // Monitora aproximação da coleta. Até 20 km confirma automaticamente; entre
     // 20 e 40 km apenas guarda evidência. O alerta só nasce se depois houver afastamento.
     atualizarMonitorColeta(row);
@@ -991,49 +1034,6 @@ function reclassify(){
     ){
       row.bucket = 'ativo';
       row.status = 'Coleta';
-      return;
-    }
-
-    if(row.status === 'Faturar'){
-
-      if(
-        !isUFEx(row.ufRem) &&
-        isUFEx(row.ufDest)
-      ){
-        row.bucket = 'alertaExpo';
-        return;
-      }
-
-      if(
-        isUFEx(row.ufRem)
-      ){
-        row.bucket = 'alertaInt';
-        return;
-      }
-
-      if(
-        !isUFEx(row.ufRem) &&
-        !isUFEx(row.ufDest)
-      ){
-        row.bucket = 'alertaNac';
-        return;
-      }
-
-      if(checkpointRule){
-        if(row.passouCheckpoint && !rowInCheckpointCity(row, checkpointRule)){
-          row.bucket = checkpointRule.destinoBucket || 'alertaInt';
-        }else{
-          row.bucket = 'ativo';
-        }
-        return;
-      }
-
-      if(isUFEx(row.ufRem)){
-        row.bucket = 'alertaInt';
-        return;
-      }
-
-      row.bucket = 'alertaNac';
       return;
     }
 
