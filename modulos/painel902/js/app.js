@@ -2712,25 +2712,9 @@ async function initApp(){
   if(state.supabase){
     await carregarDaSupabase(true);
     iniciarAtualizacaoAutomaticaTratativas();
-    // Reconciliar o espelho completo entre navegadores, sem salvar nem reimportar.
-    // Evitar interromper operações, digitação ou formulários em edição.
-    let ultimaReleituraEspelho=Date.now();
-    let releituraEspelhoEmAndamento=false;
-    const atualizarEspelhoSeSeguro=async()=>{
-      if(document.hidden||busyOperation||releituraEspelhoEmAndamento||Date.now()-ultimaReleituraEspelho<90000)return;
-      const foco=document.activeElement;
-      if(foco && (foco.matches?.('input,textarea,select,[contenteditable="true"]')))return;
-      releituraEspelhoEmAndamento=true;
-      try{
-        await carregarDaSupabase(true);
-        ultimaReleituraEspelho=Date.now();
-      }catch(e){console.warn('[902] Falha na atualização entre navegadores',e);}
-      finally{releituraEspelhoEmAndamento=false;}
-    };
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden)void atualizarEspelhoSeSeguro();});
-    window.addEventListener('focus',()=>{void atualizarEspelhoSeSeguro();});
-    setInterval(()=>{void atualizarEspelhoSeSeguro();},120000);
-    setStatusText('Supabase: carregado • fonte única • espelho atualizado entre navegadores');
+    // Não recarregar o espelho automaticamente: importações e tratativas locais
+    // precisam permanecer intactas até o usuário solicitar Carregar/Sincronizar.
+    setStatusText('Supabase: carregado • fonte única • releitura manual do espelho');
   } else {
     await loadLocal();
     renderConfigEditors();
