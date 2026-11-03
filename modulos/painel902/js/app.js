@@ -2054,7 +2054,11 @@ async function parseExcelRows(matrix){
   const grassi=diagnosticoImportacao902.filter(d=>/GRASSI/i.test(d.pagador||'')||(/2306/.test(d.cavalo||'')&&String(d.pc)==='161145'));
   if(grassi.length)console.table(grassi);
   const grassi161145=grassi.find(d=>String(d.pc)==='161145'&&String(d.filial)==='1');
-  const avisoGrassi=grassi161145?' | Grassi PC 161145: '+grassi161145.destino+' ('+grassi161145.motivo+')':'';
+  const resumoGrassi=grassi.map(d=>'PC '+d.pc+' / filial '+d.filial+': '+d.destino+' ('+d.motivo+')');
+  const avisoGrassi=resumoGrassi.length?' | GRASSI no Excel: '+resumoGrassi.length+' registro(s) — '+resumoGrassi.join(' ; '):' | ATENÇÃO: nenhuma programação GRASSI identificada na leitura do Excel';
+  if(grassi161145 && grassi161145.destino==='ATIVA' && !idsAtivosImportados.has([grassi161145.ref,grassi161145.filial,grassi161145.pc].join('|'))){
+    console.error('[902] Grassi PC 161145 lida mas ausente das ativas',grassi161145);
+  }
   const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada${ausentesInesperados.length?', '+ausentesInesperados.length+' ausente(s) após classificação':''}${avisoGrassi}`;
   setStatusText(`Importação 902 concluída: ${resumo}`);
   return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length, novos, atualizados, semAlteracao, bloqueadas, maiorDataImportada };
