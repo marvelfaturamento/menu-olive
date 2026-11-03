@@ -2090,7 +2090,12 @@ async function parseExcelRows(matrix){
     console.error('[902] Grassi PC 161145 lida mas ausente das ativas',grassi161145);
   }
   const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada | Auditoria geral: ${resumoAuditoria.programacoesValidas} válidas, ${resumoAuditoria.classificadasAtivas} ativas, ${resumoAuditoria.classificadasFinalizadas} finalizadas, ${resumoAuditoria.ignoradas} ignoradas, ${resumoAuditoria.ausentesInesperados} ausentes inesperadas. CSV: exportarAuditoria902()${avisoGrassi}`;
-  setStatusText(`Importação 902 concluída: ${resumo}`);
+  // A auditoria detalhada permanece disponível no console/CSV,
+  // sem despejar centenas de PCs na faixa de status do painel.
+  const resumoVisual=`${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada`+
+    (resumoAuditoria.ausentesInesperados?` • ATENÇÃO: ${resumoAuditoria.ausentesInesperados} PC(s) ausente(s) após importação`:'');
+  setStatusText(`Importação 902 concluída: ${resumoVisual}`);
+  console.info('[902] Diagnóstico completo da importação:',resumo);
   return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length, novos, atualizados, semAlteracao, bloqueadas, maiorDataImportada };
 }
 
