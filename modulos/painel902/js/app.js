@@ -1888,6 +1888,7 @@ async function parseExcelRows(matrix){
   let autoFinalizadas = 0;
   let bloqueadas = 0, novos = 0, atualizados = 0, semAlteracao = 0;
   let maiorDataImportada = '';
+  const diagnosticoImportacao902=[];
 
   for(const r of rows){
     lidas++;
@@ -1907,12 +1908,19 @@ async function parseExcelRows(matrix){
     // Embora a tela chame esse campo de PV, desde a versão original ele lê a coluna PC.
     const pv = col(r, 'PC');
     const pvReal = col(r, 'PV');
-    if(!ref || !pv) continue;
+    if(!ref || !pv){
+      if(ref || pv || col(r,'CAVALO')) diagnosticoImportacao902.push({linha:header+1+lidas,ref,filial,pc:pv,pvReal:col(r,'PV'),cavalo:col(r,'CAVALO'),pagador:col(r,'PAGADOR_PC','PAGADOR'),destino:'IGNORADA',motivo:'REF ou PC ausente'});
+      continue;
+    }
     validas++;
     const compLinha = competenciaMes(dataPC);
     const isoLinha = isoDayFromDataPC(dataPC);
     if(isoLinha && isoLinha > maiorDataImportada) maiorDataImportada = isoLinha;
-    if(compLinha && state.competenciasZeradas.has(compLinha)){ bloqueadas++; continue; }
+    if(compLinha && state.competenciasZeradas.has(compLinha)){
+      bloqueadas++;
+      diagnosticoImportacao902.push({linha:header+1+lidas,ref,filial,pc:pv,pvReal,cavalo:col(r,'CAVALO'),pagador:col(r,'PAGADOR_PC','PAGADOR'),destino:'IGNORADA',motivo:'Competência encerrada: '+compLinha});
+      continue;
+    }
 
     const id = [ref, filial, pv].join('|');
     // Finalização automática só por ID exato. Filial+PC pode coincidir com
@@ -1944,6 +1952,8 @@ async function parseExcelRows(matrix){
       }
     }
     const autoFinalizar = numeroDocumento !== '';
+    const motivoDiagnostico=oldFinalMap.has(id)||remoteFinalizedIds.has(id)||old?.status==='Finalizado'?'Já consta como finalizada':autoFinalizar?'Documento informado: '+numeroDocumento:'Programação ativa';
+    diagnosticoImportacao902.push({linha:header+1+lidas,ref,filial,pc:pv,pvReal,cavalo:col(r,'CAVALO'),pagador:col(r,'PAGADOR_PC','PAGADOR'),destino:motivoDiagnostico==='Programação ativa'?'ATIVA':'FINALIZADA',motivo:motivoDiagnostico});
 
     const baseRow = {
       id, ref, dataPC, filial, pv, pvReal,
@@ -2036,7 +2046,14 @@ async function parseExcelRows(matrix){
   await saveLocal();
   renderAll(true);
 
-  const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada`;
+  const idsAtivosImportados=new Set(state.rows.map(r=>r.id));
+  const idsFinalizadosImportados=new Set(state.finalizados.map(r=>r.id));
+  const ausentesInesperados=diagnosticoImportacao902.filter(d=>d.destino==='ATIVA'&&!idsAtivosImportados.has([d.ref,d.filial,d.pc].join('|'))&&!idsFinalizadosImportados.has([d.ref,d.filial,d.pc].join('|')));
+  window.painel902DiagnosticoImportacao={arquivo:'902',data:new Date().toISOString(),registros:diagnosticoImportacao902,ausentesInesperados};
+  if(ausentesInesperados.length){console.warn('[902] Programações do Excel ausentes após importação:',ausentesInesperados);}
+  const grassi=diagnosticoImportacao902.filter(d=>/GRASSI/i.test(d.pagador||'')||(/2306/.test(d.cavalo||'')&&String(d.pc)==='161145'));
+  if(grassi.length)console.table(grassi);
+  const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada${ausentesInesperados.length?', '+ausentesInesperados.length+' ausente(s) após classificação':''}`;
   setStatusText(`Importação 902 concluída: ${resumo}`);
   return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length, novos, atualizados, semAlteracao, bloqueadas, maiorDataImportada };
 }
