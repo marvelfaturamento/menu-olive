@@ -2053,7 +2053,9 @@ async function parseExcelRows(matrix){
   if(ausentesInesperados.length){console.warn('[902] Programações do Excel ausentes após importação:',ausentesInesperados);}
   const grassi=diagnosticoImportacao902.filter(d=>/GRASSI/i.test(d.pagador||'')||(/2306/.test(d.cavalo||'')&&String(d.pc)==='161145'));
   if(grassi.length)console.table(grassi);
-  const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada${ausentesInesperados.length?', '+ausentesInesperados.length+' ausente(s) após classificação':''}`;
+  const grassi161145=grassi.find(d=>String(d.pc)==='161145'&&String(d.filial)==='1');
+  const avisoGrassi=grassi161145?' | Grassi PC 161145: '+grassi161145.destino+' ('+grassi161145.motivo+')':'';
+  const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada${ausentesInesperados.length?', '+ausentesInesperados.length+' ausente(s) após classificação':''}${avisoGrassi}`;
   setStatusText(`Importação 902 concluída: ${resumo}`);
   return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length, novos, atualizados, semAlteracao, bloqueadas, maiorDataImportada };
 }
