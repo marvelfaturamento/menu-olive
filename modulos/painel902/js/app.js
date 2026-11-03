@@ -2049,7 +2049,25 @@ async function parseExcelRows(matrix){
   const idsAtivosImportados=new Set(state.rows.map(r=>r.id));
   const idsFinalizadosImportados=new Set(state.finalizados.map(r=>r.id));
   const ausentesInesperados=diagnosticoImportacao902.filter(d=>d.destino==='ATIVA'&&!idsAtivosImportados.has([d.ref,d.filial,d.pc].join('|'))&&!idsFinalizadosImportados.has([d.ref,d.filial,d.pc].join('|')));
-  window.painel902DiagnosticoImportacao={arquivo:'902',data:new Date().toISOString(),registros:diagnosticoImportacao902,ausentesInesperados};
+  const resumoAuditoria={
+    linhasExcel:totalRows,linhasLidas:lidas,programacoesValidas:validas,
+    classificadasAtivas:diagnosticoImportacao902.filter(d=>d.destino==='ATIVA').length,
+    classificadasFinalizadas:diagnosticoImportacao902.filter(d=>d.destino==='FINALIZADA').length,
+    ignoradas:diagnosticoImportacao902.filter(d=>d.destino==='IGNORADA').length,
+    ausentesInesperados:ausentesInesperados.length
+  };
+  window.painel902DiagnosticoImportacao={arquivo:'902',data:new Date().toISOString(),resumo:resumoAuditoria,registros:diagnosticoImportacao902,ausentesInesperados};
+  window.exportarAuditoria902=()=>{
+    const audit=window.painel902DiagnosticoImportacao;
+    if(!audit)return;
+    const csvCell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+    const campos=['linha','ref','filial','pc','pvReal','cavalo','pagador','destino','motivo'];
+    const csv='\\uFEFF'+[campos.join(';'),...audit.registros.map(d=>campos.map(k=>csvCell(d[k])).join(';'))].join('\\r\\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const link=document.createElement('a');link.href=url;link.download='auditoria_importacao_902_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+  console.info('[902] Auditoria geral da importação',resumoAuditoria);
   if(ausentesInesperados.length){console.warn('[902] Programações do Excel ausentes após importação:',ausentesInesperados);}
   const grassi=diagnosticoImportacao902.filter(d=>/GRASSI/i.test(d.pagador||'')||(/2306/.test(d.cavalo||'')&&String(d.pc)==='161145'));
   if(grassi.length)console.table(grassi);
@@ -2059,7 +2077,7 @@ async function parseExcelRows(matrix){
   if(grassi161145 && grassi161145.destino==='ATIVA' && !idsAtivosImportados.has([grassi161145.ref,grassi161145.filial,grassi161145.pc].join('|'))){
     console.error('[902] Grassi PC 161145 lida mas ausente das ativas',grassi161145);
   }
-  const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada${ausentesInesperados.length?', '+ausentesInesperados.length+' ausente(s) após classificação':''}${avisoGrassi}`;
+  const resumo = `${novos} novo(s), ${atualizados} atualizado(s), ${semAlteracao} sem alteração, ${bloqueadas} ignorado(s) por competência encerrada | Auditoria geral: ${resumoAuditoria.programacoesValidas} válidas, ${resumoAuditoria.classificadasAtivas} ativas, ${resumoAuditoria.classificadasFinalizadas} finalizadas, ${resumoAuditoria.ignoradas} ignoradas, ${resumoAuditoria.ausentesInesperados} ausentes inesperadas. CSV: exportarAuditoria902()${avisoGrassi}`;
   setStatusText(`Importação 902 concluída: ${resumo}`);
   return { totalRows, validas, autoFinalizadas, ativas: state.rows.length, finalizadas: state.finalizados.length, novos, atualizados, semAlteracao, bloqueadas, maiorDataImportada };
 }
