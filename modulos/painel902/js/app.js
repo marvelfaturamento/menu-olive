@@ -1606,10 +1606,18 @@ window.reabrirCompetencia = async function(m){
   if(!state.competenciasZeradas.has(m)){ alert(`A competência ${m} já está aberta.`); return; }
   if(!confirm(`Reabrir a competência ${m}?\n\nIsso remove somente o bloqueio de importação. Os finalizados que foram apagados NÃO serão restaurados automaticamente.\nPara recuperar registros desse mês, importe novamente um Excel que contenha a competência ${m}.`)) return;
   try{
-    const {error}=await state.supabase.from('configuracoes_902').delete().eq('chave',`competencia_zerada:${m}`);
-    if(error) throw error;
+    // Desativar o marcador em vez de excluí-lo: RLS pode bloquear DELETE
+    // silenciosamente, e a próxima carga reativaria o bloqueio.
+    const chave='competencia_zerada:'+m;
+    const marker={...(state.competenciasZeradasMeta?.[m]||{}),zerada:false,reaberta_em:new Date().toISOString(),reaberta_por:usuarioAtual902()};
+    const {data,error}=await state.supabase.from('configuracoes_902')
+      .upsert({chave,valor:JSON.stringify(marker),updated_at:new Date().toISOString()},{onConflict:'chave'})
+      .select('chave,valor').single();
+    if(error)throw error;
+    const confirmado=typeof data?.valor==='string'?JSON.parse(data.valor):data?.valor;
+    if(!confirmado || confirmado.zerada!==false)throw Error('O Supabase não confirmou a reabertura.');
     state.competenciasZeradas.delete(m);
-    if(state.competenciasZeradasMeta) delete state.competenciasZeradasMeta[m];
+    if(state.competenciasZeradasMeta)delete state.competenciasZeradasMeta[m];
     await saveLocal();
     renderAll(true);
     renderConfigEditors();
