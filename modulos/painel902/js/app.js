@@ -1916,7 +1916,10 @@ async function parseExcelRows(matrix){
     const compLinha = competenciaMes(dataPC);
     const isoLinha = isoDayFromDataPC(dataPC);
     if(isoLinha && isoLinha > maiorDataImportada) maiorDataImportada = isoLinha;
-    if(compLinha && state.competenciasZeradas.has(compLinha)){
+    // Marcadores de limpeza histórica não podem bloquear PCs novas do mês atual/futuro.
+    // Preservar a proteção somente para competências anteriores ao mês corrente.
+    const mesAtualImportacao=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).format(new Date());
+    if(compLinha && compLinha < mesAtualImportacao && state.competenciasZeradas.has(compLinha)){
       bloqueadas++;
       diagnosticoImportacao902.push({linha:header+1+lidas,ref,filial,pc:pv,pvReal,cavalo:col(r,'CAVALO'),pagador:col(r,'PAGADOR_PC','PAGADOR'),destino:'IGNORADA',motivo:'Competência encerrada: '+compLinha});
       continue;
