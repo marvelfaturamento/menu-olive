@@ -3311,7 +3311,17 @@ initApp();
             row.appendChild(diag);
             if(!eligibleTariff(x)){
               const reason=document.createElement('small');reason.style.cssText='display:block;color:#ffd69c;';
-              reason.textContent='Revisão necessária: tabela, PC, rota, moeda BRL/USD ou vínculo não confirmado. Nenhuma gravação.';
+              const motivos=[];
+              if(!(x.id||x.pv))motivos.push('PC ausente');
+              if(!x.pagador)motivos.push('cliente ausente');
+              if(!x.origem||!x.destino||!x.ufOrigem||!x.ufDestino)motivos.push('rota incompleta');
+              if(!tabela)motivos.push('tabela Marvel ausente');
+              if(!(Number(x.freteMarvel)>0))motivos.push('frete inválido');
+              if(!['BRL','USD'].includes(moeda))motivos.push('moeda não informada ou inválida');
+              if(!['Cadastrar','Atualizar','Correto','USD — requer conversão'].includes(String(x.estado)))motivos.push('estado: '+String(x.estado||'ausente'));
+              if(x.ambiguo)motivos.push('tarifa ambígua');
+              if(x.semVinculo)motivos.push('vínculo com cliente não confirmado');
+              reason.textContent='Não gravado: '+(motivos.join('; ')||'validação não atendida')+'.';
               row.appendChild(reason);
             }else{
               row.dataset.syncStatus='queued';
