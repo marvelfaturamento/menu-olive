@@ -6,7 +6,7 @@ const row=(name,n)=>'<div class="line"><span>'+name+'</span><b>'+brl(n)+'</b></d
 const metric=(name,n)=>'<div class="metric"><small>'+name+'</small><strong>'+brl(n)+'</strong></div>';
 const final=n=>'<div class="total">Valor final<br><strong>'+brl(n)+'</strong></div>';
 let current='home';
-function openPage(page){current=page;document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hide',s.id!==page));$('back').classList.toggle('hide',page==='home');$('back').onclick=()=>openPage(['cte','isento','nfs'].includes(page)?'nestle':'home');let group=['cte','isento','nfs'].includes(page)?'nestle':page;['Home','Nestle','Geral'].forEach(k=>$('menu'+k).classList.toggle('active',k.toLowerCase()===(group==='nestle'?'nestle':group)));const titles={home:'Central de Cálculos',nestle:'Nestlé',geral:'Calculadora Geral',cte:'Frete / CT-e',isento:'Frete / CT-e / Isento',nfs:'NFS / ISS'};$('heading').textContent=titles[page];$('hint').textContent=page==='home'?'Selecione uma das calculadoras':page==='nestle'?'Escolha uma modalidade pelos cards':page==='geral'?'Frete, ICMS, Ad Valorem e pedágio':'Regras específicas da Nestlé';calc()}
+function openPage(page){current=page;document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hide',s.id!==page));$('back').classList.toggle('hide',page==='home');$('back').onclick=()=>openPage(['cte','isento','nfs'].includes(page)?'nestle':'home');let group=['cte','isento','nfs'].includes(page)?'nestle':page;['Nestle','Geral','Conversao'].forEach(k=>$('menu'+k).classList.toggle('active',k.toLowerCase()===group));const titles={home:'Central de Cálculos',nestle:'Nestlé Complemento',geral:'Calculadora Geral',conversao:'Conversão de Valores',cte:'Complemento / CT-e',isento:'Complemento / CT-e / Isento',nfs:'NFS / ISS'};$('heading').textContent=titles[page];$('hint').textContent=page==='home'?'Selecione uma das calculadoras':page==='nestle'?'Complementos de frete, pedágio, estadia e descarga — escolha uma modalidade':page==='geral'?'Frete, ICMS, Ad Valorem e pedágio':'Regras específicas da Nestlé';calc()}
 function calc(){
 const f=val('cf'),p=f/.9075,t=Math.min(99.99,pct('ci'))/100,ct=p/(1-t);
 $('cr').innerHTML='<h2>Resultado</h2><div class="result">'+metric('PIS/COFINS',p-f)+metric('ICMS',ct-p)+metric('Valor total',ct)+'</div>'+row('Frete-base',f)+row('Frete + PIS/COFINS',p)+row('ICMS',ct-p)+final(ct)+'<p class="notice">Divisor PIS/COFINS: 0,9075. Divisor ICMS: '+(1-t).toFixed(4)+'.</p>';
@@ -18,4 +18,4 @@ $('gr').innerHTML='<h2>Resultado da conferência</h2><div class="result">'+metri
 }
 document.querySelectorAll('input').forEach(input=>input.addEventListener('input',calc));
 document.querySelectorAll('input[type=checkbox]').forEach(input=>input.addEventListener('change',calc));
-openPage('home');
+openPage('nestle');
