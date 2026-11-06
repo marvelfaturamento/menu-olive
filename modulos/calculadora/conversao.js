@@ -8,10 +8,27 @@ function renderFx(){const cur=$('fxCurrency').value,rate=fxQuote?.[fxSide],amoun
 if(!fxQuote||!Number.isFinite(rate)||rate<=0){$('fxResult').innerHTML='<h2>Resultado da conversão</h2><p class="notice">Sem cotação válida. Selecione a data e atualize.</p>';return}
 const result=fxDirection==='toBRL'?amount*rate:amount/rate;const from=fxDirection==='toBRL'?cur:'BRL',to=fxDirection==='toBRL'?'BRL':cur;
 $('fxResult').innerHTML='<h2>Resultado da conversão</h2><div class="metric"><small>Valor convertido</small><strong>'+fxMoney(result,to)+'</strong></div><div class="line"><span>Valor original</span><b>'+fxMoney(amount,from)+'</b></div><div class="line"><span>PTAX '+fxSide+'</span><b>R$ '+rate.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:6})+' / '+cur+'</b></div><div class="line"><span>Data da cotação</span><b>'+fxQuote.date+'</b></div><p class="notice">Fonte: Banco Central do Brasil (PTAX). A cotação exibida é por unidade da moeda estrangeira em reais.</p>'}
-async function loadFx(){const request=++fxRequest;fxQuote=null;$('fxResult').innerHTML='<h2>Resultado da conversão</h2><p class="notice">Consultando PTAX no Banco Central...</p>';const date=$('fxDate').value,cur=$('fxCurrency').value;if(!date)return;
+async function loadFx(){
+const request=++fxRequest;fxQuote=null;
+$('fxResult').innerHTML='<h2>Resultado da conversão</h2><p class="notice">Consultando PTAX no Banco Central...</p>';
+const date=$('fxDate').value,cur=$('fxCurrency').value;if(!date)return;
 const end=new Date(date+'T12:00:00'),start=new Date(end);start.setDate(start.getDate()-30);
-const endpoint=cur==='USD'?'CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)':'CotacaoMoedaPeriodo(moeda=@moeda,dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)';
-const args=(cur==='USD'?'':"@moeda='"+cur+"'&")+"@dataInicial='"+fxDateFormat(start)+"'&@dataFinalCotacao='"+fxDateFormat(end)+"'";
-const url='https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/'+endpoint+'?'+args+'&$format=json';
-try{const res=await fetch(url);if(!res.ok)throw Error('HTTP '+res.status+' '+(await res.text()).slice(0,180));const json=await res.json();if(request!==fxRequest)return;const q=(json.value||[]).slice().sort((a,b)=>String(b.dataHoraCotacao||'').localeCompare(String(a.dataHoraCotacao||'')))[0];if(!q||!(Number(q.cotacaoVenda)>0)||!(Number(q.cotacaoCompra)>0))throw Error('Cotação não encontrada');fxQuote={venda:Number(q.cotacaoVenda),compra:Number(q.cotacaoCompra),date:String(q.dataHoraCotacao||'').slice(0,10).split('-').reverse().join('/')};renderFx()}catch(e){if(request!==fxRequest)return;$('fxResult').innerHTML='<h2>Resultado da conversão</h2><p class="notice">Não foi possível obter a cotação oficial para '+cur+'. Nenhum valor foi estimado. Verifique se o Banco Central disponibiliza PTAX para a moeda e data selecionadas. Detalhe: '+String(e.message).replace(/[<>]/g,'')+'</p>'}}
+const initial=fxDateFormat(start),final=fxDateFormat(end);
+const base='https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/';
+const standard=cur==='USD'?'CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)':'CotacaoMoedaPeriodo(moeda=@moeda,dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)';
+const args=(cur==='USD'?'':"@moeda='"+cur+"'&")+"@dataInicial='"+initial+"'&@dataFinalCotacao='"+final+"'";
+const primary=base+standard+'?'+args+'&$format=json';
+const closing=base+'CotacaoMoedaPeriodoFechamento(codigoMoeda=@codigoMoeda,dataInicialCotacao=@dataInicialCotacao,dataFinalCotacao=@dataFinalCotacao)?@codigoMoeda=\''+cur+'\'&@dataInicialCotacao=\''+initial+'\'&@dataFinalCotacao=\''+final+'\'&$format=json';
+let errors=[];
+async function query(url){const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();return (data.value||[]).filter(q=>Number(q.cotacaoVenda)>0&&Number(q.cotacaoCompra)>0).sort((a,b)=>String(b.dataHoraCotacao||'').localeCompare(String(a.dataHoraCotacao||'')))[0]||null}
+let q=null;try{q=await query(primary)}catch(e){errors.push('PTAX: '+e.message)}
+if(!q){try{q=await query(closing)}catch(e){errors.push('Fechamento: '+e.message)}}
+if(request!==fxRequest)return;
+if(q){fxQuote={venda:Number(q.cotacaoVenda),compra:Number(q.cotacaoCompra),date:String(q.dataHoraCotacao||'').slice(0,10).split('-').reverse().join('/')};renderFx();return}
+let available=null;
+try{const response=await fetch(base+'Moedas?$format=json');if(response.ok){const data=await response.json();available=(data.value||[]).some(m=>String(m.simbolo||'').toUpperCase()===cur)}}catch(e){}
+if(request!==fxRequest)return;
+const reason=available===false?'A moeda '+cur+' não consta na relação de moedas retornada pelo serviço PTAX do Banco Central.':available===true?'A moeda consta no serviço PTAX, mas não foi encontrada cotação válida no período consultado.':'Não foi possível confirmar uma cotação PTAX para '+cur+'.';
+$('fxResult').innerHTML='<h2>Resultado da conversão</h2><p class="notice">'+reason+' Nenhuma taxa foi estimada. '+(errors.length?'Detalhes: '+errors.join('; ').replace(/[<>]/g,''):'')+'</p>';
+}
 (function(){const today=new Date();$('fxDate').value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');$('fxDate').max=$('fxDate').value;['fxDate','fxCurrency'].forEach(id=>$(id).addEventListener('change',loadFx));$('fxAmount').addEventListener('input',renderFx);loadFx()})();
