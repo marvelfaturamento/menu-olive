@@ -7,7 +7,7 @@ function fxDateFormat(d){return String(d.getMonth()+1).padStart(2,'0')+'-'+Strin
 function renderFx(){const cur=$('fxCurrency').value,rate=fxQuote?.[fxSide],amount=val('fxAmount');$('fxToBrl').textContent=cur+' → R$';$('fxFromBrl').textContent='R$ → '+cur;
 if(!fxQuote||!Number.isFinite(rate)||rate<=0){$('fxResult').innerHTML='<h2>Resultado da conversão</h2><p class="notice">Sem cotação válida. Selecione a data e atualize.</p>';return}
 const result=fxDirection==='toBRL'?amount*rate:amount/rate;const from=fxDirection==='toBRL'?cur:'BRL',to=fxDirection==='toBRL'?'BRL':cur;
-$('fxResult').innerHTML='<h2>Resultado da conversão</h2><div class="metric"><small>Valor convertido</small><strong>'+fxMoney(result,to)+'</strong></div><div class="line"><span>Valor original</span><b>'+fxMoney(amount,from)+'</b></div><div class="line"><span>PTAX '+fxSide+'</span><b>R$ '+rate.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:6})+' / '+cur+'</b></div><div class="line"><span>Data da cotação</span><b>'+fxQuote.date+'</b></div><p class="notice">Fonte: Banco Central do Brasil (PTAX). A cotação exibida é por unidade da moeda estrangeira em reais.</p>'}
+$('fxResult').innerHTML='<h2>Resultado da conversão</h2><div class="metric"><small>Valor convertido</small><strong>'+fxMoney(result,to)+'</strong></div><div class="line"><span>Valor original</span><b>'+fxMoney(amount,from)+'</b></div><div class="line"><span>PTAX '+fxSide+'</span><b>R$ '+rate.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:6})+' / '+cur+'</b></div><div class="line"><span>Data da cotação</span><b>'+fxQuote.date+'</b></div><p class="notice">Fonte: '+(fxQuote.fonte||'Banco Central do Brasil (PTAX)')+'. A cotação exibida é por unidade da moeda estrangeira em reais.</p>'}
 async function loadFx(){
 const request=++fxRequest;fxQuote=null;
 $('fxResult').innerHTML='<h2>Resultado da conversão</h2><p class="notice">Consultando PTAX no Banco Central...</p>';
@@ -23,8 +23,9 @@ let errors=[];
 async function query(url){const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();return (data.value||[]).filter(q=>Number(q.cotacaoVenda)>0&&Number(q.cotacaoCompra)>0).sort((a,b)=>String(b.dataHoraCotacao||'').localeCompare(String(a.dataHoraCotacao||'')))[0]||null}
 let q=null;try{q=await query(primary)}catch(e){errors.push('PTAX: '+e.message)}
 if(!q){try{q=await query(closing)}catch(e){errors.push('Fechamento: '+e.message)}}
+if(!q){try{const response=await fetch('/api/cotacao?moeda='+encodeURIComponent(cur)+'&data='+encodeURIComponent(date));if(response.ok){const data=await response.json();q={cotacaoCompra:data.cotacaoCompra,cotacaoVenda:data.cotacaoVenda,dataHoraCotacao:data.data+'T13:00:00',fonte:data.fonte}}else{errors.push('Boletim oficial: HTTP '+response.status)}}catch(e){errors.push('Boletim oficial: '+e.message)}}
 if(request!==fxRequest)return;
-if(q){fxQuote={venda:Number(q.cotacaoVenda),compra:Number(q.cotacaoCompra),date:String(q.dataHoraCotacao||'').slice(0,10).split('-').reverse().join('/')};renderFx();return}
+if(q){fxQuote={venda:Number(q.cotacaoVenda),compra:Number(q.cotacaoCompra),date:String(q.dataHoraCotacao||'').slice(0,10).split('-').reverse().join('/'),fonte:q.fonte||'BCB - PTAX'};renderFx();return}
 let available=null;
 try{const response=await fetch(base+'Moedas?$format=json');if(response.ok){const data=await response.json();available=(data.value||[]).some(m=>String(m.simbolo||'').toUpperCase()===cur)}}catch(e){}
 if(request!==fxRequest)return;
