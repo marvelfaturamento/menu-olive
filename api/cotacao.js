@@ -16,8 +16,8 @@ const raw=await response.text();
 const lines=raw.split(/\r?\n/);
 for(const line of lines){
 const parts=line.replace(/^\uFEFF/,'').split(';').map(x=>x.trim().replace(/^"|"$/g,''));
-if(parts.length<5||parts[2]!==currency)continue;
-const compra=number(parts[3]),venda=number(parts[4]);
+const i=parts.findIndex(p=>p===currency);if(i<0||parts.length<i+3)continue;
+const compra=number(parts[i+1]),venda=number(parts[i+2]);
 if(compra>0&&venda>0)return res.status(200).json({moeda:currency,data:d.toISOString().slice(0,10),cotacaoCompra:compra,cotacaoVenda:venda,fonte:'BCB - boletim PTAX de fechamento',url:'https://www4.bcb.gov.br/Download/fechamento/'+stamp+'.csv'});
 }
 }catch(e){}
