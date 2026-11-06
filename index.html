@@ -844,6 +844,7 @@
       <button data-menu="agrupaPdf" onclick="abrirSistema(&#39;agrupaPdf&#39;)">🧩 Agrupa/remove PDF</button>
       <button data-menu="leitor" onclick="abrirSistema(&#39;leitor&#39;)">🔎 Leitor Scanner</button>
       <button data-menu="assistenteCiot" onclick="abrirSistema(&#39;assistenteCiot&#39;)">🪪 Assistente CIOT</button>
+      <button data-menu="calculadora" onclick="abrirSistema(&#39;calculadora&#39;)">🧮 Calculadora</button>
     </div>
 
     <div class="user-box user-box-bottom">
@@ -1305,7 +1306,8 @@
       painel902: "modulos/painel902/index.html",
       agrupaPdf: "modulos/agrupaPdf/index.html?v=56.9.7",
       leitor: "modulos/leitor/index.html?v=56.9.7",
-      assistenteCiot: "modulos/assistenteCiot/index.html?v=1.0.1"
+      assistenteCiot: "modulos/assistenteCiot/index.html?v=1.0.1",
+      calculadora: "modulos/calculadora/index.html?v=1.0.0"
     };
 
     const TITULOS_MODULOS = {
@@ -1316,7 +1318,8 @@
       painel902: { titulo: "🚚 Painel 902", subtitulo: "Acompanhamento operacional, aduanas, alertas e finalizados" },
       agrupaPdf: { titulo: "🧩 Agrupa/remove PDF", subtitulo: "Ferramentas de organização e tratamento de PDFs" },
       leitor: { titulo: "🔎 Leitor Scanner", subtitulo: "Leitura e conferência de documentos" },
-      assistenteCiot: { titulo: "🪪 Assistente CIOT", subtitulo: "Leitura de CT-es e preparação para emissão do CIOT" }
+      assistenteCiot: { titulo: "🪪 Assistente CIOT", subtitulo: "Leitura de CT-es e preparação para emissão do CIOT" },
+      calculadora: { titulo: "🧮 Calculadora", subtitulo: "Nestlé e Geral — frete, ICMS, ADV e pedágio" }
     };
 
     let moduloAtualUrl = "";
@@ -1430,6 +1433,7 @@
       agrupaPdf:{label:"Agrupa/remove PDF",subs:["Agrupar documentos do mesmo conjunto","Agrupar documentos geral","Separar PDF","Remover páginas"]},
       leitor:{label:"Leitor Scanner",subs:["Ler PDF","Ler Imagem","Colar Print","Ler TXT","Ler XML NF-e","Scanner"]},
       assistenteCiot:{label:"Assistente CIOT",subs:["Importar","Agrupamento","Resumo","Exportar CSV"]},
+      calculadora:{label:"Calculadora",subs:["Nestlé","Geral"]},
       config:{label:"Config",subs:["Usuários e Acessos"]}
     };
     function esc(v){return String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
