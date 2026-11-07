@@ -1,0 +1,26 @@
+{
+  "source": "Derivado da validação local dos relatórios reais 902 e 624 de 2026-10-03. Dados comerciais e arquivos brutos não são versionados no repositório público.",
+  "totals": {
+    "valid_902_rows": 2351,
+    "expected_finalized_by_902_or_624": 1825,
+    "confirmed_alias_keys": 5,
+    "route_divergence_cases": 6
+  },
+  "priority": [
+    "902_NUMERO_DOCUMENTO",
+    "624_REFERENCIA_ROTA",
+    "OPERACIONAL"
+  ],
+  "cases": [
+    {"id":"DOC-1","doc":"33946","route624":false,"expected":"Finalizado","reason":"902_NUMERO_DOCUMENTO"},
+    {"id":"ALIAS-1A","canonical":"A","doc":"33946","route624":false,"expected":"Finalizado","reason":"902_NUMERO_DOCUMENTO"},
+    {"id":"ALIAS-1B","canonical":"A","doc":"","route624":false,"expected":"Finalizado","reason":"ALIAS_DOCUMENTO_MESMA_FILIAL_PC"},
+    {"id":"624-MATCH","doc":"","route624":true,"expected":"Finalizado","reason":"624_REFERENCIA_ROTA"},
+    {"id":"624-DIVERGE-1","doc":"","ufo":"RO","ufd":"EX","regO":"PE","regD":"CE","expected624":false},
+    {"id":"624-DIVERGE-2","doc":"","ufo":"PE","ufd":"SP","regO":"RO","regD":"EX","expected624":false},
+    {"id":"624-DIVERGE-3","doc":"","ufo":"EX","ufd":"MA","regO":"SP","regD":"SP","expected624":false},
+    {"id":"624-DIVERGE-4","doc":"","ufo":"SP","ufd":"PE","regO":"SP","regD":"SP","expected624":false},
+    {"id":"624-DIVERGE-5","doc":"","ufo":"GO","ufd":"SP","regO":"SP","regD":"SP","expected624":false},
+    {"id":"624-DIVERGE-6","doc":"","ufo":"SP","ufd":"SP","regO":"SP","regD":"PE","expected624":false}
+  ]
+}
