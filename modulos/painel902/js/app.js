@@ -3358,12 +3358,21 @@ initApp();
             const heading=document.createElement('strong');
             heading.style.color='#ffd28a';heading.textContent=first.pagador+' — '+first.origem+'/'+first.ufOrigem+' → '+first.destino+'/'+first.ufDestino;
             section.appendChild(heading);
-            const desc=document.createElement('p');desc.textContent=group.length+' PC(s) para revisão';section.appendChild(desc);
+            const summary=document.createElement('div');
+            summary.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;';
+            const desc=document.createElement('p');desc.style.margin='0';desc.textContent=group.length+' PC(s) para revisão';summary.appendChild(desc);
+            const reveal=document.createElement('button');reveal.type='button';reveal.textContent='Revelar PCs ('+group.length+')';
+            reveal.setAttribute('aria-expanded','false');
+            reveal.style.cssText='padding:7px 12px;border:1px solid #5377b3;border-radius:7px;background:#243c68;color:#fff;cursor:pointer;font-weight:600;';
+            summary.appendChild(reveal);section.appendChild(summary);
+            const details=document.createElement('div');details.hidden=true;details.style.cssText='margin-top:9px;max-height:280px;overflow:auto;';
             group.forEach(x=>{
               const row=document.createElement('div');row.dataset.pendingPc=pcKey(x);row.style.cssText='padding:7px 0;border-top:1px solid #38517b;';
               row.textContent='PC '+(x.pv||x.id||'—')+' | Pedido: '+(x.referencia||'—')+' | Cavalo: '+(x.cavalo||'—')+' | '+x.estado+(x.freteMarvel!=null?' | Marvel: '+Number(x.freteMarvel).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'');
-              section.appendChild(row);
+              details.appendChild(row);
             });
+            section.appendChild(details);
+            reveal.addEventListener('click',()=>{details.hidden=!details.hidden;reveal.setAttribute('aria-expanded',String(!details.hidden));reveal.textContent=(details.hidden?'Revelar':'Ocultar')+' PCs ('+group.length+')';});
             const controls=document.createElement('div');controls.style.cssText='display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:12px;';
             function field(label,type,placeholder){
               const wrap=document.createElement('label');wrap.style.cssText='display:grid;gap:5px;min-width:190px;flex:1;';
@@ -3434,7 +3443,7 @@ initApp();
                     moveToFound(x,table.value.trim());
                     const index=checks.findIndex(v=>pcKey(v.x)===pc);
                     if(index>=0){checks[index].check.disabled=true;checks[index].check.closest('label')?.remove();}
-                    const n=section.querySelector('p');if(n)n.textContent=checks.filter(v=>!v.check.disabled).length+' PC(s) para revisão';
+                    desc.textContent=checks.filter(v=>!v.check.disabled).length+' PC(s) para revisão';
                     done('PC '+pc+': tarifa '+moneyBR(amount)+' salva no Supabase e removida das pendências.');
                   }).catch(e=>{row.textContent+=' | ERRO: '+e.message;done('PC '+pc+' permanece pendente: '+e.message);});
                 }else done('Consulta concluída, mas não encontrou tarifa única para esta rota. Verifique tabela e cidades.');
