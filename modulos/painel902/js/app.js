@@ -3160,6 +3160,13 @@ initApp();
           const routeMatches=(a,b)=>[a.pagador,a.origem||a.municipio_origem,a.ufOrigem||a.uf_origem,a.destino||a.municipio_destino,a.ufDestino||a.uf_destino].every((v,i)=>normFrete(v)===normFrete([b.pagador,b.municipio_origem,b.uf_origem,b.municipio_destino,b.uf_destino][i]));
           const spotMatches=(a,b)=>{const id=String(a.id||a.pv||'');const saved=String(b.pc_id||'');return saved===id||saved.endsWith('|'+String(a.pv||''))&&String(a.pv||'')!=='';};
           const resolvedMarvel=x=>(savedMarvelData.tarifas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t))||(savedMarvelData.spotsRotas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t));
+          // Tarifa válida da API com valor já igual ao da PC também precisa ser registrada
+          // na base por rota, caso ainda não exista; igualdade operacional não é persistência.
+          for(const x of alreadyCorrect){
+            if(String(x.estado)!=='Correto'||String(x.moeda||x.moedaMarvel||'').toUpperCase()!=='BRL')continue;
+            if(!(Number(x.freteMarvel)>0)||!x.tabelaMarvel||resolvedMarvel(x))continue;
+            if(!found.some(y=>routeMatches(y,{pagador:x.pagador,municipio_origem:x.origem,uf_origem:x.ufOrigem,municipio_destino:x.destino,uf_destino:x.ufDestino})))found.push(x);
+          }
           // Não mostrar como pendência uma PC já resolvida na mesma resposta da extensão.
           // Uma tarifa gravada anteriormente também encerra a pendência visual da rota.
           const foundKeys=new Set(found.map(x=>String(x.id||x.pv||'')));
@@ -3299,7 +3306,14 @@ initApp();
               &&['Cadastrar','Atualizar','Correto','USD — requer conversão'].includes(String(x.estado))
               &&!x.ambiguo&&!x.semVinculo);
           };
-          const toSync=found.filter(eligibleTariff);
+          // Uma consulta/gravação por cliente e rota, nunca por caminhão ou PV.
+          const toSync=[];
+          const seenRoutes=new Set();
+          for(const x of found.filter(eligibleTariff)){
+            const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].map(v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase()).join('|');
+            if(seenRoutes.has(key))continue;
+            seenRoutes.add(key);toSync.push(x);
+          }
           const syncConcurrency=3;
           let syncIndex=0,syncSuccess=0,syncErrors=0;
           found.forEach(x=>{
