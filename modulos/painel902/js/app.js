@@ -3485,6 +3485,25 @@ initApp();
                 feedback.textContent='Spot salvo por rota. PCs ativas atualizadas: '+result.pcs_atualizadas+'.';chosen.forEach(x=>{pending=pending.filter(y=>pcKey(y)!==pcKey(x));section.querySelector('[data-pending-pc="'+pcKey(x)+'"]')?.remove();const selectedCheck=checks.find(v=>pcKey(v.x)===pcKey(x));if(selectedCheck){selectedCheck.check.disabled=true;selectedCheck.check.closest('label')?.remove();}});if(!section.querySelector('[data-pending-pc]'))section.remove();refreshCounts();await loadSaved();
               }catch(e){feedback.textContent='Falha ao salvar: '+e.message;}finally{save.disabled=false;}
             });
+            // Tarifa compacta: apenas o título visível; controles originais permanecem intactos.
+            const expandedBody=document.createElement('div');
+            expandedBody.hidden=true;
+            expandedBody.id='tarifa-rota-'+Math.random().toString(36).slice(2);
+            while(heading.nextSibling)expandedBody.appendChild(heading.nextSibling);
+            section.appendChild(expandedBody);
+            heading.setAttribute('role','button');
+            heading.setAttribute('tabindex','0');
+            heading.setAttribute('aria-expanded','false');
+            heading.setAttribute('aria-controls',expandedBody.id);
+            heading.style.cssText='color:#ffd28a;display:block;cursor:pointer;padding:10px 12px;line-height:1.45;';
+            section.style.cssText='background:#192643;border:1px solid #d79c45;border-left:5px solid #f3b451;border-radius:10px;padding:0;margin:7px 0;color:#f5f7ff;overflow:hidden;';
+            expandedBody.style.cssText='padding:0 12px 12px;';
+            const toggleRoute=()=>{
+              expandedBody.hidden=!expandedBody.hidden;
+              heading.setAttribute('aria-expanded',String(!expandedBody.hidden));
+            };
+            heading.addEventListener('click',toggleRoute);
+            heading.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();toggleRoute();}});
             views.pendentes.appendChild(section);
           }
           if(!groups.size)views.pendentes.textContent='Nenhuma pendência identificada nesta conferência.';
