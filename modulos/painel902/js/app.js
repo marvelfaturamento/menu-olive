@@ -3084,9 +3084,12 @@ initApp();
         // Evita manter a interface bloqueada por 15 minutos quando a extensão
         // concluiu as rotas mas não entregou a resposta final.
         if(count===total&&!completionWatchdog){
-          stage.textContent='Consultas concluídas. Aguardando resposta final da extensão...';
+          stage.textContent='Consultas concluídas. Recuperando resposta final da extensão...';
+          // Solicita à ponte a recuperação do resultado persistido pelo service worker.
+          window.postMessage({source:'painel-902',type:'marvel-frete-902-recover-result-v1',requestId},location.origin);
           completionWatchdog=setTimeout(()=>{
             if(responseReceived)return;
+            window.postMessage({source:'painel-902',type:'marvel-frete-902-recover-result-v1',requestId},location.origin);
             finish('Consultas Marvel concluídas ('+total+' rotas), mas o Painel 902 não recebeu a resposta final. Verifique as gravações na extensão e clique em Carregar Supabase para atualizar os totais. Não repita a gravação antes de conferir.');
           },45000);
         }
