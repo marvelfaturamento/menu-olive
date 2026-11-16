@@ -3316,12 +3316,17 @@ initApp();
           }
           const syncConcurrency=3;
           let syncIndex=0,syncSuccess=0,syncErrors=0;
+          const syncDetails=document.createElement('div');
+          syncDetails.setAttribute('role','status');
+          syncDetails.style.cssText='padding:8px 12px;margin:8px 0;border:1px solid #38517b;border-radius:8px;color:#c7e3ff;font-size:12px;';
+          syncDetails.textContent='Tarifas elegíveis para sincronização: '+toSync.length+' de '+found.length+'. O total em "Salvos na base" inclui tarifas anteriores e spots.';
+          views.encontrados.prepend(syncDetails);
           found.forEach(x=>{
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
             const row=appendTariff(x,tabela);
             const moeda=String(x.moeda||x.moedaMarvel||'').toUpperCase();
             const diag=document.createElement('small');diag.style.cssText='display:block;margin:6px 0;color:#b9d7f6;';
-            diag.textContent='Tabela: '+(tabela||'não identificada')+' | Moeda: '+(moeda||'não informada')+' | Identificador: '+(x.id||'ausente');
+            diag.textContent='Tabela: '+(tabela||'não identificada')+' | Moeda: '+(moeda||'não informada')+' | ADV: '+(x.advPercentual??x.adv_percentual??'não informado')+' | Identificador: '+(x.id||'ausente');
             row.appendChild(diag);
             if(!eligibleTariff(x)){
               const reason=document.createElement('small');reason.style.cssText='display:block;color:#ffd69c;';
@@ -3352,10 +3357,12 @@ initApp();
               try{
                 await persistTariff(x,tabela);
                 syncSuccess++;
+                syncDetails.textContent='Sincronização confirmada: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Gravações podem atualizar tarifas já existentes, sem aumentar o total cadastrado.';
                 if(row){row.dataset.syncStatus='saved';row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo automaticamente no Supabase');}
                 moveToFound(x,tabela);
               }catch(e){
                 syncErrors++;
+                syncDetails.textContent='Sincronização: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Consulte o motivo na linha da tarifa.';
                 if(row){row.dataset.syncStatus='error';row.appendChild(document.createTextNode(' | Falha ao salvar: '+e.message));}
               }
               status.textContent='Sincronização Marvel: '+syncSuccess+' salva(s), '+syncErrors+' falha(s), '+(toSync.length-syncIndex)+' aguardando.';
