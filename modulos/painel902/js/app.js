@@ -3071,6 +3071,8 @@ initApp();
       document.querySelectorAll('[data-marvel-progress]').forEach(el=>el.remove());
       progress.dataset.marvelProgress='1';
       if(!restored)status.after(progress);
+      let completionWatchdog=null;
+      let responseReceived=false;
       function updateProgress(done,total,description){
         if(!Number.isFinite(total)||total<=0)return;
         const count=Math.max(0,Math.min(total,Number(done)||0));
@@ -3078,6 +3080,16 @@ initApp();
         fill.style.width=pct+'%';
         heading.textContent='Conferência Marvel: '+pct+'% ('+count+' de '+total+' rotas)';
         stage.textContent=description||'Consultando rotas na Marvel...';
+        // 100% indica fim da consulta, não confirma a entrega do resultado.
+        // Evita manter a interface bloqueada por 15 minutos quando a extensão
+        // concluiu as rotas mas não entregou a resposta final.
+        if(count===total&&!completionWatchdog){
+          stage.textContent='Consultas concluídas. Aguardando resposta final da extensão...';
+          completionWatchdog=setTimeout(()=>{
+            if(responseReceived)return;
+            finish('Consultas Marvel concluídas ('+total+' rotas), mas o Painel 902 não recebeu a resposta final. Verifique as gravações na extensão e clique em Carregar Supabase para atualizar os totais. Não repita a gravação antes de conferir.');
+          },45000);
+        }
       }
       function receiveProgress(event){
         if(event.source!==window||event.origin!==location.origin)return;
@@ -3087,11 +3099,12 @@ initApp();
       }
       window.addEventListener('message',receiveProgress);
       const timer=setTimeout(()=>finish('A extensão não confirmou a conclusão em 15 minutos. Verifique o histórico na aba da extensão antes de repetir a consulta. Nenhuma gravação operacional foi iniciada pelo painel.'),900000);
-      function finish(message){clearTimeout(timer);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;clientButton.disabled=false;status.textContent=message;progress.remove();}
+      function finish(message){clearTimeout(timer);clearTimeout(completionWatchdog);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;clientButton.disabled=false;status.textContent=message;progress.remove();}
       async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
         if(d?.source!=='marvel-frete-ext'||d?.type!=='marvel-frete-902-test-response-v1'||d?.requestId!==requestId)return;
+        responseReceived=true;
         const casesReceived=Array.isArray(d.casos)?d.casos.length:0;
         const reportedTotal=Number(d.total)||0;
         const emptyResponse=Boolean(d.ok)&&casesReceived===0&&reportedTotal===0&&!restored;
