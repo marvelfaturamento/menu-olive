@@ -3369,7 +3369,18 @@ initApp();
             }
           }
           if(!restored&&toSync.length)Promise.all(Array.from({length:Math.min(syncConcurrency,toSync.length)},()=>syncWorker()))
-            .then(()=>{status.textContent='Sincronização concluída: '+syncSuccess+' tarifa(s) salva(s), '+syncErrors+' falha(s).';});
+            .then(async()=>{
+              status.textContent='Sincronização concluída: '+syncSuccess+' gravação(ões) confirmada(s), '+syncErrors+' falha(s). Atualizando totais da base...';
+              try{
+                await loadSaved();
+                status.textContent='Sincronização concluída: '+syncSuccess+' gravação(ões) confirmada(s), '+syncErrors+' falha(s). Contadores atualizados a partir do Supabase. Atualizações de tarifas existentes não aumentam o total.';
+              }catch(e){
+                status.textContent='Sincronização: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Não foi possível atualizar os totais: '+e.message;
+              }
+            }).catch(e=>{status.textContent='Falha ao finalizar sincronização: '+e.message;});
+          else if(!restored&&found.length){
+            status.textContent='Conferência recebida: '+found.length+' tarifa(s) encontrada(s), nenhuma elegível para gravação automática. Consulte os motivos em Novas tarifas Marvel.';
+          }
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
           for(const group of groups.values()){
