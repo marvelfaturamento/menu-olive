@@ -7185,6 +7185,48 @@ function __perfAnualAggregate(){
      const qty=[...rows].sort((a,b)=>b.qty-a.qty).slice(0,12),val=rows.slice(0,12);
      makeBarChart('chartClientAnnualQty',qty.map(x=>x.client),qty.map(x=>x.qty),true,'Quantidade');
      makeBarChart('chartClientAnnualValue',val.map(x=>x.client),val.map(x=>x.value),true,'Valor');
+     // Motivos são cadastrados pelo CT-e em refaturamento_manual; linhas SETOR não
+     // têm esse identificador. Recupera CT-es do mesmo ano e cruza por documento.
+     const manualRows=[];
+     for(let offset=0;offset<100000;offset+=500){
+       const resp=await state.supabase.from('refaturamento_manual').select('documento,motivo').order('id',{ascending:true}).range(offset,offset+499);
+       if(resp.error)throw resp.error;
+       manualRows.push(...(resp.data||[]));
+       if((resp.data||[]).length<500)break;
+     }
+     const manualMap=new Map();
+     const docKey=value=>String(value||'').replace(/[^0-9]/g,'');
+     for(const m of manualRows){
+       const key=docKey(m.documento),reason=String(m.motivo||'').trim();
+       if(key&&reason)manualMap.set(key,canonicalRefReason(reason));
+     }
+     const refDocs=[];
+     for(let offset=0;offset<100000;offset+=500){
+       let query=state.supabase.from('refaturamento_importado')
+         .select('id,documento,cliente,operador,tipo,motivo_baixa').eq('ano',year).eq('tipo','refaturado')
+         .order('id',{ascending:true}).range(offset,offset+499);
+       if(restricted)query=query.eq('operador',session.usuarioRef);
+       const resp=await query;
+       if(resp.error)throw resp.error;
+       refDocs.push(...(resp.data||[]));
+       if((resp.data||[]).length<500)break;
+     }
+     for(const r of refDocs){
+       const reason=manualMap.get(docKey(r.documento))||
+         (r.motivo_baixa?canonicalRefReason(inferReasonFromText(r.motivo_baixa)||r.motivo_baixa):'');
+       if(!reason)continue;
+       const client=clientGroup(String(r.cliente||'SEM CLIENTE').replace(/^[0-9]+-/,''));
+       const key=client.toLocaleUpperCase('pt-BR');
+       if(!map.has(key))map.set(key,{client,qty:0,value:0,reasons:{}});
+       const item=map.get(key);
+       item.reasons[reason]=(item.reasons[reason]||0)+1;
+     }
+     // Recalcula a classificação após cruzar os CT-es, preservando os totais financeiros.
+     for(const x of rows){
+       const source=map.get(x.client.toLocaleUpperCase('pt-BR'));
+       x.reasons=source?.reasons||{};
+       x.reason=Object.entries(x.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sem motivo vinculado';
+     }
      // Distribuição de motivos por cliente; não transforma motivos ausentes em erros conhecidos.
      const withReasons=rows.filter(x=>Object.keys(x.reasons).length);
      const reasonTypes=[...new Set(withReasons.flatMap(x=>Object.keys(x.reasons)))].sort((a,b)=>
