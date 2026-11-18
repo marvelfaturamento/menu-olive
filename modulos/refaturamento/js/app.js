@@ -5860,7 +5860,6 @@ function __perfAnualAggregate(){
           return;
         }
         state.remoteMonths = keys;
-        const loadedKeys = [];
 
         for(const key of keys){
           // Sempre recarrega a produtividade mensal da Supabase para a Performance Anual.
@@ -5906,7 +5905,6 @@ function __perfAnualAggregate(){
             applySnapshot(__backupPerfMonth);
           }
 
-          loadedKeys.push(key);
           state.annual[key] = v33SummaryFromSnapshot(snapshot);
           state.annualProd[key] = {
             documentos: (snapshot.prodRows || [])
@@ -5916,11 +5914,6 @@ function __perfAnualAggregate(){
           };
         }
 
-        // Remover apenas snapshots obsoletos da memória de apresentação,
-        // nunca registros do banco. Falhas de leitura não apagam o mês local.
-        if(!refError && !prodError){
-          // Os meses efetivamente lidos já foram atualizados acima.
-        }
         writeStorage('painel_ref_annual_v32', state.annual);
         writeStorage('painel_ref_annual_prod_v36', state.annualProd);
         refreshMonthViewSelect?.();
