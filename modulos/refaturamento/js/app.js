@@ -7185,6 +7185,34 @@ function __perfAnualAggregate(){
      const qty=[...rows].sort((a,b)=>b.qty-a.qty).slice(0,12),val=rows.slice(0,12);
      makeBarChart('chartClientAnnualQty',qty.map(x=>x.client),qty.map(x=>x.qty),true,'Quantidade');
      makeBarChart('chartClientAnnualValue',val.map(x=>x.client),val.map(x=>x.value),true,'Valor');
+     // Distribuição de motivos por cliente; não transforma motivos ausentes em erros conhecidos.
+     const withReasons=rows.filter(x=>Object.keys(x.reasons).length);
+     const reasonTypes=[...new Set(withReasons.flatMap(x=>Object.keys(x.reasons)))].sort((a,b)=>
+       withReasons.reduce((n,x)=>n+(x.reasons[b]||0)-(x.reasons[a]||0),0)).slice(0,8);
+     const topReasonClients=[...withReasons].sort((a,b)=>
+       Object.values(b.reasons).reduce((n,v)=>n+v,0)-Object.values(a.reasons).reduce((n,v)=>n+v,0)).slice(0,12);
+     destroyChart('chartClientAnnualReasons');
+     const canvas=el('chartClientAnnualReasons');
+     const empty=el('clientAnnualReasonEmpty');
+     if(!topReasonClients.length){
+       empty.textContent='Não há motivos registrados nos dados anuais consultados. O gráfico será preenchido quando os motivos forem recuperados ou importados.';
+       canvas.style.display='none';
+     }else{
+       empty.textContent='';
+       canvas.style.display='block';
+       const palette=['#38bdf8','#f59e0b','#34d399','#f472b6','#a78bfa','#fb7185','#22d3ee','#facc15'];
+       state.charts.chartClientAnnualReasons=new Chart(canvas,{
+         type:'bar',
+         data:{labels:topReasonClients.map(x=>x.client),datasets:reasonTypes.map((reason,i)=>({
+           label:reason,data:topReasonClients.map(x=>x.reasons[reason]||0),backgroundColor:palette[i%palette.length],stack:'motivos'
+         }))},
+         options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+           plugins:{legend:{labels:{color:'#dbeafe'}},datalabels:{display:false}},
+           scales:{x:{stacked:true,ticks:{color:'#cfe0ff',precision:0},grid:{color:'rgba(255,255,255,.06)'}},
+             y:{stacked:true,ticks:{color:'#cfe0ff'},grid:{color:'rgba(255,255,255,.06)'}}}
+         }
+       });
+     }
      el('tbodyClientAnnual').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.client)+'</td><td>'+x.qty+'</td><td>'+fmtMoney(x.value)+'</td><td>'+esc(x.reason)+'</td></tr>').join(''):'<tr><td colspan="4">Sem dados no ano selecionado.</td></tr>';
      status.textContent=all.length+' registros consultados em '+year;
    }catch(err){console.error(err);status.textContent='Erro na consulta: '+(err.message||err);}
