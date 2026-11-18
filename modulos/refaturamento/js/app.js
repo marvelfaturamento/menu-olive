@@ -2579,7 +2579,7 @@ function renderAnnualView(){
         if(!ensureSupabaseConnected()) throw new Error('Conexão Supabase indisponível');
         const months=await state.supabase.from('meses_importados').select('mes,ano');
         if(months.error) throw months.error;
-        const keys=[...new Set((months.data||[]).map(x=>`${x.ano}-${String(x.mes).padStart(2,'0')}`))].filter(k=>/^\\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
+        const keys=[...new Set((months.data||[]).map(x=>`${x.ano}-${String(x.mes).padStart(2,'0')}`))].filter(k=>/^\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
         if(!keys.length) throw new Error('Nenhuma competência encontrada em meses_importados');
         const nextAnnual={},nextProd={};
         for(const key of keys){
