@@ -7134,3 +7134,58 @@ function __perfAnualAggregate(){
     const yr=el('userAnalysisYear');if(yr)yr.value=String(new Date().getFullYear());
   });
 })();
+
+/* Clientes: abas Mensal/Anual, consulta paginada somente leitura. */
+(function(){
+ const el=id=>document.getElementById(id);let serial=0;
+ function show(annual){
+   el('clientMonthlyPanel').style.display=annual?'none':'';
+   el('clientAnnualPanel').style.display=annual?'':'none';
+   el('clientMonthly').classList.toggle('active',!annual);
+   el('clientAnnual').classList.toggle('active',annual);
+   if(annual)load();else renderClientesView();
+ }
+ async function load(){
+   const current=++serial,year=String(el('clientAnnualYear').value||'').trim(),status=el('clientAnnualStatus');
+   if(!/^[0-9]{4}$/.test(year)){status.textContent='Ano inválido';return;}
+   if(!ensureSupabaseConnected()){status.textContent='Supabase indisponível';return;}
+   status.textContent='Consultando '+year+'...';
+   try{
+     const session=__getPerfilRefFinal(),restricted=session.perfil!=='admin',allowed=prodNorm(session.usuarioRef||'');
+     if(restricted&&!allowed)throw Error('Usuário da sessão não identificado');
+     const all=[];
+     for(let offset=0;offset<1000000;offset+=500){
+       let query=state.supabase.from('refaturamento_importado').select('id,ano,mes,tipo,setor,operador,cliente,debito,motivo_baixa,frete_refaturado').eq('ano',year).eq('tipo','setor').order('id',{ascending:true}).range(offset,offset+499);
+       if(restricted)query=query.eq('operador',session.usuarioRef);
+       const result=await query;
+       if(result.error)throw result.error;
+       all.push(...(result.data||[]));
+       if((result.data||[]).length<500)break;
+     }
+     if(current!==serial)return;
+     const map=new Map();
+     for(const r of all){
+       if(!String(r.setor||'').toLowerCase().includes('faturamento'))continue;
+       const client=String(r.cliente||'SEM CLIENTE').trim().replace(/^[-\\s]+/,'')||'SEM CLIENTE';
+       const key=client.toLocaleUpperCase('pt-BR');
+       if(!map.has(key))map.set(key,{client,qty:0,value:0,reasons:{}});
+       const item=map.get(key);item.qty++;
+       item.value+=Number(r.debito||0);
+       const reason=String(r.motivo_baixa||'Não identificado').trim()||'Não identificado';
+       item.reasons[reason]=(item.reasons[reason]||0)+1;
+     }
+     const rows=[...map.values()].map(x=>({...x,reason:Object.entries(x.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Não identificado'})).sort((a,b)=>b.value-a.value);
+     const qty=[...rows].sort((a,b)=>b.qty-a.qty).slice(0,12),val=rows.slice(0,12);
+     makeBarChart('chartClientAnnualQty',qty.map(x=>x.client),qty.map(x=>x.qty),true,'Quantidade');
+     makeBarChart('chartClientAnnualValue',val.map(x=>x.client),val.map(x=>x.value),true,'Valor');
+     el('tbodyClientAnnual').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.client)+'</td><td>'+x.qty+'</td><td>'+fmtMoney(x.value)+'</td><td>'+esc(x.reason)+'</td></tr>').join(''):'<tr><td colspan="4">Sem dados no ano selecionado.</td></tr>';
+     status.textContent=all.length+' registros consultados em '+year;
+   }catch(err){console.error(err);status.textContent='Erro na consulta: '+(err.message||err);}
+ }
+ document.addEventListener('DOMContentLoaded',()=>{
+   el('clientMonthly')?.addEventListener('click',()=>show(false));
+   el('clientAnnual')?.addEventListener('click',()=>show(true));
+   el('clientAnnualReload')?.addEventListener('click',load);
+   if(el('clientAnnualYear'))el('clientAnnualYear').value=String(new Date().getFullYear());
+ });
+})();
