@@ -131,6 +131,12 @@
 #usuarios #userAnalysisAnnualPanel .chart-box{height:440px;min-height:440px}
 #usuarios #userAnalysisAnnualPanel .chart-box canvas{max-height:440px}
 @media(max-width:700px){#usuarios .user-period-tabs{grid-template-columns:1fr}}
+#clientes .user-period-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 18px}
+#clientes .user-period-tabs button{appearance:none;background:#172640;color:#e8f1ff;border:1px solid #344c70;border-radius:12px;padding:18px 20px;text-align:left;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:7px;font:inherit;min-height:84px}
+#clientes .user-period-tabs button strong{font-size:17px}
+#clientes .user-period-tabs button small{font-size:12px;color:#adc4e8}
+#clientes .user-period-tabs button.active{background:#234371;border-color:#60a5fa;box-shadow:inset 0 0 0 1px #60a5fa}
+@media(max-width:700px){#clientes .user-period-tabs{grid-template-columns:1fr}}
 </style>
 <div class="user-period-tabs">
 <button type="button" class="active" id="userAnalysisMonthly"><strong>🗓️ Mensal</strong><small>Usuários do mês consultado</small></button>
@@ -191,6 +197,16 @@
 </div>
 </section>
 <section class="view" id="clientes">
+<div class="user-period-tabs" id="clientPeriodTabs">
+<button type="button" id="clientMonthly" class="active"><strong>🗓️ Mensal</strong><small>Clientes do mês consultado</small></button>
+<button type="button" id="clientAnnual"><strong>📊 Anual</strong><small>Consolidado de todos os meses do ano</small></button>
+</div>
+<div id="clientAnnualPanel" style="display:none">
+<div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="margin:0">Análise anual de clientes</h3><label for="clientAnnualYear">Ano</label><input type="number" id="clientAnnualYear" min="2020" max="2100" value="2026" style="width:100px"><button type="button" class="btn secondary" id="clientAnnualReload">Atualizar</button><span class="sub" id="clientAnnualStatus"></span></div>
+<div class="grid grid-2"><div class="card"><h3>Clientes por quantidade refaturada</h3><div class="chart-box" style="height:440px"><canvas id="chartClientAnnualQty"></canvas></div></div><div class="card"><h3>Clientes por valor refaturado</h3><div class="chart-box" style="height:440px"><canvas id="chartClientAnnualValue"></canvas></div></div></div>
+<div class="card" style="margin-top:16px"><h3>Consolidado anual por cliente</h3><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Quantidade</th><th>Valor refaturado</th><th>Principal motivo</th></tr></thead><tbody id="tbodyClientAnnual"></tbody></table></div></div>
+</div>
+<div id="clientMonthlyPanel">
 <div class="grid grid-2">
 <div class="card"><h3>Cliente x quantidade refaturada</h3><div class="chart-box"><canvas height="0" id="chartClienteQtd" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 <div class="card"><h3>Cliente x valor refaturado</h3><div class="sub">Soma do débito vinculado aos refaturados.</div><div class="chart-box"><canvas height="0" id="chartClienteValor" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
@@ -199,6 +215,7 @@
 <div class="card"><h3>Cliente x principal motivo</h3><div class="chart-box"><canvas height="0" id="chartClienteMotivo" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div>
 </div>
 <div class="card" style="margin-top:16px;"><h3>Tabela de clientes</h3><div class="table-wrap"><table><thead><tr><th>Cliente agrupado</th><th>Qtd.</th><th>Valor refaturado</th><th>Principal motivo</th><th>Detalhes</th></tr></thead><tbody id="tbodyClientes"></tbody></table></div></div>
+</div>
 </section>
 <section class="view" id="setores"><div class="setor-mini-tabs" role="tablist" aria-label="Tipos de análise por setor" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px">
 <button type="button" class="setor-mini active" data-setor-tab="documentos" aria-selected="true"><strong>▤ Documentos</strong><small>Refaturados e substitutos</small></button>
