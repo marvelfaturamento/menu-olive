@@ -2553,51 +2553,64 @@ function renderAnnualView(){
 }
 
 
-/* Visão anual: fonte única no Supabase, independente do cache da Performance Anual. */
+/* Visão anual: leitura paginada e exclusiva da Supabase, sem mostrar cache como dado atual. */
 (function(){
   let busy=null, loaded=false;
+  window.__refAnnualDbReady=false;
+  async function allRows(table, columns, ano, mes){
+    const pageSize=500, result=[];
+    for(let offset=0;offset<1000000;offset+=pageSize){
+      let query=state.supabase.from(table).select(columns).eq('ano',ano).eq('mes',Number(mes)).range(offset,offset+pageSize-1);
+      const response=await query;
+      if(response.error) throw response.error;
+      const rows=response.data||[];
+      result.push(...rows);
+      if(rows.length<pageSize) return result;
+    }
+    throw new Error('Limite de segurança de paginação excedido em '+table+' '+ano+'-'+mes);
+  }
   window.__refAnnualDbRefresh=function(force=false){
-    if(!ensureSupabaseConnected()) return Promise.resolve();
     if(busy) return busy;
-    if(loaded && !force) return Promise.resolve();
+    if(loaded&&!force) return Promise.resolve();
+    const tbody=document.getElementById('tbodyAnnualMonths');
+    if(tbody) tbody.innerHTML='<tr><td colspan="6">Consultando dados atualizados da Supabase...</td></tr>';
     busy=(async()=>{
       try{
-        const m=await state.supabase.from('meses_importados').select('mes,ano');
-        if(m.error) throw m.error;
-        const keys=[...new Set((m.data||[]).map(x=>`${x.ano}-${String(x.mes).padStart(2,'0')}`))].filter(k=>/^\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
-        if(!keys.length) return;
+        if(!ensureSupabaseConnected()) throw new Error('Conexão Supabase indisponível');
+        const months=await state.supabase.from('meses_importados').select('mes,ano');
+        if(months.error) throw months.error;
+        const keys=[...new Set((months.data||[]).map(x=>`${x.ano}-${String(x.mes).padStart(2,'0')}`))].filter(k=>/^\\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
+        if(!keys.length) throw new Error('Nenhuma competência encontrada em meses_importados');
         const nextAnnual={},nextProd={};
         for(const key of keys){
           const [ano,mes]=key.split('-');
-          const [ref,prod]=await Promise.all([
-            state.supabase.from('refaturamento_importado').select('tipo,debito,frete_substituto').eq('ano',ano).eq('mes',mes),
-            state.supabase.from('produtividade_usuarios').select('ctrc,ost').eq('ano',ano).eq('mes',mes)
+          const [refRows,prodRows]=await Promise.all([
+            allRows('refaturamento_importado','tipo,debito,frete_substituto',ano,mes),
+            allRows('produtividade_usuarios','ctrc,ost',ano,mes)
           ]);
-          if(ref.error || prod.error) throw (ref.error||prod.error);
-          const refRows=ref.data||[],prodRows=prod.data||[];
           const refaturado=refRows.filter(x=>x.tipo==='setor').reduce((n,x)=>n+Number(x.debito||0),0);
           const substituto=refRows.filter(x=>x.tipo==='substituto').reduce((n,x)=>n+Number(x.frete_substituto||0),0);
           const documentos=prodRows.reduce((n,x)=>n+Number(x.ctrc||0)+Number(x.ost||0),0);
           nextAnnual[key]={...(state.annual[key]||{}),refaturado,substituto,total:refaturado+substituto,__dbAuthoritative:true};
           nextProd[key]={...(state.annualProd[key]||{}),documentos};
         }
-        // Publicar todos os meses de uma vez: nenhuma mistura de caches por navegador.
         state.annual=nextAnnual;
         state.annualProd=nextProd;
+        loaded=true;
+        window.__refAnnualDbReady=true;
         writeStorage('painel_ref_annual_v32',state.annual);
         writeStorage('painel_ref_annual_prod_v36',state.annualProd);
-        loaded=true;
         renderAnnualView();
       }catch(e){
-        console.error('Não foi possível consolidar a visão anual na Supabase:',e);
+        console.error('Falha na consulta anual Supabase:',e);
+        window.__refAnnualDbReady=false;
         const el=document.getElementById('tbodyAnnualMonths');
-        if(el) el.innerHTML='<tr><td colspan="6">Falha ao consultar a base anual. Atualize a página para tentar novamente.</td></tr>';
+        if(el) el.innerHTML='<tr><td colspan="6">Não foi possível validar os dados na Supabase. Os valores locais foram ocultados. Consulte o console para detalhes.</td></tr>';
       }finally{busy=null;}
     })();
     return busy;
   };
 })();
-
 function renderPerformanceView(){
   const perfilSessao = __getPerfilRefFinal();
   const isOperador = perfilSessao.perfil !== 'admin';
@@ -3623,7 +3636,10 @@ async function applyMonthViewSelection(){
   alert('Esse mês não está salvo localmente e não foi possível carregar da Supabase.');
 }
 function renderAnnualView(){
-  if(typeof window.__refAnnualDbRefresh === 'function') window.__refAnnualDbRefresh();
+  if(!window.__refAnnualDbReady){
+    if(typeof window.__refAnnualDbRefresh === 'function') window.__refAnnualDbRefresh();
+    return;
+  }
   const sectorSelect = document.getElementById('annualSectorSelect');
   const sectorNames = Array.from(new Set(Object.values(state.annual || {}).flatMap(entry => Object.keys(entry.sectors || {})))).sort();
   if(sectorSelect){
