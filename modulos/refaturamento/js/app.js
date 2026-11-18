@@ -7183,7 +7183,7 @@ function __perfAnualAggregate(){
      }
      const rows=[...map.values()].map(x=>({...x,reason:Object.entries(x.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sem motivo registrado na base'})).sort((a,b)=>b.value-a.value);
      const qty=[...rows].sort((a,b)=>b.qty-a.qty).slice(0,12),val=rows.slice(0,12);
-     makeBarChart('chartClientAnnualQty',qty.map(x=>x.client),qty.map(x=>x.qty),true,'Quantidade');
+     // Quantidade será recalculada a partir dos mesmos documentos usados nos motivos.
      makeBarChart('chartClientAnnualValue',val.map(x=>x.client),val.map(x=>x.value),true,'Valor');
      // Motivos são cadastrados pelo CT-e em refaturamento_manual; linhas SETOR não
      // têm esse identificador. Recupera CT-es do mesmo ano e cruza por documento.
@@ -7204,7 +7204,8 @@ function __perfAnualAggregate(){
      const refDocs=[];
      for(let offset=0;offset<100000;offset+=500){
        let query=state.supabase.from('refaturamento_importado')
-         .select('id,mes,documento,cliente,operador,tipo,setor,motivo_baixa').eq('ano',year).eq('tipo',selectedType)
+         .select('id,mes,documento,cliente,operador,tipo,setor,motivo_baixa').eq('ano',year)
+         .in('tipo',selectedType==='todos'?['refaturado','substituto']:[selectedType])
          .order('id',{ascending:true}).range(offset,offset+499);
        if(restricted)query=query.eq('operador',session.usuarioRef);
        const resp=await query;
@@ -7215,24 +7216,27 @@ function __perfAnualAggregate(){
      // Não mistura motivos do rateio SETOR com motivos dos documentos.
      for(const item of map.values())item.reasons={};
      const seenReasonDocs=new Set();
+     const documentCounts=new Map();
      for(const r of refDocs){
        if(!String(r.setor||'').toLowerCase().includes('faturamento'))continue;
-       const uniqueDoc=[r.mes,docKey(r.documento)].join('|');
+       const uniqueDoc=[r.tipo,r.mes,docKey(r.documento)||String(r.id)].join('|');
        if(seenReasonDocs.has(uniqueDoc))continue;
        seenReasonDocs.add(uniqueDoc);
        const reason=manualMap.get(docKey(r.documento))||
          (r.motivo_baixa?canonicalRefReason(inferReasonFromText(r.motivo_baixa)||r.motivo_baixa):'');
-       if(!reason)continue;
        const client=clientGroup(String(r.cliente||'SEM CLIENTE').replace(/^[0-9]+-/,''));
        const key=client.toLocaleUpperCase('pt-BR');
        if(!map.has(key))map.set(key,{client,qty:0,value:0,reasons:{}});
        const item=map.get(key);
-       item.reasons[reason]=(item.reasons[reason]||0)+1;
+       documentCounts.set(key,(documentCounts.get(key)||0)+1);
+       if(reason)item.reasons[reason]=(item.reasons[reason]||0)+1;
      }
+     const docRanking=[...documentCounts].map(([key,count])=>({client:map.get(key)?.client||key,qty:count})).sort((a,b)=>b.qty-a.qty||a.client.localeCompare(b.client,'pt-BR')).slice(0,12);
+     makeBarChart('chartClientAnnualQty',docRanking.map(x=>x.client),docRanking.map(x=>x.qty),true,'Documentos');
      const classified=refDocs.filter(r=>String(r.setor||'').toLowerCase().includes('faturamento'));
      const identified=seenReasonDocs.size ? [...map.values()].reduce((n,x)=>n+Object.values(x.reasons).reduce((a,b)=>a+b,0),0) : 0;
      if(el('clientAnnualReasonSummary'))el('clientAnnualReasonSummary').textContent=
-       classified.length+' documentos do Faturamento; '+identified+' com motivo identificado. Gráfico separado do rateio por setor.';
+       documentCounts.size+' clientes; '+[...documentCounts.values()].reduce((a,b)=>a+b,0)+' documentos do Faturamento; '+identified+' com motivo identificado. Valor financeiro permanece baseado no rateio por setor.';
      // Recalcula a classificação após cruzar os CT-es, preservando os totais financeiros.
      for(const x of rows){
        const source=map.get(x.client.toLocaleUpperCase('pt-BR'));
