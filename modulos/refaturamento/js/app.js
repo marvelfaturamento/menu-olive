@@ -7230,7 +7230,7 @@ function __perfAnualAggregate(){
        item.reasons[reason]=(item.reasons[reason]||0)+1;
      }
      const classified=refDocs.filter(r=>String(r.setor||'').toLowerCase().includes('faturamento'));
-     const identified=[...map.values()].reduce((n,x)=>n+Object.values(x.reasons).reduce((a,b)=>a+b,0),0);
+     const identified=seenReasonDocs.size ? [...map.values()].reduce((n,x)=>n+Object.values(x.reasons).reduce((a,b)=>a+b,0),0) : 0;
      if(el('clientAnnualReasonSummary'))el('clientAnnualReasonSummary').textContent=
        classified.length+' documentos do Faturamento; '+identified+' com motivo identificado. Gráfico separado do rateio por setor.';
      // Recalcula a classificação após cruzar os CT-es, preservando os totais financeiros.
@@ -7278,7 +7278,7 @@ function __perfAnualAggregate(){
            barPercentage:0.85,categoryPercentage:0.9
          }))},
          options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
-           plugins:{legend:{labels:{color:'#dbeafe'}},datalabels:{display:false},
+           plugins:{legend:{display:false},datalabels:{display:false},
              tooltip:{callbacks:{label:ctx=>{
                const raw=ctx.raw;
                const count=Array.isArray(raw)?Number(raw[1])-Number(raw[0]):Number(raw||0);
