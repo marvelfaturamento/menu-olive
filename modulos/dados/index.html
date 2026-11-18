@@ -608,13 +608,18 @@ async function consultarCidadesRapido(texto,signal,ignorarCache=false){
     coordinates:[Number(c.longitude),Number(c.latitude)],countryCode:c.country_code
   })),3500);
   let ultimoErro=null;
+  const encontrados=[];
   for(const provider of [photon,openMeteo,nominatim]){
     if(signal.aborted)throw new DOMException('Busca cancelada','AbortError');
     try{
       const resultados=await provider();
-      if(resultados.length){guardarCidades(resultados);return resultados.slice(0,7);}
+      if(resultados.length){
+        encontrados.push(...resultados);
+        if(!ignorarCache){guardarCidades(resultados);return resultados.slice(0,20);}
+      }
     }catch(e){if(signal.aborted)throw e;ultimoErro=e;console.warn('Provedor de cidades indisponível:',e);}
   }
+  if(encontrados.length){guardarCidades(encontrados);return encontrados;}
   if(ultimoErro)console.warn('Todos os provedores de cidades falharam:',ultimoErro);
   return [];
 }
@@ -697,7 +702,7 @@ function auto(id,sug,key){
       const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?cidadeBusca+', '+paisPorCidade[nomeNormalizado]:cidadeBusca;
       // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
       const ufEsperada=i.dataset.ufEsperada;
-      const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+      const nomeEsperado=cidadeBusca.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
       const cacheConfiavel=!preenchimentoAutomatico||(!ufEsperada&&locais.some(c=>c.label.split(',')[0].normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()===nomeEsperado));
       if(locais.length&&cacheConfiavel){if(minhaSeq===seq)exibir(locais,preenchimentoAutomatico,texto);return;}
       box.textContent='Buscando cidades...';
@@ -1392,13 +1397,18 @@ async function consultarCidadesRapido(texto,signal,ignorarCache=false){
     coordinates:[Number(c.longitude),Number(c.latitude)],countryCode:c.country_code
   })),3500);
   let ultimoErro=null;
+  const encontrados=[];
   for(const provider of [photon,openMeteo,nominatim]){
     if(signal.aborted)throw new DOMException('Busca cancelada','AbortError');
     try{
       const resultados=await provider();
-      if(resultados.length){guardarCidades(resultados);return resultados.slice(0,7);}
+      if(resultados.length){
+        encontrados.push(...resultados);
+        if(!ignorarCache){guardarCidades(resultados);return resultados.slice(0,20);}
+      }
     }catch(e){if(signal.aborted)throw e;ultimoErro=e;console.warn('Provedor de cidades indisponível:',e);}
   }
+  if(encontrados.length){guardarCidades(encontrados);return encontrados;}
   if(ultimoErro)console.warn('Todos os provedores de cidades falharam:',ultimoErro);
   return [];
 }
@@ -1481,7 +1491,7 @@ function auto(id,sug,key){
       const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?cidadeBusca+', '+paisPorCidade[nomeNormalizado]:cidadeBusca;
       // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
       const ufEsperada=i.dataset.ufEsperada;
-      const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+      const nomeEsperado=cidadeBusca.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
       const cacheConfiavel=!preenchimentoAutomatico||(!ufEsperada&&locais.some(c=>c.label.split(',')[0].normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()===nomeEsperado));
       if(locais.length&&cacheConfiavel){if(minhaSeq===seq)exibir(locais,preenchimentoAutomatico,texto);return;}
       box.textContent='Buscando cidades...';
