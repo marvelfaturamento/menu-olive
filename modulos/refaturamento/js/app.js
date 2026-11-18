@@ -7166,15 +7166,22 @@ function __perfAnualAggregate(){
      const map=new Map();
      for(const r of all){
        if(!String(r.setor||'').toLowerCase().includes('faturamento'))continue;
-       const client=String(r.cliente||'SEM CLIENTE').trim().replace(/^[-\\s]+/,'')||'SEM CLIENTE';
+       const rawClient=String(r.cliente||'SEM CLIENTE').trim().replace(/^[-\\s]+/,'')||'SEM CLIENTE';
+       // Usa a mesma normalização de clientes já aplicada no painel mensal.
+       const client=clientGroup(rawClient);
        const key=client.toLocaleUpperCase('pt-BR');
        if(!map.has(key))map.set(key,{client,qty:0,value:0,reasons:{}});
        const item=map.get(key);item.qty++;
        item.value+=Number(r.debito||0);
-       const reason=String(r.motivo_baixa||'Não identificado').trim()||'Não identificado';
-       item.reasons[reason]=(item.reasons[reason]||0)+1;
+       // A coluna motivo_baixa pode estar vazia nos registros históricos.
+       // Não inventar motivo: manter indicação explícita até recuperar a origem.
+       const reason=String(r.motivo_baixa||'').trim();
+       if(reason){
+         const normalized=canonicalRefReason(inferReasonFromText(reason)||reason);
+         item.reasons[normalized]=(item.reasons[normalized]||0)+1;
+       }
      }
-     const rows=[...map.values()].map(x=>({...x,reason:Object.entries(x.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Não identificado'})).sort((a,b)=>b.value-a.value);
+     const rows=[...map.values()].map(x=>({...x,reason:Object.entries(x.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sem motivo registrado na base'})).sort((a,b)=>b.value-a.value);
      const qty=[...rows].sort((a,b)=>b.qty-a.qty).slice(0,12),val=rows.slice(0,12);
      makeBarChart('chartClientAnnualQty',qty.map(x=>x.client),qty.map(x=>x.qty),true,'Quantidade');
      makeBarChart('chartClientAnnualValue',val.map(x=>x.client),val.map(x=>x.value),true,'Valor');
