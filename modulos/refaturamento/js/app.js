@@ -7298,7 +7298,14 @@ function __perfAnualAggregate(){
          }
        });
      }
-     el('tbodyClientAnnual').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.client)+'</td><td>'+x.qty+'</td><td>'+fmtMoney(x.value)+'</td><td>'+esc(x.reason)+'</td></tr>').join(''):'<tr><td colspan="4">Sem dados no ano selecionado.</td></tr>';
+     // O consolidado deve usar exatamente a mesma contagem documental do gráfico.
+     // SETOR é fonte do valor rateado, mas não adiciona documentos à quantidade.
+     const consolidatedRows=[...documentCounts.entries()].map(([key,count])=>{
+       const item=map.get(key);
+       return {client:item?.client||key,qty:count,value:item?.value||0,
+         reason:Object.entries(item?.reasons||{}).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sem motivo vinculado'};
+     }).sort((a,b)=>b.value-a.value||b.qty-a.qty||a.client.localeCompare(b.client,'pt-BR'));
+     el('tbodyClientAnnual').innerHTML=consolidatedRows.length?consolidatedRows.map(x=>'<tr><td>'+esc(x.client)+'</td><td>'+x.qty+'</td><td>'+fmtMoney(x.value)+'</td><td>'+esc(x.reason)+'</td></tr>').join(''):'<tr><td colspan="4">Sem dados no ano selecionado.</td></tr>';
      status.textContent=all.length+' registros consultados em '+year;
    }catch(err){console.error(err);status.textContent='Erro na consulta: '+(err.message||err);}
  }
