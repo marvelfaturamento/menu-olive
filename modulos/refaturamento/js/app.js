@@ -7329,32 +7329,50 @@ function __perfAnualAggregate(){
    }
    Chart.getChart('clientReasonExpandedCanvas')?.destroy();
    overlay.style.display='flex';
-   const options=Object.assign({},src.options,{responsive:true,maintainAspectRatio:false});
-   options.plugins={...src.options.plugins,tooltip:{callbacks:{label:ctx=>{
-     const raw=ctx.raw;
-     return ctx.dataset.label+': '+(Array.isArray(raw)?raw[1]-raw[0]:Number(raw||0));
-   }}}};
-   const expandedData=JSON.parse(JSON.stringify(src.data));
-   // Linha sobreposta mostra o total de motivos por cliente na ampliação.
-   // Os datasets de barras usam intervalos flutuantes [início,fim].
-   const totals=expandedData.labels.map((_,index)=>expandedData.datasets.reduce((sum,dataset)=>{
-     const point=dataset.data?.[index];
-     return sum+(Array.isArray(point)?Number(point[1]||0)-Number(point[0]||0):Number(point||0));
+   // Configuração independente: opções resolvidas de src.options podem conter
+   // proxies internos do Chart.js e deixar o canvas ampliado em branco.
+   const datasets=src.data.datasets.map(dataset=>({
+     label:dataset.label,
+     data:dataset.data.map(point=>Array.isArray(point)?[Number(point[0]),Number(point[1])]:point),
+     backgroundColor:dataset.backgroundColor,
+     grouped:false,
+     barPercentage:0.85,
+     categoryPercentage:0.9
+   }));
+   const totals=src.data.labels.map((_,index)=>datasets.reduce((sum,dataset)=>{
+     const point=dataset.data[index];
+     return sum+(Array.isArray(point)?point[1]-point[0]:Number(point||0));
    },0));
-   expandedData.datasets.push({
+   datasets.push({
      type:'line',label:'Total de erros',data:totals,
      borderColor:'#ffffff',backgroundColor:'#ffffff',borderWidth:2,
-     pointRadius:4,pointHoverRadius:6,tension:0.2,fill:false,
-     order:0
+     pointRadius:4,pointHoverRadius:6,tension:0.2,fill:false
    });
-   options.scales={...src.options.scales,
-     x:{...src.options.scales?.x,beginAtZero:true},
-     y:{...src.options.scales?.y}};
    const expandedCanvas=document.getElementById('clientReasonExpandedCanvas');
+   const canvasParent=expandedCanvas.parentElement;
+   canvasParent.style.position='relative';
+   canvasParent.style.height='calc(100vh - 175px)';
+   canvasParent.style.flex='1 1 auto';
+   expandedCanvas.style.display='block';
    expandedCanvas.style.width='100%';
    expandedCanvas.style.height='100%';
    new Chart(expandedCanvas,{
-     type:'bar',data:expandedData,options
+     type:'bar',
+     data:{labels:[...src.data.labels],datasets},
+     options:{
+       responsive:true,maintainAspectRatio:false,indexAxis:'y',
+       plugins:{
+         legend:{display:false},datalabels:{display:false},
+         tooltip:{callbacks:{label:ctx=>{
+           const raw=ctx.raw;
+           return ctx.dataset.label+': '+(Array.isArray(raw)?raw[1]-raw[0]:Number(raw||0));
+         }}}
+       },
+       scales:{
+         x:{beginAtZero:true,ticks:{color:'#cfe0ff',precision:0},grid:{color:'rgba(255,255,255,.06)'}},
+         y:{ticks:{color:'#cfe0ff'},grid:{color:'rgba(255,255,255,.06)'}}
+       }
+     }
    });
  },true);
  document.addEventListener('DOMContentLoaded',()=>{
