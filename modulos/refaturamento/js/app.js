@@ -2005,6 +2005,9 @@ function renderAnnualView(){
   if(typeof window.__refAnnualRefresh === 'function'){
     window.__refAnnualRefresh();
   }
+  if(typeof window.__refAnnualDbRefresh === 'function'){
+    window.__refAnnualDbRefresh();
+  }
   const keys = Object.keys(state.annual).sort();
   const labels = keys.map(monthLabel);
   const ref = keys.map(k => Number(state.annual[k].refaturado||0));
@@ -2552,6 +2555,51 @@ function renderAnnualView(){
   }
 }
 
+
+/* Visão anual: fonte única no Supabase, independente do cache da Performance Anual. */
+(function(){
+  let busy=null, loaded=false;
+  window.__refAnnualDbRefresh=function(force=false){
+    if(!ensureSupabaseConnected()) return Promise.resolve();
+    if(busy) return busy;
+    if(loaded && !force) return Promise.resolve();
+    busy=(async()=>{
+      try{
+        const m=await state.supabase.from('meses_importados').select('mes,ano');
+        if(m.error) throw m.error;
+        const keys=[...new Set((m.data||[]).map(x=>`${x.ano}-${String(x.mes).padStart(2,'0')}`))].filter(k=>/^\\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
+        if(!keys.length) return;
+        const nextAnnual={},nextProd={};
+        for(const key of keys){
+          const [ano,mes]=key.split('-');
+          const [ref,prod]=await Promise.all([
+            state.supabase.from('refaturamento_importado').select('tipo,debito,frete_substituto').eq('ano',ano).eq('mes',mes),
+            state.supabase.from('produtividade_usuarios').select('ctrc,ost').eq('ano',ano).eq('mes',mes)
+          ]);
+          if(ref.error || prod.error) throw (ref.error||prod.error);
+          const refRows=ref.data||[],prodRows=prod.data||[];
+          const refaturado=refRows.filter(x=>x.tipo==='setor').reduce((n,x)=>n+Number(x.debito||0),0);
+          const substituto=refRows.filter(x=>x.tipo==='substituto').reduce((n,x)=>n+Number(x.frete_substituto||0),0);
+          const documentos=prodRows.reduce((n,x)=>n+Number(x.ctrc||0)+Number(x.ost||0),0);
+          nextAnnual[key]={...(state.annual[key]||{}),refaturado,substituto,total:refaturado+substituto};
+          nextProd[key]={...(state.annualProd[key]||{}),documentos};
+        }
+        // Publicar todos os meses de uma vez: nenhuma mistura de caches por navegador.
+        state.annual=nextAnnual;
+        state.annualProd=nextProd;
+        writeStorage('painel_ref_annual_v32',state.annual);
+        writeStorage('painel_ref_annual_prod_v36',state.annualProd);
+        loaded=true;
+        renderAnnualView();
+      }catch(e){
+        console.error('Não foi possível consolidar a visão anual na Supabase:',e);
+        const el=document.getElementById('tbodyAnnualMonths');
+        if(el) el.innerHTML='<tr><td colspan="6">Falha ao consultar a base anual. Atualize a página para tentar novamente.</td></tr>';
+      }finally{busy=null;}
+    })();
+    return busy;
+  };
+})();
 
 function renderPerformanceView(){
   const perfilSessao = __getPerfilRefFinal();
