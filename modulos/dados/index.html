@@ -681,7 +681,11 @@ function auto(id,sug,key){
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
-      if(locais.length){if(minhaSeq===seq)exibir(locais,preenchimentoAutomatico,texto);return;}
+      // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
+      const ufEsperada=i.dataset.ufEsperada;
+      const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+      const cacheConfiavel=!preenchimentoAutomatico||(!ufEsperada&&locais.some(c=>c.label.split(',')[0].normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim()===nomeEsperado));
+      if(locais.length&&cacheConfiavel){if(minhaSeq===seq)exibir(locais,preenchimentoAutomatico,texto);return;}
       box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
@@ -1447,7 +1451,11 @@ function auto(id,sug,key){
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
-      if(locais.length){if(minhaSeq===seq)exibir(locais,preenchimentoAutomatico,texto);return;}
+      // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
+      const ufEsperada=i.dataset.ufEsperada;
+      const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+      const cacheConfiavel=!preenchimentoAutomatico||(!ufEsperada&&locais.some(c=>c.label.split(',')[0].normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim()===nomeEsperado));
+      if(locais.length&&cacheConfiavel){if(minhaSeq===seq)exibir(locais,preenchimentoAutomatico,texto);return;}
       box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
