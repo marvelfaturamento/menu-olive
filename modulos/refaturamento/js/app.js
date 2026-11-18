@@ -7235,7 +7235,8 @@ function __perfAnualAggregate(){
      // Distribuição de motivos por cliente; não transforma motivos ausentes em erros conhecidos.
      const withReasons=rows.filter(x=>Object.keys(x.reasons).length);
      const reasonTypes=[...new Set(withReasons.flatMap(x=>Object.keys(x.reasons)))].sort((a,b)=>
-       withReasons.reduce((n,x)=>n+(x.reasons[b]||0)-(x.reasons[a]||0),0)).slice(0,8);
+       withReasons.reduce((n,x)=>n+(x.reasons[b]||0)-(x.reasons[a]||0),0));
+     // Inclui todos os motivos, sem omitir categorias menos frequentes.
      // Ordenação pela quantidade efetivamente exibida nas barras empilhadas.
      const reasonCount=x=>reasonTypes.reduce((total,reason)=>total+Number(x.reasons[reason]||0),0);
      const topReasonClients=[...withReasons]
@@ -7251,7 +7252,7 @@ function __perfAnualAggregate(){
      }else{
        empty.textContent='';
        canvas.style.display='block';
-       const palette=['#38bdf8','#f59e0b','#34d399','#f472b6','#a78bfa','#fb7185','#22d3ee','#facc15'];
+       const palette=['#38bdf8','#f59e0b','#34d399','#f472b6','#a78bfa','#fb7185','#22d3ee','#facc15','#818cf8','#f97316','#84cc16','#e879f9','#14b8a6','#f43f5e','#eab308','#60a5fa'];
        state.charts.chartClientAnnualReasons=new Chart(canvas,{
          type:'bar',
          data:{labels:topReasonClients.map(x=>x.client),datasets:reasonTypes.map((reason,i)=>({
