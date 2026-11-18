@@ -7200,10 +7200,11 @@ function __perfAnualAggregate(){
        const key=docKey(m.documento),reason=String(m.motivo||'').trim();
        if(key&&reason)manualMap.set(key,canonicalRefReason(reason));
      }
+     const selectedType=el('clientAnnualReasonType')?.value||'refaturado';
      const refDocs=[];
      for(let offset=0;offset<100000;offset+=500){
        let query=state.supabase.from('refaturamento_importado')
-         .select('id,mes,documento,cliente,operador,tipo,setor,motivo_baixa').eq('ano',year).eq('tipo','refaturado')
+         .select('id,mes,documento,cliente,operador,tipo,setor,motivo_baixa').eq('ano',year).eq('tipo',selectedType)
          .order('id',{ascending:true}).range(offset,offset+499);
        if(restricted)query=query.eq('operador',session.usuarioRef);
        const resp=await query;
@@ -7211,6 +7212,8 @@ function __perfAnualAggregate(){
        refDocs.push(...(resp.data||[]));
        if((resp.data||[]).length<500)break;
      }
+     // Não mistura motivos do rateio SETOR com motivos dos documentos.
+     for(const item of map.values())item.reasons={};
      const seenReasonDocs=new Set();
      for(const r of refDocs){
        if(!String(r.setor||'').toLowerCase().includes('faturamento'))continue;
@@ -7226,6 +7229,10 @@ function __perfAnualAggregate(){
        const item=map.get(key);
        item.reasons[reason]=(item.reasons[reason]||0)+1;
      }
+     const classified=refDocs.filter(r=>String(r.setor||'').toLowerCase().includes('faturamento'));
+     const identified=[...map.values()].reduce((n,x)=>n+Object.values(x.reasons).reduce((a,b)=>a+b,0),0);
+     if(el('clientAnnualReasonSummary'))el('clientAnnualReasonSummary').textContent=
+       classified.length+' documentos do Faturamento; '+identified+' com motivo identificado. Gráfico separado do rateio por setor.';
      // Recalcula a classificação após cruzar os CT-es, preservando os totais financeiros.
      for(const x of rows){
        const source=map.get(x.client.toLocaleUpperCase('pt-BR'));
@@ -7319,6 +7326,7 @@ function __perfAnualAggregate(){
    el('clientMonthly')?.addEventListener('click',()=>show(false));
    el('clientAnnual')?.addEventListener('click',()=>show(true));
    el('clientAnnualReload')?.addEventListener('click',load);
+   el('clientAnnualReasonType')?.addEventListener('change',load);
    if(el('clientAnnualYear'))el('clientAnnualYear').value=String(new Date().getFullYear());
  });
 })();
