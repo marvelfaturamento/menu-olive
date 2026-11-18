@@ -7231,6 +7231,7 @@ function __perfAnualAggregate(){
        documentCounts.set(key,(documentCounts.get(key)||0)+1);
        if(reason)item.reasons[reason]=(item.reasons[reason]||0)+1;
      }
+     // Quantidade documental exclusivamente de refaturados/substitutos; nunca soma SETOR.
      const docRanking=[...documentCounts].map(([key,count])=>({client:map.get(key)?.client||key,qty:count})).sort((a,b)=>b.qty-a.qty||a.client.localeCompare(b.client,'pt-BR')).slice(0,12);
      makeBarChart('chartClientAnnualQty',docRanking.map(x=>x.client),docRanking.map(x=>x.qty),true,'Documentos');
      const classified=refDocs.filter(r=>String(r.setor||'').trim().toUpperCase()==='CLIENTE');
@@ -7244,7 +7245,9 @@ function __perfAnualAggregate(){
        x.reason=Object.entries(x.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sem motivo vinculado';
      }
      // Distribuição de motivos por cliente; não transforma motivos ausentes em erros conhecidos.
-     const withReasons=rows.filter(x=>Object.keys(x.reasons).length);
+     // Usa somente clientes presentes nos documentos filtrados. O rateio SETOR
+     // não pode introduzir clientes nem quantidades neste gráfico.
+     const withReasons=[...documentCounts.keys()].map(key=>map.get(key)).filter(x=>x&&Object.keys(x.reasons).length);
      const reasonTypes=[...new Set(withReasons.flatMap(x=>Object.keys(x.reasons)))].sort((a,b)=>
        withReasons.reduce((n,x)=>n+(x.reasons[b]||0)-(x.reasons[a]||0),0));
      // Inclui todos os motivos, sem omitir categorias menos frequentes.
