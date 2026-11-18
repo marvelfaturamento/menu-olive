@@ -7231,8 +7231,12 @@ function __perfAnualAggregate(){
      const withReasons=rows.filter(x=>Object.keys(x.reasons).length);
      const reasonTypes=[...new Set(withReasons.flatMap(x=>Object.keys(x.reasons)))].sort((a,b)=>
        withReasons.reduce((n,x)=>n+(x.reasons[b]||0)-(x.reasons[a]||0),0)).slice(0,8);
-     const topReasonClients=[...withReasons].sort((a,b)=>
-       Object.values(b.reasons).reduce((n,v)=>n+v,0)-Object.values(a.reasons).reduce((n,v)=>n+v,0)).slice(0,12);
+     // Ordenação pela quantidade efetivamente exibida nas barras empilhadas.
+     const reasonCount=x=>reasonTypes.reduce((total,reason)=>total+Number(x.reasons[reason]||0),0);
+     const topReasonClients=[...withReasons]
+       .filter(x=>reasonCount(x)>0)
+       .sort((a,b)=>reasonCount(b)-reasonCount(a)||a.client.localeCompare(b.client,'pt-BR'))
+       .slice(0,12);
      destroyChart('chartClientAnnualReasons');
      const canvas=el('chartClientAnnualReasons');
      const empty=el('clientAnnualReasonEmpty');
