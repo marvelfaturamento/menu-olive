@@ -7203,7 +7203,7 @@ function __perfAnualAggregate(){
      const refDocs=[];
      for(let offset=0;offset<100000;offset+=500){
        let query=state.supabase.from('refaturamento_importado')
-         .select('id,documento,cliente,operador,tipo,motivo_baixa').eq('ano',year).eq('tipo','refaturado')
+         .select('id,mes,documento,cliente,operador,tipo,setor,motivo_baixa').eq('ano',year).eq('tipo','refaturado')
          .order('id',{ascending:true}).range(offset,offset+499);
        if(restricted)query=query.eq('operador',session.usuarioRef);
        const resp=await query;
@@ -7211,7 +7211,12 @@ function __perfAnualAggregate(){
        refDocs.push(...(resp.data||[]));
        if((resp.data||[]).length<500)break;
      }
+     const seenReasonDocs=new Set();
      for(const r of refDocs){
+       if(!String(r.setor||'').toLowerCase().includes('faturamento'))continue;
+       const uniqueDoc=[r.mes,docKey(r.documento)].join('|');
+       if(seenReasonDocs.has(uniqueDoc))continue;
+       seenReasonDocs.add(uniqueDoc);
        const reason=manualMap.get(docKey(r.documento))||
          (r.motivo_baixa?canonicalRefReason(inferReasonFromText(r.motivo_baixa)||r.motivo_baixa):'');
        if(!reason)continue;
@@ -7280,45 +7285,34 @@ function __perfAnualAggregate(){
      status.textContent=all.length+' registros consultados em '+year;
    }catch(err){console.error(err);status.textContent='Erro na consulta: '+(err.message||err);}
  }
- // Modal específico para barras flutuantes: preserva a orientação horizontal,
- // cores, ordem e valores sem convertê-los para gráfico de linha.
+ // Ampliação independente: não interfere no modal global dos demais gráficos.
  document.addEventListener('click',event=>{
-   const canvas=event.target.closest?.('#chartClientAnnualReasons');
-   if(!canvas)return;
+   if(!event.target.closest?.('#chartClientAnnualReasons'))return;
    event.stopImmediatePropagation();
-   const source=state.charts.chartClientAnnualReasons;
-   if(!source)return;
-   const modal=document.getElementById('refChartModal');
-   if(!modal)return;
-   const title=document.getElementById('refChartTitle');
-   if(title)title.textContent='Clientes x principais motivos — anual';
-   const holder=document.getElementById('refChartBar');
-   const second=document.getElementById('refChartLine');
-   if(!holder)return;
-   const previous=Chart.getChart(holder);
-   if(previous)previous.destroy();
-   const previousLine=second&&Chart.getChart(second);
-   if(previousLine)previousLine.destroy();
-   if(second)second.parentElement.style.display='none';
-   holder.parentElement.style.width='100%';
-   const copied=JSON.parse(JSON.stringify(source.data));
-   const options=JSON.parse(JSON.stringify(source.options));
-   options.responsive=true;options.maintainAspectRatio=false;
-   options.plugins=options.plugins||{};
-   options.plugins.tooltip={callbacks:{label:ctx=>{
-     const raw=ctx.raw;
-     return ctx.dataset.label+': '+(Array.isArray(raw)?raw[1]-raw[0]:Number(raw||0));
-   }}};
-   new Chart(holder,{type:'bar',data:copied,options});
-   modal.classList.add('open');
-   const close=document.getElementById('refChartClose');
-   if(close&&!close.dataset.reasonCleanup){
-     close.dataset.reasonCleanup='1';
-     close.addEventListener('click',()=>{
-       if(second)second.parentElement.style.display='';
-       holder.parentElement.style.width='';
+   const src=state.charts.chartClientAnnualReasons;
+   if(!src)return;
+   let overlay=document.getElementById('clientReasonExpanded');
+   if(!overlay){
+     overlay=document.createElement('div');
+     overlay.id='clientReasonExpanded';
+     overlay.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(2,8,20,.95);padding:24px;display:flex;flex-direction:column;gap:12px';
+     overlay.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;color:white"><h2>Clientes x principais motivos — anual</h2><button type="button" id="clientReasonClose" style="background:#1d3556;color:white;border:1px solid #456;border-radius:8px;padding:12px;cursor:pointer">✕ Fechar</button></div><div style="flex:1;min-height:0;background:#122039;border-radius:12px;padding:16px"><canvas id="clientReasonExpandedCanvas"></canvas></div>';
+     document.body.appendChild(overlay);
+     overlay.querySelector('#clientReasonClose').addEventListener('click',()=>{
+       Chart.getChart('clientReasonExpandedCanvas')?.destroy();
+       overlay.style.display='none';
      });
    }
+   Chart.getChart('clientReasonExpandedCanvas')?.destroy();
+   overlay.style.display='flex';
+   const options=Object.assign({},src.options,{responsive:true,maintainAspectRatio:false});
+   options.plugins={...src.options.plugins,tooltip:{callbacks:{label:ctx=>{
+     const raw=ctx.raw;
+     return ctx.dataset.label+': '+(Array.isArray(raw)?raw[1]-raw[0]:Number(raw||0));
+   }}}};
+   new Chart(document.getElementById('clientReasonExpandedCanvas'),{
+     type:'bar',data:JSON.parse(JSON.stringify(src.data)),options
+   });
  },true);
  document.addEventListener('DOMContentLoaded',()=>{
    el('clientMonthly')?.addEventListener('click',()=>show(false));
