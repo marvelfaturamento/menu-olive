@@ -191,23 +191,22 @@ async function applyMonthViewSelection(){
     return;
   }
 
-  // Prioridade 1: usar o snapshot local salvo do mês.
-  // Antes, se o mês existisse na Supabase, o painel carregava a base remota primeiro.
-  // Quando a Supabase tinha linhas acumuladas/antigas gravadas no mês, os KPIs de Jan/2026
-  // apareciam com o total geral. Agora filtramos sempre pela data real da baixa.
+  // Supabase é a fonte oficial para competências salvas. Evita divergências
+  // entre computadores/navegadores e snapshots antigos no localStorage.
+  if(ensureSupabaseConnected()){
+    const loaded = await loadMonthFromSupabase(key);
+    if(loaded) return;
+    alert('Não foi possível consultar a competência na Supabase. Os dados locais não serão usados como se fossem oficiais.');
+    return;
+  }
   const entry = state.annual[key];
-  if(entry && entry.snapshot){
-    const filtered = snapshotFilteredByMonth(entry.snapshot, key);
+  if(entry?.snapshot){
     state.selectedMonthKey = key;
-    applySnapshot(snapshotHasMonthlyData(filtered) ? filtered : entry.snapshot);
+    applySnapshot(entry.snapshot);
     renderAll();
     return;
   }
-
-  const loaded = await loadMonthFromSupabase(key);
-  if(!loaded){
-    alert('Esse mês não está salvo localmente e não foi possível carregar da Supabase.');
-  }
+  alert('Competência não disponível.');
 }
 
 const TRACKED_USERS = [
@@ -2001,6 +2000,11 @@ function saveCurrentProdMonth(){
   alert(`Produtividade de ${month}/${year} salva/substituída na base anual.`);
 }
 function renderAnnualView(){
+  // A visão anual deve atualizar a partir da mesma base remota da Performance Anual.
+  // O carregador evita chamadas duplicadas durante uma consulta em andamento.
+  if(typeof window.__refAnnualRefresh === 'function'){
+    window.__refAnnualRefresh();
+  }
   const keys = Object.keys(state.annual).sort();
   const labels = keys.map(monthLabel);
   const ref = keys.map(k => Number(state.annual[k].refaturado||0));
@@ -5856,6 +5860,7 @@ function __perfAnualAggregate(){
           return;
         }
         state.remoteMonths = keys;
+        const loadedKeys = [];
 
         for(const key of keys){
           // Sempre recarrega a produtividade mensal da Supabase para a Performance Anual.
@@ -5901,6 +5906,7 @@ function __perfAnualAggregate(){
             applySnapshot(__backupPerfMonth);
           }
 
+          loadedKeys.push(key);
           state.annual[key] = v33SummaryFromSnapshot(snapshot);
           state.annualProd[key] = {
             documentos: (snapshot.prodRows || [])
@@ -5910,6 +5916,11 @@ function __perfAnualAggregate(){
           };
         }
 
+        // Remover apenas snapshots obsoletos da memória de apresentação,
+        // nunca registros do banco. Falhas de leitura não apagam o mês local.
+        if(!refError && !prodError){
+          // Os meses efetivamente lidos já foram atualizados acima.
+        }
         writeStorage('painel_ref_annual_v32', state.annual);
         writeStorage('painel_ref_annual_prod_v36', state.annualProd);
         refreshMonthViewSelect?.();
@@ -5926,6 +5937,15 @@ function __perfAnualAggregate(){
 
     return loadingAllMonths;
   }
+
+  window.__refAnnualRefresh = function(){
+    if(annualMonthsLoadedOnce || loadingAllMonths) return;
+    v33EnsureAllAnnualMonthsLoaded().then(()=>{
+      if(annualMonthsLoadedOnce && document.getElementById('tbodyAnnualMonths')){
+        renderAnnualView();
+      }
+    }).catch(err=>console.warn('Falha ao atualizar visão anual:',err));
+  };
 
   window.renderPerformanceAnualView = async function(){
     const status = document.getElementById('syncStatus');
