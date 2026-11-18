@@ -649,6 +649,11 @@ function auto(id,sug,key){
         const cidade=norm(esperado).split(',')[0].trim();
         if(partes[0]!==cidade)return false;
         if(!uf)return true;
+        if(uf.toUpperCase()==='EX'){
+          const paisesConhecidos={'puerto montt':'chile','mar del plata':'argentina','montevideo':'uruguai','buenos aires':'argentina','santiago':'chile','asuncion':'paraguai','quemchi':'chile'};
+          const pais=paisesConhecidos[cidade];
+          return pais?partes.some(p=>p===pais):!['br','brazil','brasil'].includes(norm(c.countryCode||partes[partes.length-1]));
+        }
         const estado=norm(estados[uf.toUpperCase()]||uf);
         return partes.slice(1).some(p=>p===estado||p===norm(uf));
       });
@@ -681,6 +686,10 @@ function auto(id,sug,key){
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
+      // EX indica exterior no 902; o serviço geográfico precisa receber o país verdadeiro.
+      const paisPorCidade={'puerto montt':'Chile','mar del plata':'Argentina','montevideo':'Uruguay','buenos aires':'Argentina','santiago':'Chile','asuncion':'Paraguay','quemchi':'Chile'};
+      const nomeNormalizado=texto.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+      const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?texto+', '+paisPorCidade[nomeNormalizado]:texto;
       // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
       const ufEsperada=i.dataset.ufEsperada;
       const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -689,7 +698,7 @@ function auto(id,sug,key){
       box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
-        const items=await consultarCidadesRapido(texto,controller.signal,preenchimentoAutomatico&&!cacheConfiavel);
+        const items=await consultarCidadesRapido(buscaGeografica,controller.signal,preenchimentoAutomatico&&!cacheConfiavel);
         if(minhaSeq!==seq)return;
         exibir(items,preenchimentoAutomatico,texto);
       }catch(e){
@@ -1419,6 +1428,11 @@ function auto(id,sug,key){
         const cidade=norm(esperado).split(',')[0].trim();
         if(partes[0]!==cidade)return false;
         if(!uf)return true;
+        if(uf.toUpperCase()==='EX'){
+          const paisesConhecidos={'puerto montt':'chile','mar del plata':'argentina','montevideo':'uruguai','buenos aires':'argentina','santiago':'chile','asuncion':'paraguai','quemchi':'chile'};
+          const pais=paisesConhecidos[cidade];
+          return pais?partes.some(p=>p===pais):!['br','brazil','brasil'].includes(norm(c.countryCode||partes[partes.length-1]));
+        }
         const estado=norm(estados[uf.toUpperCase()]||uf);
         return partes.slice(1).some(p=>p===estado||p===norm(uf));
       });
@@ -1451,6 +1465,10 @@ function auto(id,sug,key){
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
+      // EX indica exterior no 902; o serviço geográfico precisa receber o país verdadeiro.
+      const paisPorCidade={'puerto montt':'Chile','mar del plata':'Argentina','montevideo':'Uruguay','buenos aires':'Argentina','santiago':'Chile','asuncion':'Paraguay','quemchi':'Chile'};
+      const nomeNormalizado=texto.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+      const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?texto+', '+paisPorCidade[nomeNormalizado]:texto;
       // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
       const ufEsperada=i.dataset.ufEsperada;
       const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -1459,7 +1477,7 @@ function auto(id,sug,key){
       box.textContent='Buscando cidades...';
       controller=new AbortController();
       try{
-        const items=await consultarCidadesRapido(texto,controller.signal,preenchimentoAutomatico&&!cacheConfiavel);
+        const items=await consultarCidadesRapido(buscaGeografica,controller.signal,preenchimentoAutomatico&&!cacheConfiavel);
         if(minhaSeq!==seq)return;
         exibir(items,preenchimentoAutomatico,texto);
       }catch(e){
