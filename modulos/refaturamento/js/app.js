@@ -2564,7 +2564,7 @@ function renderAnnualView(){
       try{
         const m=await state.supabase.from('meses_importados').select('mes,ano');
         if(m.error) throw m.error;
-        const keys=[...new Set((m.data||[]).map(x=>`${x.ano}-${String(x.mes).padStart(2,'0')}`))].filter(k=>/^\\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
+        const keys=[...new Set((m.data||[]).map(x=>`${x.ano}-${String(x.mes).padStart(2,'0')}`))].filter(k=>/^\d{4}-(0[1-9]|1[0-2])$/.test(k)).sort();
         if(!keys.length) return;
         const nextAnnual={},nextProd={};
         for(const key of keys){
