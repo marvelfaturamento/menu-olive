@@ -6878,7 +6878,15 @@ function __perfAnualAggregate(){
   function rows(){ const {mes,ano}=mesAno(); return (window.buildProdRowsForSync?.(mes,ano)||[]).map(r=>({...r,mes,ano})); }
   async function markMonth(mes,ano){
     const prev=await state.supabase.from('meses_importados').select('tem_refaturamento,tem_produtividade').eq('mes',mes).eq('ano',ano).maybeSingle();
-    const payload={mes,ano,tem_refaturamento:!!prev.data?.tem_refaturamento,tem_produtividade:true};
+    if(prev.error) throw prev.error;
+    // Nunca desligar o indicador de refaturamento por ausência de metadados.
+    let temRef = prev.data?.tem_refaturamento;
+    if(temRef == null){
+      const check = await state.supabase.from('refaturamento_importado').select('id',{count:'exact',head:true}).eq('mes',mes).eq('ano',ano);
+      if(check.error) throw check.error;
+      temRef = (check.count || 0) > 0;
+    }
+    const payload={mes,ano,tem_refaturamento:!!temRef,tem_produtividade:true};
     const r=await state.supabase.from('meses_importados').upsert(payload,{onConflict:'mes,ano'}); if(r.error) throw r.error;
   }
   async function sync(){
@@ -6897,12 +6905,36 @@ function __perfAnualAggregate(){
   async function replace(){
     try{
       if(!state?.supabase) return alert('Supabase não conectada.');
-      const {mes,ano}=mesAno(), local=rows(); if(!local.length) return alert('Importe o relatório do sistema antes de substituir.');
-      if(!confirm(`Substituir SOMENTE a produtividade de ${mes}/${ano}? Os dados de Refaturamento não serão alterados.`))return;
-      status('Substituindo produtividade do mês...');
-      const del=await state.supabase.from('produtividade_usuarios').delete().eq('mes',mes).eq('ano',ano); if(del.error)throw del.error;
-      const ins=await state.supabase.from('produtividade_usuarios').insert(local); if(ins.error)throw ins.error;
-      await markMonth(mes,ano); status(`Produtividade ${mes}/${ano} substituída com sucesso. ${local.length} usuário(s) gravado(s).`); alert('Produtividade do mês substituída na base.');
+      const {mes,ano}=mesAno(), local=rows();
+      if(!/^\\d{4}$/.test(ano) || !/^(0[1-9]|1[0-2])$/.test(mes)) return alert('Selecione uma competência válida.');
+      if(!local.length) return alert('Importe o relatório do sistema antes de substituir.');
+      const importedAt = state.__ultimoExcelProdutividadeEm;
+      if(!importedAt || !(state.__ultimoExcelProdutividade || []).length){
+        return alert('Importe novamente o relatório de produtividade antes de substituir. Isso evita usar dados de outro mês.');
+      }
+      const expected = new Map((state.__ultimoExcelProdutividade || []).filter(x=>['ctrc','ost'].includes(normalizeDocType(x.tipo))).map(x=>[String(x.usuario||'').trim().toLowerCase(),true]));
+      if(!expected.size) return alert('O relatório importado não contém CTRC/OST. Substituição bloqueada.');
+      const remoteResult=await state.supabase.from('produtividade_usuarios').select('operador').eq('mes',mes).eq('ano',ano);
+      if(remoteResult.error) throw remoteResult.error;
+      const remote=remoteResult.data || [];
+      const nextNames=new Set(local.map(r=>String(r.operador||'').trim().toLowerCase()));
+      if(nextNames.size!==local.length) return alert('O relatório contém operadores duplicados ou inválidos. Substituição bloqueada.');
+      if(!confirm(`Substituir SOMENTE a produtividade de ${mes}/${ano}? Serão gravados ${local.length} operadores. Refaturamento não será alterado.`))return;
+      status('Gravando produtividade com segurança...');
+      // Primeiro grava os dados novos. Se falhar, mantém os registros anteriores.
+      const up=await state.supabase.from('produtividade_usuarios').upsert(local,{onConflict:'mes,ano,operador'});
+      if(up.error) throw up.error;
+      // Remove apenas operadores ausentes do relatório, depois de confirmar o upsert.
+      const obsolete=remote.filter(r=>!nextNames.has(String(r.operador||'').trim().toLowerCase()));
+      for(const row of obsolete){
+        const d=await state.supabase.from('produtividade_usuarios').delete().eq('mes',mes).eq('ano',ano).eq('operador',row.operador);
+        if(d.error) throw d.error;
+      }
+      await markMonth(mes,ano);
+      if(state.annualProd) delete state.annualProd[`${ano}-${mes}`];
+      if(typeof annualMonthsLoadedOnce!=='undefined') annualMonthsLoadedOnce=false;
+      status(`Produtividade ${mes}/${ano} substituída: ${local.length} operador(es). Refaturamento preservado.`);
+      alert('Produtividade substituída com sucesso. Refaturamento preservado.');
     }catch(e){console.error(e);status('Erro ao substituir: '+(e.message||e),true);}
   }
   document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
