@@ -6956,11 +6956,39 @@ function __perfAnualAggregate(){
   window.addEventListener('DOMContentLoaded',()=>setTimeout(bind,0));window.__parseSystemReportProd=parseSystemReport;
 })();
 
+/* Importação isolada: impede handlers legados de executar substituição conjunta. */
+(function(){
+  const protectedIds=['btnSyncProdMonth','btnReplaceProdMonth','btnReimportarMesSeguro'];
+  document.addEventListener('click',function(e){
+    const btn=e.target.closest?.('button');
+    if(!btn||!protectedIds.includes(btn.id))return;
+    if(btn.id==='btnReimportarMesSeguro'){
+      e.preventDefault();e.stopImmediatePropagation();
+      alert('Reimportação conjunta desativada. Use a substituição individual de cada módulo.');
+      return;
+    }
+    // Os handlers próprios da produtividade são executados diretamente abaixo,
+    // evitando que listeners antigos façam alterações no refaturamento.
+    if(typeof window.__prodIsolatedActions?.[btn.id]==='function'){
+      e.preventDefault();e.stopImmediatePropagation();
+      window.__prodIsolatedActions[btn.id]();
+    }
+  },true);
+})();
 /* ===== PRODUTIVIDADE V4: sincronizacao mensal independente ===== */
 (function(){
   function status(msg, err){ const el=document.getElementById('prodSyncStatus'); if(el){el.style.display='block';el.textContent=msg;el.style.borderColor=err?'#ef4444':'';} }
   function mesAno(){ return {mes:String(document.getElementById('prodMonth')?.value||'').padStart(2,'0'),ano:String(document.getElementById('prodYear')?.value||'').trim()}; }
-  function rows(){ const {mes,ano}=mesAno(); return (window.buildProdRowsForSync?.(mes,ano)||[]).map(r=>({...r,mes,ano})); }
+  function rows(){
+    const {mes,ano}=mesAno();
+    const imported=state.__ultimoExcelProdutividade;
+    if(!Array.isArray(imported)||!imported.length||!state.__ultimoExcelProdutividadeEm) return [];
+    const before=state.prodRows;
+    try{
+      state.prodRows=JSON.parse(JSON.stringify(imported));
+      return (buildProdRowsForSync(mes,ano)||[]).map(r=>({...r,mes,ano}));
+    }finally{state.prodRows=before;}
+  }
   async function markMonth(mes,ano){
     const prev=await state.supabase.from('meses_importados').select('tem_refaturamento,tem_produtividade').eq('mes',mes).eq('ano',ano).maybeSingle();
     if(prev.error) throw prev.error;
@@ -6991,7 +7019,7 @@ function __perfAnualAggregate(){
     try{
       if(!state?.supabase) return alert('Supabase não conectada.');
       const {mes,ano}=mesAno(), local=rows();
-      if(!/^\\d{4}$/.test(ano) || !/^(0[1-9]|1[0-2])$/.test(mes)) return alert('Selecione uma competência válida.');
+      if(!/^\d{4}$/.test(ano) || !/^(0[1-9]|1[0-2])$/.test(mes)) return alert('Selecione uma competência válida.');
       if(!local.length) return alert('Importe o relatório do sistema antes de substituir.');
       const importedAt = state.__ultimoExcelProdutividadeEm;
       if(!importedAt || !(state.__ultimoExcelProdutividade || []).length){
@@ -7022,8 +7050,5 @@ function __perfAnualAggregate(){
       alert('Produtividade substituída com sucesso. Refaturamento preservado.');
     }catch(e){console.error(e);status('Erro ao substituir: '+(e.message||e),true);}
   }
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
-    document.getElementById('btnSyncProdMonth')?.addEventListener('click',sync);
-    document.getElementById('btnReplaceProdMonth')?.addEventListener('click',replace);
-  },300));
+  window.__prodIsolatedActions={btnSyncProdMonth:sync,btnReplaceProdMonth:replace};
 })();
