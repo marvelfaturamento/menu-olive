@@ -662,7 +662,13 @@ function auto(id,sug,key){
           return pais?partes.some(p=>p===pais):!['br','brazil','brasil'].includes(norm(c.countryCode||partes[partes.length-1]));
         }
         const estado=norm(estados[uf.toUpperCase()]||uf);
-        return partes.slice(1).some(p=>p===estado||p===norm(uf));
+        if(partes.slice(1).some(p=>p===estado||p===norm(uf)))return true;
+        // Alguns geocodificadores devolvem apenas "São Paulo, Brasil" para a
+        // capital paulista, sem o estado. Aceitar somente este caso inequívoco.
+        if(cidade==='sao paulo'&&uf.toUpperCase()==='SP'&&
+           partes.length===2&&['brasil','brazil'].includes(partes[1])&&
+           (!c.countryCode||['br','bra'].includes(norm(c.countryCode))))return true;
+        return false;
       });
       if(match){selecionar(match.c);delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;return;}
       // Não selecionar outra cidade/UF apenas porque o geocoder a sugeriu primeiro.
@@ -1451,7 +1457,13 @@ function auto(id,sug,key){
           return pais?partes.some(p=>p===pais):!['br','brazil','brasil'].includes(norm(c.countryCode||partes[partes.length-1]));
         }
         const estado=norm(estados[uf.toUpperCase()]||uf);
-        return partes.slice(1).some(p=>p===estado||p===norm(uf));
+        if(partes.slice(1).some(p=>p===estado||p===norm(uf)))return true;
+        // Alguns geocodificadores devolvem apenas "São Paulo, Brasil" para a
+        // capital paulista, sem o estado. Aceitar somente este caso inequívoco.
+        if(cidade==='sao paulo'&&uf.toUpperCase()==='SP'&&
+           partes.length===2&&['brasil','brazil'].includes(partes[1])&&
+           (!c.countryCode||['br','bra'].includes(norm(c.countryCode))))return true;
+        return false;
       });
       if(match){selecionar(match.c);delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;return;}
       // Não selecionar outra cidade/UF apenas porque o geocoder a sugeriu primeiro.
