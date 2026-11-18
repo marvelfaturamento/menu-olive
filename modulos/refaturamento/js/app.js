@@ -7265,7 +7265,12 @@ function __perfAnualAggregate(){
            barPercentage:0.85,categoryPercentage:0.9
          }))},
          options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
-           plugins:{legend:{labels:{color:'#dbeafe'}},datalabels:{display:false}},
+           plugins:{legend:{labels:{color:'#dbeafe'}},datalabels:{display:false},
+             tooltip:{callbacks:{label:ctx=>{
+               const raw=ctx.raw;
+               const count=Array.isArray(raw)?Number(raw[1])-Number(raw[0]):Number(raw||0);
+               return ctx.dataset.label+': '+count.toLocaleString('pt-BR');
+             }}}},
            scales:{x:{stacked:false,ticks:{color:'#cfe0ff',precision:0},grid:{color:'rgba(255,255,255,.06)'}},
              y:{stacked:false,ticks:{color:'#cfe0ff'},grid:{color:'rgba(255,255,255,.06)'}}}
          }
@@ -7275,6 +7280,46 @@ function __perfAnualAggregate(){
      status.textContent=all.length+' registros consultados em '+year;
    }catch(err){console.error(err);status.textContent='Erro na consulta: '+(err.message||err);}
  }
+ // Modal específico para barras flutuantes: preserva a orientação horizontal,
+ // cores, ordem e valores sem convertê-los para gráfico de linha.
+ document.addEventListener('click',event=>{
+   const canvas=event.target.closest?.('#chartClientAnnualReasons');
+   if(!canvas)return;
+   event.stopImmediatePropagation();
+   const source=state.charts.chartClientAnnualReasons;
+   if(!source)return;
+   const modal=document.getElementById('refChartModal');
+   if(!modal)return;
+   const title=document.getElementById('refChartTitle');
+   if(title)title.textContent='Clientes x principais motivos — anual';
+   const holder=document.getElementById('refChartBar');
+   const second=document.getElementById('refChartLine');
+   if(!holder)return;
+   const previous=Chart.getChart(holder);
+   if(previous)previous.destroy();
+   const previousLine=second&&Chart.getChart(second);
+   if(previousLine)previousLine.destroy();
+   if(second)second.parentElement.style.display='none';
+   holder.parentElement.style.width='100%';
+   const copied=JSON.parse(JSON.stringify(source.data));
+   const options=JSON.parse(JSON.stringify(source.options));
+   options.responsive=true;options.maintainAspectRatio=false;
+   options.plugins=options.plugins||{};
+   options.plugins.tooltip={callbacks:{label:ctx=>{
+     const raw=ctx.raw;
+     return ctx.dataset.label+': '+(Array.isArray(raw)?raw[1]-raw[0]:Number(raw||0));
+   }}};
+   new Chart(holder,{type:'bar',data:copied,options});
+   modal.classList.add('open');
+   const close=document.getElementById('refChartClose');
+   if(close&&!close.dataset.reasonCleanup){
+     close.dataset.reasonCleanup='1';
+     close.addEventListener('click',()=>{
+       if(second)second.parentElement.style.display='';
+       holder.parentElement.style.width='';
+     });
+   }
+ },true);
  document.addEventListener('DOMContentLoaded',()=>{
    el('clientMonthly')?.addEventListener('click',()=>show(false));
    el('clientAnnual')?.addEventListener('click',()=>show(true));
