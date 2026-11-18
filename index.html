@@ -802,6 +802,29 @@
   #btnAdminUsers:hover{color:#fff;transform:rotate(25deg);background:transparent!important}
   #btnAdminUsers:focus-visible{outline:2px solid #5d9cff!important;outline-offset:2px}
   #btnAdminUsers[hidden]{display:none!important}\n</style>
+<style>
+/* Central Operacional: painel de saúde integrado aos cartões. */
+.module-card{isolation:isolate}
+.module-card:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(0,0,0,.32),0 0 0 1px rgba(71,153,255,.14)}
+.module-health{margin-top:auto;padding:12px;border:1px solid rgba(104,157,227,.17);border-radius:13px;background:linear-gradient(125deg,rgba(29,52,90,.62),rgba(9,22,42,.48));position:relative;overflow:hidden}
+.module-health:before{content:"";position:absolute;width:115px;height:115px;right:-65px;top:-70px;border-radius:50%;background:rgba(52,137,255,.08);pointer-events:none}
+.health-top{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:10px}
+.health-heading{font-size:11px;font-weight:800;color:#d8e8ff;letter-spacing:.3px}
+.health-status{font-size:10px;font-weight:700;color:#a5b9d7}
+.health-status.ok{color:#42e2a0}.health-status.warn{color:#ffc36d}
+.health-usage{display:flex;justify-content:space-between;align-items:baseline;gap:5px;margin-bottom:7px}
+.health-usage strong{font-size:18px;letter-spacing:-.5px;color:#f0f7ff}
+.health-usage small{font-size:10px;color:#8da9ce}
+.health-track{height:7px;border-radius:20px;background:#233651;overflow:hidden}
+.health-track>span{display:block;width:0;height:100%;background:linear-gradient(90deg,#38bdf8,#3b82f6);border-radius:20px;transition:width .5s}
+.health-foot{display:flex;justify-content:space-between;gap:8px;margin-top:8px;color:#90a8ca;font-size:10px}
+.health-foot span:last-child{text-align:right}
+.health-overview{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 17px;border:1px solid rgba(77,140,232,.22);border-radius:14px;background:linear-gradient(110deg,rgba(16,42,78,.95),rgba(11,26,50,.94));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.health-overview-title{font-size:13px;font-weight:800;color:#edf6ff}
+.health-overview-sub{font-size:10px;color:#93acd1;margin-top:4px}
+.health-overview-status{font-size:11px;color:#a7c9ff;text-align:right}
+@media(max-width:850px){.health-overview{flex-wrap:wrap}.module-health{padding:9px}}
+</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2199,4 +2222,30 @@
   </script>
 
 
+<script>
+/* Painel de saúde: somente leitura, sem divulgar chaves nem simular cotas.
+   O tamanho real do banco exige telemetria segura do projeto Supabase. */
+(function(){
+ const modules={dados:'Dados',instrutivo:'Instrutivo',refaturamento:'Refaturamento',faturamento:'Faturamento',painel902:'Painel 902',pdf:'PDF',scanner:'Leitor Scanner',ciot:'Assistente CIOT'};
+ function initialize(){
+   const grid=document.querySelector('.modules');
+   if(!grid||grid.dataset.healthReady)return;
+   grid.dataset.healthReady='1';
+   const overview=document.createElement('div');
+   overview.className='health-overview';
+   overview.innerHTML='<div><div class="health-overview-title">✦ Saúde da Central Operacional</div><div class="health-overview-sub">Monitoramento de capacidade dos projetos • cotas independentes por Supabase</div></div><div class="health-overview-status" id="healthOverviewStatus">Capacidade: aguardando integração segura</div>';
+   grid.prepend(overview);
+   const cards=[...grid.querySelectorAll('.module-card')];
+   cards.forEach((card,i)=>{
+     const hint=card.querySelector('.card-hint');
+     const box=document.createElement('div');
+     box.className='module-health';
+     box.innerHTML='<div class="health-top"><span class="health-heading">◉ Saúde do módulo</span><span class="health-status" data-health-status>Monitoramento</span></div><div class="health-usage"><strong data-health-percent>—</strong><small>da cota gratuita</small></div><div class="health-track"><span data-health-bar></span></div><div class="health-foot"><span data-health-detail>Consumo não aferido</span><span data-health-remaining>Disponível: —</span></div>';
+     if(hint)card.insertBefore(box,hint);else card.appendChild(box);
+   });
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize);
+ else initialize();
+})();
+</script>
 </body></html>
