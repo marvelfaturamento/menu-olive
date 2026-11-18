@@ -121,7 +121,17 @@
 <div class="card" style="margin-top:16px"><h3>Consolidado anual por motivo</h3><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>Qtd. Ref.</th><th>Valor refaturado</th><th>Qtd. Sub.</th><th>Valor substituto</th><th>Impacto total</th><th>Detalhes</th></tr></thead><tbody id="tbodyMotivosAnual"></tbody></table></div></div>
 </div>
 </section>
-<section class="view" id="usuarios"><div class="card" style="margin-bottom: 16px;">
+<section class="view" id="usuarios">
+<div class="setor-mini-tabs" style="display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:10px;margin-bottom:16px">
+<button type="button" class="setor-mini active" id="userAnalysisMonthly"><strong>🗓️ Mensal</strong><small>Usuários do mês consultado</small></button>
+<button type="button" class="setor-mini" id="userAnalysisAnnual"><strong>📊 Anual</strong><small>Usuários de todos os meses do ano</small></button>
+</div>
+<div id="userAnalysisAnnualPanel" style="display:none">
+<div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="margin:0">Análise anual de usuários</h3><label for="userAnalysisYear">Ano</label><input id="userAnalysisYear" type="number" min="2020" max="2100" value="2026" style="width:100px"><button type="button" class="btn secondary" id="userAnalysisReload">Atualizar</button><span id="userAnalysisStatus" class="sub"></span></div>
+<div class="grid grid-2"><div class="card"><h3>Ranking anual por quantidade</h3><div class="sub">Somente setor Faturamento.</div><div class="chart-box"><canvas id="chartUserAnnualQty"></canvas></div></div><div class="card"><h3>Ranking anual por valor</h3><div class="sub">Refaturados + substitutos.</div><div class="chart-box"><canvas id="chartUserAnnualValue"></canvas></div></div></div>
+<div class="card" style="margin-top:16px"><h3>Consolidado anual por usuário</h3><div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Qtd Ref</th><th>Qtd Sub</th><th>Total</th><th>Valor Ref</th><th>Valor Sub</th><th>Impacto</th></tr></thead><tbody id="tbodyUserAnnual"></tbody></table></div></div>
+</div>
+<div id="userAnalysisMonthlyPanel"><div class="card" style="margin-bottom: 16px;">
 <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
 <div>
 <h3>Filtro da análise</h3>
@@ -166,6 +176,7 @@
 <thead><tr><th>CTE</th><th>Cliente</th><th>Usuário</th><th>Motivo</th><th>Valor em erro</th><th>Setor</th></tr></thead>
 <tbody id="tbodyUsuariosMotivos"></tbody>
 </table>
+</div>
 </div>
 </div>
 </section>
