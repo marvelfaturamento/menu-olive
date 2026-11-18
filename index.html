@@ -2243,6 +2243,38 @@
      box.innerHTML='<div class="health-top"><span class="health-heading">◉ Saúde do módulo</span><span class="health-status" data-health-status>Monitoramento</span></div><div class="health-usage"><strong data-health-percent>—</strong><small>da cota gratuita</small></div><div class="health-track"><span data-health-bar></span></div><div class="health-foot"><span data-health-detail>Consumo não aferido</span><span data-health-remaining>Disponível: —</span></div>';
      if(hint)card.insertBefore(box,hint);else card.appendChild(box);
    });
+   // Métrica real do banco do Refaturamento. Outros projetos permanecem não aferidos.
+   const refCard=grid.querySelector('.module-refaturamento');
+   const refPanel=refCard?.querySelector('.module-health');
+   async function refreshRefHealth(){
+     if(!refPanel || typeof sbRefaturamento==='undefined' || !sbRefaturamento)return;
+     const status=refPanel.querySelector('[data-health-status]');
+     try{
+       const {data,error}=await sbRefaturamento.rpc('marvel_database_usage_bytes');
+       if(error)throw error;
+       const bytes=Number(data);
+       if(!Number.isFinite(bytes)||bytes<0)throw Error('Medição indisponível');
+       const limit=500*1024*1024;
+       const pct=100*bytes/limit;
+       const used=(bytes/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1});
+       const free=(Math.max(0,limit-bytes)/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1});
+       refPanel.querySelector('[data-health-percent]').textContent=pct.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
+       refPanel.querySelector('[data-health-bar]').style.width=Math.min(100,pct)+'%';
+       refPanel.querySelector('[data-health-bar]').style.background=pct>=90?'#ef4444':pct>=70?'#f59e0b':'linear-gradient(90deg,#34d399,#22c55e)';
+       refPanel.querySelector('[data-health-detail]').textContent=used+' MB usados / 500 MB';
+       refPanel.querySelector('[data-health-remaining]').textContent='Livre: '+free+' MB';
+       status.textContent=pct>=90?'Crítico':pct>=70?'Atenção':'Saudável';
+       status.className='health-status '+(pct>=70?'warn':'ok');
+       const overall=document.getElementById('healthOverviewStatus');
+       if(overall)overall.textContent='Refaturamento: '+pct.toLocaleString('pt-BR',{maximumFractionDigits:1})+'% do banco • Demais projetos aguardando medição';
+     }catch(e){
+       status.textContent='Sem leitura';
+       refPanel.querySelector('[data-health-detail]').textContent='Métrica indisponível';
+       console.warn('Medição de capacidade indisponível',e);
+     }
+   }
+   refreshRefHealth();
+   setInterval(refreshRefHealth,300000);
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize);
  else initialize();
