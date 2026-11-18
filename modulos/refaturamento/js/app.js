@@ -2578,7 +2578,7 @@ function renderAnnualView(){
           const refaturado=refRows.filter(x=>x.tipo==='setor').reduce((n,x)=>n+Number(x.debito||0),0);
           const substituto=refRows.filter(x=>x.tipo==='substituto').reduce((n,x)=>n+Number(x.frete_substituto||0),0);
           const documentos=prodRows.reduce((n,x)=>n+Number(x.ctrc||0)+Number(x.ost||0),0);
-          nextAnnual[key]={...(state.annual[key]||{}),refaturado,substituto,total:refaturado+substituto};
+          nextAnnual[key]={...(state.annual[key]||{}),refaturado,substituto,total:refaturado+substituto,__dbAuthoritative:true};
           nextProd[key]={...(state.annualProd[key]||{}),documentos};
         }
         // Publicar todos os meses de uma vez: nenhuma mistura de caches por navegador.
@@ -3623,6 +3623,7 @@ async function applyMonthViewSelection(){
   alert('Esse mês não está salvo localmente e não foi possível carregar da Supabase.');
 }
 function renderAnnualView(){
+  if(typeof window.__refAnnualDbRefresh === 'function') window.__refAnnualDbRefresh();
   const sectorSelect = document.getElementById('annualSectorSelect');
   const sectorNames = Array.from(new Set(Object.values(state.annual || {}).flatMap(entry => Object.keys(entry.sectors || {})))).sort();
   if(sectorSelect){
@@ -3634,7 +3635,12 @@ function renderAnnualView(){
   const keys = Object.keys(state.annual).sort();
   const normalized = keys.map(key => {
     const entry = state.annual[key] || {};
-    const calc = entry.snapshot ? annualSummaryFromSnapshot(entry.snapshot) : {
+    const calc = entry.__dbAuthoritative ? {
+      refaturado:Number(entry.refaturado||0),
+      substituto:Number(entry.substituto||0),
+      total:Number(entry.total||0),
+      docs:Number(state.annualProd?.[key]?.documentos||0)
+    } : entry.snapshot ? annualSummaryFromSnapshot(entry.snapshot) : {
       refaturado:Number(entry.refaturado||0), substituto:Number(entry.substituto||0), total:Number(entry.total||0), docs:Number(entry.produtividade || entry.docs || 0)
     };
     const sectors = entry.snapshot ? (function(){
