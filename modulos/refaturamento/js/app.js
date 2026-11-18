@@ -7250,12 +7250,24 @@ function __perfAnualAggregate(){
        state.charts.chartClientAnnualReasons=new Chart(canvas,{
          type:'bar',
          data:{labels:topReasonClients.map(x=>x.client),datasets:reasonTypes.map((reason,i)=>({
-           label:reason,data:topReasonClients.map(x=>x.reasons[reason]||0),backgroundColor:palette[i%palette.length],stack:'motivos'
+           label:reason,
+           // Barras flutuantes: cada cliente ordena seus próprios motivos por
+           // quantidade decrescente, preservando a cor global de cada motivo.
+           data:topReasonClients.map(x=>{
+             const ordered=reasonTypes.filter(name=>Number(x.reasons[name]||0)>0)
+               .sort((a,b)=>Number(x.reasons[b]||0)-Number(x.reasons[a]||0)||a.localeCompare(b,'pt-BR'));
+             const index=ordered.indexOf(reason);
+             if(index<0)return null;
+             const start=ordered.slice(0,index).reduce((sum,name)=>sum+Number(x.reasons[name]||0),0);
+             return [start,start+Number(x.reasons[reason]||0)];
+           }),
+           backgroundColor:palette[i%palette.length],grouped:false,
+           barPercentage:0.85,categoryPercentage:0.9
          }))},
          options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
            plugins:{legend:{labels:{color:'#dbeafe'}},datalabels:{display:false}},
-           scales:{x:{stacked:true,ticks:{color:'#cfe0ff',precision:0},grid:{color:'rgba(255,255,255,.06)'}},
-             y:{stacked:true,ticks:{color:'#cfe0ff'},grid:{color:'rgba(255,255,255,.06)'}}}
+           scales:{x:{stacked:false,ticks:{color:'#cfe0ff',precision:0},grid:{color:'rgba(255,255,255,.06)'}},
+             y:{stacked:false,ticks:{color:'#cfe0ff'},grid:{color:'rgba(255,255,255,.06)'}}}
          }
        });
      }
