@@ -7165,7 +7165,7 @@ function __perfAnualAggregate(){
      if(current!==serial)return;
      const map=new Map();
      for(const r of all){
-       if(!String(r.setor||'').toLowerCase().includes('faturamento'))continue;
+       if(!String(r.setor||'').trim().toUpperCase()==='CLIENTE')continue;
        const rawClient=String(r.cliente||'SEM CLIENTE').trim().replace(/^[-\\s]+/,'')||'SEM CLIENTE';
        // Usa a mesma normalização de clientes já aplicada no painel mensal.
        const client=clientGroup(rawClient);
@@ -7218,7 +7218,7 @@ function __perfAnualAggregate(){
      const seenReasonDocs=new Set();
      const documentCounts=new Map();
      for(const r of refDocs){
-       if(!String(r.setor||'').toLowerCase().includes('faturamento'))continue;
+       if(!String(r.setor||'').trim().toUpperCase()==='CLIENTE')continue;
        const uniqueDoc=[r.tipo,r.mes,docKey(r.documento)||String(r.id)].join('|');
        if(seenReasonDocs.has(uniqueDoc))continue;
        seenReasonDocs.add(uniqueDoc);
@@ -7233,10 +7233,10 @@ function __perfAnualAggregate(){
      }
      const docRanking=[...documentCounts].map(([key,count])=>({client:map.get(key)?.client||key,qty:count})).sort((a,b)=>b.qty-a.qty||a.client.localeCompare(b.client,'pt-BR')).slice(0,12);
      makeBarChart('chartClientAnnualQty',docRanking.map(x=>x.client),docRanking.map(x=>x.qty),true,'Documentos');
-     const classified=refDocs.filter(r=>String(r.setor||'').toLowerCase().includes('faturamento'));
+     const classified=refDocs.filter(r=>String(r.setor||'').trim().toUpperCase()==='CLIENTE');
      const identified=seenReasonDocs.size ? [...map.values()].reduce((n,x)=>n+Object.values(x.reasons).reduce((a,b)=>a+b,0),0) : 0;
      if(el('clientAnnualReasonSummary'))el('clientAnnualReasonSummary').textContent=
-       documentCounts.size+' clientes; '+[...documentCounts.values()].reduce((a,b)=>a+b,0)+' documentos do Faturamento; '+identified+' com motivo identificado. Valor financeiro permanece baseado no rateio por setor.';
+       documentCounts.size+' clientes; '+[...documentCounts.values()].reduce((a,b)=>a+b,0)+' documentos atribuídos ao CLIENTE; '+identified+' com motivo identificado. Valor financeiro considera somente o rateio CLIENTE.';
      // Recalcula a classificação após cruzar os CT-es, preservando os totais financeiros.
      for(const x of rows){
        const source=map.get(x.client.toLocaleUpperCase('pt-BR'));
