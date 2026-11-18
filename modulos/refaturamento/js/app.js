@@ -2560,7 +2560,7 @@ function renderAnnualView(){
   async function allRows(table, columns, ano, mes){
     const pageSize=500, result=[];
     for(let offset=0;offset<1000000;offset+=pageSize){
-      let query=state.supabase.from(table).select(columns).eq('ano',ano).eq('mes',Number(mes)).range(offset,offset+pageSize-1);
+      let query=state.supabase.from(table).select(columns).eq('ano',ano).eq('mes',mes).range(offset,offset+pageSize-1);
       const response=await query;
       if(response.error) throw response.error;
       const rows=response.data||[];
