@@ -5061,6 +5061,11 @@ async function reimportarMesSeguroV12(){
     return;
   }
 
+  // Proteção: rotina legada apaga ambas as tabelas mesmo quando apenas um arquivo foi importado.
+  // Bloqueada até substituição por operações independentes e transacionais.
+  alert('Reimportação conjunta desativada para proteger os dados. Use as importações individuais de Refaturamento e Produtividade.');
+  return;
+
   const { mes, ano } = __getMesAnoReimportFinalV15();
   if(!mes || !ano){
     alert('Selecione o mês e ano antes de reimportar.');
