@@ -6914,12 +6914,22 @@ function __perfAnualAggregate(){
 /* ===== PRODUTIVIDADE AUTOMATICA PELO RELATORIO DO SISTEMA ===== */
 (function(){
   const STORAGE_KEY='refaturamento_prod_usuarios_monitorados_v1';
-  const DEFAULT_USERS=['ADEMIR.FERNANDES','ADENILSON.FILHO','ANGELICA.LUCCA','ANGELITA.SANTOS','CAROLINA.PASQUALI','ELISANGELA.VIEIRA','GEOVANA.SILVA','Integracao.XML','JHONATAN.GHIZZI','JONATAN.BALESTRIN','JOSETE.GABRIEL','KARLLIN','KAROLINE.ROMANINI','LEIA.MATTOS','MATHEUS.DEVISE','MULTISOFT.SERVICE','RAFAELA.MARTINI','SILVANA.WIEDENHOFT','TIAGO.CARNIEL'].map(nome=>({nome,ativo:true,aliases:[]}));
+  const DEFAULT_USERS=['ADEMIR.FERNANDES','ADENILSON.FILHO','ANGELICA.LUCCA','ANGELITA.SANTOS','CAROLINA.PASQUALI','ELISANGELA.VIEIRA','GEOVANA.SILVA','Integracao.XML','JHONATAN.GHIZZI','JONATAN.BALESTRIN','JOSETE.GABRIEL','KARLLIN','KAROLINE.ROMANINI','LEIA.MATTOS','MATHEUS.DEVISE','MULTISOFT.SERVICE','RAFAELA.MARTINI','SILVANA.WIEDENHOFT','TIAGO.CARNIEL','EMERSON.VIEIRA'].map(nome=>({nome,ativo:true,aliases:[]}));
   const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase().replace(/\s+/g,'');
   function loadUsers(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(Array.isArray(x)&&x.length)return x}catch(e){} return JSON.parse(JSON.stringify(DEFAULT_USERS))}
   const saveUsers=x=>localStorage.setItem(STORAGE_KEY,JSON.stringify(x));
   const aliasesOf=u=>[u.nome].concat(Array.isArray(u.aliases)?u.aliases:[]).map(norm).filter(Boolean);
-  const findMonitored=(raw,list)=>{const k=norm(raw);return list.find(u=>u.ativo&&aliasesOf(u).includes(k))};
+  const findMonitored=(raw,list)=>{
+    const k=norm(raw);
+    if(!k)return null;
+    const exact=list.find(u=>u.ativo&&aliasesOf(u).includes(k));
+    if(exact)return exact;
+    // O relatório Crystal pode trazer somente o primeiro nome ou nome com espaços.
+    // Aceita primeiro nome apenas quando há um único usuário monitorado correspondente.
+    const first=k.split(/[.\\s_-]/)[0];
+    const candidates=list.filter(u=>u.ativo&&aliasesOf(u).some(a=>a===first||a.startsWith(first+'.')||a.startsWith(first+' ')));
+    return first.length>=4&&candidates.length===1?candidates[0]:null;
+  };
   function renderUsers(){
     const box=document.getElementById('prodUsersConfigList');if(!box)return;const list=loadUsers();
     box.innerHTML=list.map((u,i)=>`<div style="display:grid;grid-template-columns:auto 1.2fr 1.5fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)"><input type="checkbox" data-pu-active="${i}" ${u.ativo?'checked':''}><input data-pu-name="${i}" value="${String(u.nome||'').replace(/"/g,'&quot;')}" style="width:100%"><input data-pu-alias="${i}" value="${(u.aliases||[]).join(', ')}" placeholder="aliases" style="width:100%"><button class="btn secondary" data-pu-remove="${i}" type="button" style="padding:6px 9px">Remover</button></div>`).join('');
