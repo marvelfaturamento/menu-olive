@@ -7334,8 +7334,27 @@ function __perfAnualAggregate(){
      const raw=ctx.raw;
      return ctx.dataset.label+': '+(Array.isArray(raw)?raw[1]-raw[0]:Number(raw||0));
    }}}};
-   new Chart(document.getElementById('clientReasonExpandedCanvas'),{
-     type:'bar',data:JSON.parse(JSON.stringify(src.data)),options
+   const expandedData=JSON.parse(JSON.stringify(src.data));
+   // Linha sobreposta mostra o total de motivos por cliente na ampliação.
+   // Os datasets de barras usam intervalos flutuantes [início,fim].
+   const totals=expandedData.labels.map((_,index)=>expandedData.datasets.reduce((sum,dataset)=>{
+     const point=dataset.data?.[index];
+     return sum+(Array.isArray(point)?Number(point[1]||0)-Number(point[0]||0):Number(point||0));
+   },0));
+   expandedData.datasets.push({
+     type:'line',label:'Total de erros',data:totals,
+     borderColor:'#ffffff',backgroundColor:'#ffffff',borderWidth:2,
+     pointRadius:4,pointHoverRadius:6,tension:0.2,fill:false,
+     order:0
+   });
+   options.scales={...src.options.scales,
+     x:{...src.options.scales?.x,beginAtZero:true},
+     y:{...src.options.scales?.y}};
+   const expandedCanvas=document.getElementById('clientReasonExpandedCanvas');
+   expandedCanvas.style.width='100%';
+   expandedCanvas.style.height='100%';
+   new Chart(expandedCanvas,{
+     type:'bar',data:expandedData,options
    });
  },true);
  document.addEventListener('DOMContentLoaded',()=>{
