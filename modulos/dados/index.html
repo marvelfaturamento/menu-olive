@@ -639,9 +639,25 @@ function auto(id,sug,key){
       const nome=normalizar(c.label.split(',')[0]);
       return {c,idx,score:nome===termo?0:nome.startsWith(termo)?1:2};
     }).sort((a,b)=>a.score-b.score||a.idx-b.idx);
-    if(autoSelecionar&&ordenados.length){
-      selecionar(ordenados[0].c);
-      return; // Não deixar a lista aberta após o preenchimento automático.
+    if(autoSelecionar){
+      const esperado=i.dataset.cidadeEsperada||textoOriginal;
+      const uf=i.dataset.ufEsperada||'';
+      const norm=normalizar;
+      const estados={SC:'santa catarina',RS:'rio grande do sul',PR:'parana',SP:'sao paulo',RJ:'rio de janeiro',MG:'minas gerais',RO:'rondonia',MT:'mato grosso',MS:'mato grosso do sul',BA:'bahia',GO:'goias',ES:'espirito santo',PA:'para',PB:'paraiba',PE:'pernambuco',CE:'ceara',AM:'amazonas',AC:'acre',AP:'amapa',RR:'roraima',TO:'tocantins',MA:'maranhao',PI:'piaui',RN:'rio grande do norte',AL:'alagoas',SE:'sergipe',DF:'distrito federal'};
+      const match=ordenados.find(({c})=>{
+        const partes=c.label.split(',').map(v=>norm(v));
+        const cidade=norm(esperado).split(',')[0].trim();
+        if(partes[0]!==cidade)return false;
+        if(!uf)return true;
+        const estado=norm(estados[uf.toUpperCase()]||uf);
+        return partes.slice(1).some(p=>p===estado||p===norm(uf));
+      });
+      if(match){selecionar(match.c);delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;return;}
+      // Não selecionar outra cidade/UF apenas porque o geocoder a sugeriu primeiro.
+      i.value=esperado+(uf?' / '+uf:'');
+      cidades[key]=null;
+      box.textContent='Localidade exata não encontrada. Selecione manualmente uma opção correta.';
+      return;
     }
     const vistos=new Set();
     ordenados.forEach(({c})=>{
@@ -661,6 +677,7 @@ function auto(id,sug,key){
     clearTimeout(timer);
     controller?.abort();
     const minhaSeq=++seq,texto=i.value.trim();
+    if(!preenchimentoAutomatico){delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;}
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
@@ -1388,9 +1405,25 @@ function auto(id,sug,key){
       const nome=normalizar(c.label.split(',')[0]);
       return {c,idx,score:nome===termo?0:nome.startsWith(termo)?1:2};
     }).sort((a,b)=>a.score-b.score||a.idx-b.idx);
-    if(autoSelecionar&&ordenados.length){
-      selecionar(ordenados[0].c);
-      return; // Não deixar a lista aberta após o preenchimento automático.
+    if(autoSelecionar){
+      const esperado=i.dataset.cidadeEsperada||textoOriginal;
+      const uf=i.dataset.ufEsperada||'';
+      const norm=normalizar;
+      const estados={SC:'santa catarina',RS:'rio grande do sul',PR:'parana',SP:'sao paulo',RJ:'rio de janeiro',MG:'minas gerais',RO:'rondonia',MT:'mato grosso',MS:'mato grosso do sul',BA:'bahia',GO:'goias',ES:'espirito santo',PA:'para',PB:'paraiba',PE:'pernambuco',CE:'ceara',AM:'amazonas',AC:'acre',AP:'amapa',RR:'roraima',TO:'tocantins',MA:'maranhao',PI:'piaui',RN:'rio grande do norte',AL:'alagoas',SE:'sergipe',DF:'distrito federal'};
+      const match=ordenados.find(({c})=>{
+        const partes=c.label.split(',').map(v=>norm(v));
+        const cidade=norm(esperado).split(',')[0].trim();
+        if(partes[0]!==cidade)return false;
+        if(!uf)return true;
+        const estado=norm(estados[uf.toUpperCase()]||uf);
+        return partes.slice(1).some(p=>p===estado||p===norm(uf));
+      });
+      if(match){selecionar(match.c);delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;return;}
+      // Não selecionar outra cidade/UF apenas porque o geocoder a sugeriu primeiro.
+      i.value=esperado+(uf?' / '+uf:'');
+      cidades[key]=null;
+      box.textContent='Localidade exata não encontrada. Selecione manualmente uma opção correta.';
+      return;
     }
     const vistos=new Set();
     ordenados.forEach(({c})=>{
@@ -1410,6 +1443,7 @@ function auto(id,sug,key){
     clearTimeout(timer);
     controller?.abort();
     const minhaSeq=++seq,texto=i.value.trim();
+    if(!preenchimentoAutomatico){delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;}
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
       const locais=cidadesLocais(texto);
