@@ -2002,9 +2002,6 @@ function saveCurrentProdMonth(){
 function renderAnnualView(){
   // A visão anual deve atualizar a partir da mesma base remota da Performance Anual.
   // O carregador evita chamadas duplicadas durante uma consulta em andamento.
-  if(typeof window.__refAnnualRefresh === 'function'){
-    window.__refAnnualRefresh();
-  }
   if(typeof window.__refAnnualDbRefresh === 'function'){
     window.__refAnnualDbRefresh();
   }
