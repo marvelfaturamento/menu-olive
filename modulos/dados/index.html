@@ -640,8 +640,10 @@ function auto(id,sug,key){
       return {c,idx,score:nome===termo?0:nome.startsWith(termo)?1:2};
     }).sort((a,b)=>a.score-b.score||a.idx-b.idx);
     if(autoSelecionar){
-      const esperado=i.dataset.cidadeEsperada||textoOriginal;
-      const uf=i.dataset.ufEsperada||'';
+      const esperadoBruto=i.dataset.cidadeEsperada||textoOriginal;
+      const separada=String(esperadoBruto).match(/^(.+?)\s*\/\s*([A-Z]{2})$/i);
+      const esperado=separada?separada[1].trim():esperadoBruto;
+      const uf=(i.dataset.ufEsperada||separada?.[2]||'').toUpperCase();
       const norm=normalizar;
       const estados={SC:'santa catarina',RS:'rio grande do sul',PR:'parana',SP:'sao paulo',RJ:'rio de janeiro',MG:'minas gerais',RO:'rondonia',MT:'mato grosso',MS:'mato grosso do sul',BA:'bahia',GO:'goias',ES:'espirito santo',PA:'para',PB:'paraiba',PE:'pernambuco',CE:'ceara',AM:'amazonas',AC:'acre',AP:'amapa',RR:'roraima',TO:'tocantins',MA:'maranhao',PI:'piaui',RN:'rio grande do norte',AL:'alagoas',SE:'sergipe',DF:'distrito federal'};
       const match=ordenados.find(({c})=>{
@@ -685,11 +687,14 @@ function auto(id,sug,key){
     if(!preenchimentoAutomatico){delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;}
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
-      const locais=cidadesLocais(texto);
+      const cidadeUf=preenchimentoAutomatico?texto.match(/^(.+?)\s*\/\s*([A-Z]{2})$/i):null;
+      const cidadeBusca=cidadeUf?cidadeUf[1].trim():texto;
+      if(cidadeUf&&!i.dataset.ufEsperada)i.dataset.ufEsperada=cidadeUf[2].toUpperCase();
+      const locais=cidadesLocais(cidadeBusca);
       // EX indica exterior no 902; o serviço geográfico precisa receber o país verdadeiro.
       const paisPorCidade={'puerto montt':'Chile','mar del plata':'Argentina','montevideo':'Uruguay','buenos aires':'Argentina','santiago':'Chile','asuncion':'Paraguay','quemchi':'Chile'};
-      const nomeNormalizado=texto.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
-      const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?texto+', '+paisPorCidade[nomeNormalizado]:texto;
+      const nomeNormalizado=cidadeBusca.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+      const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?cidadeBusca+', '+paisPorCidade[nomeNormalizado]:cidadeBusca;
       // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
       const ufEsperada=i.dataset.ufEsperada;
       const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -1419,8 +1424,10 @@ function auto(id,sug,key){
       return {c,idx,score:nome===termo?0:nome.startsWith(termo)?1:2};
     }).sort((a,b)=>a.score-b.score||a.idx-b.idx);
     if(autoSelecionar){
-      const esperado=i.dataset.cidadeEsperada||textoOriginal;
-      const uf=i.dataset.ufEsperada||'';
+      const esperadoBruto=i.dataset.cidadeEsperada||textoOriginal;
+      const separada=String(esperadoBruto).match(/^(.+?)\s*\/\s*([A-Z]{2})$/i);
+      const esperado=separada?separada[1].trim():esperadoBruto;
+      const uf=(i.dataset.ufEsperada||separada?.[2]||'').toUpperCase();
       const norm=normalizar;
       const estados={SC:'santa catarina',RS:'rio grande do sul',PR:'parana',SP:'sao paulo',RJ:'rio de janeiro',MG:'minas gerais',RO:'rondonia',MT:'mato grosso',MS:'mato grosso do sul',BA:'bahia',GO:'goias',ES:'espirito santo',PA:'para',PB:'paraiba',PE:'pernambuco',CE:'ceara',AM:'amazonas',AC:'acre',AP:'amapa',RR:'roraima',TO:'tocantins',MA:'maranhao',PI:'piaui',RN:'rio grande do norte',AL:'alagoas',SE:'sergipe',DF:'distrito federal'};
       const match=ordenados.find(({c})=>{
@@ -1464,11 +1471,14 @@ function auto(id,sug,key){
     if(!preenchimentoAutomatico){delete i.dataset.cidadeEsperada;delete i.dataset.ufEsperada;}
     if(texto.length<3){box.replaceChildren();return;}
     timer=setTimeout(async()=>{
-      const locais=cidadesLocais(texto);
+      const cidadeUf=preenchimentoAutomatico?texto.match(/^(.+?)\s*\/\s*([A-Z]{2})$/i):null;
+      const cidadeBusca=cidadeUf?cidadeUf[1].trim():texto;
+      if(cidadeUf&&!i.dataset.ufEsperada)i.dataset.ufEsperada=cidadeUf[2].toUpperCase();
+      const locais=cidadesLocais(cidadeBusca);
       // EX indica exterior no 902; o serviço geográfico precisa receber o país verdadeiro.
       const paisPorCidade={'puerto montt':'Chile','mar del plata':'Argentina','montevideo':'Uruguay','buenos aires':'Argentina','santiago':'Chile','asuncion':'Paraguay','quemchi':'Chile'};
-      const nomeNormalizado=texto.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
-      const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?texto+', '+paisPorCidade[nomeNormalizado]:texto;
+      const nomeNormalizado=cidadeBusca.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+      const buscaGeografica=preenchimentoAutomatico&&i.dataset.ufEsperada==='EX'&&paisPorCidade[nomeNormalizado]?cidadeBusca+', '+paisPorCidade[nomeNormalizado]:cidadeBusca;
       // Cache pode conter cidade homônima de outra UF; nesse caso consultar o provedor.
       const ufEsperada=i.dataset.ufEsperada;
       const nomeEsperado=(i.dataset.cidadeEsperada||texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
