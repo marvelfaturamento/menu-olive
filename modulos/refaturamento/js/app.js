@@ -7113,12 +7113,18 @@ function __perfAnualAggregate(){
           else{x.qtdSub+=fraction;x.sub+=Number(r.frete_substituto||0)*fraction;}
         }
       }
-      const rows=[...map.values()].map(x=>({...x,qty:x.qtdRef+x.qtdSub,total:x.ref+x.sub})).sort((a,b)=>b.total-a.total);
+      // Aplica a mesma trava de usuário usada nas telas de performance.
+      // A filtragem ocorre antes dos gráficos e da tabela.
+      const sessao=__getPerfilRefFinal();
+      const restrito=sessao.perfil!=='admin';
+      const permitido=prodNorm(sessao.usuarioRef||'');
+      const visiveis=[...map.values()].filter(x=>!restrito||(permitido&&prodNorm(x.user)===permitido));
+      const rows=visiveis.map(x=>({...x,qty:x.qtdRef+x.qtdSub,total:x.ref+x.sub})).sort((a,b)=>b.total-a.total);
       const byQty=[...rows].sort((a,b)=>b.qty-a.qty);
       makeBarChart('chartUserAnnualQty',byQty.map(x=>x.user),byQty.map(x=>x.qty),true,'Quantidade');
       makeBarChart('chartUserAnnualValue',rows.map(x=>x.user),rows.map(x=>x.total),true,'Valor');
       el('tbodyUserAnnual').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.user)+'</td><td>'+x.qtdRef.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+x.qtdSub.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+x.qty.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+fmt(x.ref)+'</td><td>'+fmt(x.sub)+'</td><td>'+fmt(x.total)+'</td></tr>').join(''):'<tr><td colspan="7">Sem registros para o ano selecionado.</td></tr>';
-      status.textContent=all.length+' registros consultados em '+year+'.';
+      status.textContent=restrito?'Exibindo somente os registros de '+(sessao.usuarioRef||'seu usuário')+' em '+year+'.':all.length+' registros consultados em '+year+'.';
     }catch(e){console.error(e);status.textContent='Erro ao consultar: '+(e.message||e);}
   }
   document.addEventListener('DOMContentLoaded',()=>{
