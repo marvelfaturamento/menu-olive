@@ -7102,16 +7102,22 @@ function __perfAnualAggregate(){
         const dedup=[r.ano,r.mes,type,r.documento,user,r.setor].join('|');
         if(seen.has(dedup))continue;
         seen.add(dedup);
-        if(!map.has(user))map.set(user,{user,qtdRef:0,qtdSub:0,ref:0,sub:0});
-        const x=map.get(user);
-        if(type==='setor'){x.qtdRef++;x.ref+=Number(r.debito||0);}
-        else{x.qtdSub++;x.sub+=Number(r.frete_substituto||0);}
+        // Registros com dois operadores são compartilhados 50/50, sem criar
+        // um nome artificial concatenado no ranking.
+        const owners=[...new Set(user.split(/[,;]+/).map(x=>x.trim()).filter(Boolean))];
+        const fraction=1/owners.length;
+        for(const owner of owners){
+          if(!map.has(owner))map.set(owner,{user:owner,qtdRef:0,qtdSub:0,ref:0,sub:0});
+          const x=map.get(owner);
+          if(type==='setor'){x.qtdRef+=fraction;x.ref+=Number(r.debito||0)*fraction;}
+          else{x.qtdSub+=fraction;x.sub+=Number(r.frete_substituto||0)*fraction;}
+        }
       }
       const rows=[...map.values()].map(x=>({...x,qty:x.qtdRef+x.qtdSub,total:x.ref+x.sub})).sort((a,b)=>b.total-a.total);
       const byQty=[...rows].sort((a,b)=>b.qty-a.qty);
       makeBarChart('chartUserAnnualQty',byQty.map(x=>x.user),byQty.map(x=>x.qty),true,'Quantidade');
       makeBarChart('chartUserAnnualValue',rows.map(x=>x.user),rows.map(x=>x.total),true,'Valor');
-      el('tbodyUserAnnual').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.user)+'</td><td>'+x.qtdRef+'</td><td>'+x.qtdSub+'</td><td>'+x.qty+'</td><td>'+fmt(x.ref)+'</td><td>'+fmt(x.sub)+'</td><td>'+fmt(x.total)+'</td></tr>').join(''):'<tr><td colspan="7">Sem registros para o ano selecionado.</td></tr>';
+      el('tbodyUserAnnual').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.user)+'</td><td>'+x.qtdRef.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+x.qtdSub.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+x.qty.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+fmt(x.ref)+'</td><td>'+fmt(x.sub)+'</td><td>'+fmt(x.total)+'</td></tr>').join(''):'<tr><td colspan="7">Sem registros para o ano selecionado.</td></tr>';
       status.textContent=all.length+' registros consultados em '+year+'.';
     }catch(e){console.error(e);status.textContent='Erro ao consultar: '+(e.message||e);}
   }
