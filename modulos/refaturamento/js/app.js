@@ -7138,6 +7138,8 @@ function __perfAnualAggregate(){
 /* Clientes: abas Mensal/Anual, consulta paginada somente leitura. */
 (function(){
  const el=id=>document.getElementById(id);let serial=0;
+ // Reduzidos compartilhados (CLIENTE/COMERCIAL) contam uma ocorrência para CLIENTE.
+ const attributedToClient=value=>String(value||'').toUpperCase().split(/[\\/;,|+]+/).some(part=>part.trim()==='CLIENTE');
  function show(annual){
    el('clientMonthlyPanel').style.display=annual?'none':'';
    el('clientAnnualPanel').style.display=annual?'':'none';
@@ -7165,7 +7167,7 @@ function __perfAnualAggregate(){
      if(current!==serial)return;
      const map=new Map();
      for(const r of all){
-       if(!String(r.setor||'').trim().toUpperCase()==='CLIENTE')continue;
+       if(!attributedToClient(r.setor))continue;
        const rawClient=String(r.cliente||'SEM CLIENTE').trim().replace(/^[-\\s]+/,'')||'SEM CLIENTE';
        // Usa a mesma normalização de clientes já aplicada no painel mensal.
        const client=clientGroup(rawClient);
@@ -7213,12 +7215,12 @@ function __perfAnualAggregate(){
        refDocs.push(...(resp.data||[]));
        if((resp.data||[]).length<500)break;
      }
-     // Não mistura motivos do rateio SETOR com motivos dos documentos.
+     // Usa a atribuição do reduzido, inclusive quando compartilhada com outros setores.
      for(const item of map.values())item.reasons={};
      const seenReasonDocs=new Set();
      const documentCounts=new Map();
      for(const r of refDocs){
-       if(!String(r.setor||'').trim().toUpperCase()==='CLIENTE')continue;
+       if(!attributedToClient(r.setor))continue;
        const uniqueDoc=[r.tipo,r.mes,docKey(r.documento)||String(r.id)].join('|');
        if(seenReasonDocs.has(uniqueDoc))continue;
        seenReasonDocs.add(uniqueDoc);
@@ -7231,10 +7233,10 @@ function __perfAnualAggregate(){
        documentCounts.set(key,(documentCounts.get(key)||0)+1);
        if(reason)item.reasons[reason]=(item.reasons[reason]||0)+1;
      }
-     // Quantidade documental exclusivamente de refaturados/substitutos; nunca soma SETOR.
+     // Conta cada documento uma vez para CLIENTE, inclusive rateios compartilhados.\n     // Linhas SETOR não são somadas novamente para evitar duplicidade.
      const docRanking=[...documentCounts].map(([key,count])=>({client:map.get(key)?.client||key,qty:count})).sort((a,b)=>b.qty-a.qty||a.client.localeCompare(b.client,'pt-BR')).slice(0,12);
      makeBarChart('chartClientAnnualQty',docRanking.map(x=>x.client),docRanking.map(x=>x.qty),true,'Documentos');
-     const classified=refDocs.filter(r=>String(r.setor||'').trim().toUpperCase()==='CLIENTE');
+     const classified=refDocs.filter(r=>attributedToClient(r.setor));
      const identified=seenReasonDocs.size ? [...map.values()].reduce((n,x)=>n+Object.values(x.reasons).reduce((a,b)=>a+b,0),0) : 0;
      if(el('clientAnnualReasonSummary'))el('clientAnnualReasonSummary').textContent=
        documentCounts.size+' clientes; '+[...documentCounts.values()].reduce((a,b)=>a+b,0)+' documentos atribuídos ao CLIENTE; '+identified+' com motivo identificado. Valor financeiro considera somente o rateio CLIENTE.';
