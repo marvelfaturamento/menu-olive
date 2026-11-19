@@ -2593,6 +2593,15 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
     css+='.badge,.pill,.chip{color:#173354!important}';
     css+='canvas{filter:none!important}';
     if(k==='painel902'){
+      // O painel usa .cardBtn (não .card/.kpi) nos indicadores superiores.
+      css+='.cards .cardBtn,.cardBtn{background:#fff!important;background-image:none!important;color:#14243a!important;border:1px solid #cbd5e1!important;box-shadow:0 2px 7px rgba(15,23,42,.06)!important}';
+      css+='.cardBtn .k,.cardBtn .v,.cardBtn .sub,.cardBtn .hint,.cardBtn small,.cardBtn span,.cardBtn strong,.cardBtn div{color:#14243a!important;text-shadow:none!important;opacity:1!important}';
+      css+='.cardBtn.active,.cardBtn.selected,.cardBtn[aria-pressed="true"]{background:#fff!important;border:2px solid #2679ff!important;box-shadow:0 0 0 2px rgba(38,121,255,.1)!important}';
+      css+='.cardBtn:hover{background:#f6f9ff!important;border-color:#2679ff!important}';
+      css+='.toolbar button,.actions-top button,.top-actions button{background:#fff!important;color:#14243a!important;border:1px solid #cbd5e1!important}';
+      css+='.toolbar button:disabled,.actions-top button:disabled,.top-actions button:disabled{background:#e8edf4!important;color:#64748b!important}';
+    }
+    if(k==='painel902'){
       css+='.kpi,.kpi-card,.stat,.stat-card,.metric,.metric-card,.card-kpi,.card-stat,[class*="kpi"],[class*="stat-card"]{background:#fff!important;color:#101820!important;border-color:#cbd6e5!important}';
       css+='.kpi *,.kpi-card *,.stat *,.stat-card *,.metric *,.metric-card *,.card-kpi *,.card-stat *{color:#101820!important;text-shadow:none!important}';
       css+='.kpi small,.stat small,.metric small,.kpi-label,.stat-label{color:#334155!important}';
