@@ -2580,6 +2580,43 @@ body.module-open .module-frame-wrap{min-width:0!important}
       css+='.dropzone,.drop-area{color:#14243a!important;border-color:#8fa8c6!important}';
     }
   }
+  if(k==='refaturamento'){
+   const ChartLib=d.defaultView?.Chart;
+   if(ChartLib){
+    const ink=light?'#101820':'#cfe0ff';
+    const grid=light?'#d3dbe6':'rgba(255,255,255,.07)';
+    ChartLib.defaults.color=ink;
+    if(ChartLib.defaults.plugins?.legend?.labels)ChartLib.defaults.plugins.legend.labels.color=ink;
+    const recolor=(chart)=>{
+     if(!chart?.options)return;
+     const scales=chart.options.scales||{};
+     Object.values(scales).forEach(axis=>{
+      if(axis.ticks)axis.ticks.color=ink;
+      if(axis.title)axis.title.color=ink;
+      if(axis.grid)axis.grid.color=grid;
+     });
+     if(chart.options.plugins?.legend?.labels)chart.options.plugins.legend.labels.color=ink;
+     if(chart.options.plugins?.title)chart.options.plugins.title.color=ink;
+    };
+    if(!ChartLib.__centralContrastHook){
+     const originalDraw=ChartLib.prototype.draw;
+     ChartLib.prototype.draw=function(){
+      const isLight=d.defaultView?.parent?.document?.body?.dataset?.centralTheme==='light' || d.defaultView?.parent?.document?.body?.classList?.contains('theme-light');
+      const themeInk=isLight?'#101820':'#cfe0ff';
+      const themeGrid=isLight?'#d3dbe6':'rgba(255,255,255,.07)';
+      Object.values(this.options?.scales||{}).forEach(axis=>{
+       if(axis.ticks)axis.ticks.color=themeInk;
+       if(axis.title)axis.title.color=themeInk;
+       if(axis.grid)axis.grid.color=themeGrid;
+      });
+      if(this.options?.plugins?.legend?.labels)this.options.plugins.legend.labels.color=themeInk;
+      return originalDraw.apply(this,arguments);
+     };
+     ChartLib.__centralContrastHook=true;
+    }
+    Object.values(ChartLib.instances||{}).forEach(chart=>{try{recolor(chart);chart.update('none')}catch(e){}});
+   }
+  }
   st.textContent=css;
  }
  function navigation(){
