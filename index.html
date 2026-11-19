@@ -917,6 +917,36 @@ body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:va
 .central-test-ribbon{font-size:9px!important;letter-spacing:.8px!important;background:var(--ui-accent)!important}
 @media(max-width:1300px){.modules{grid-template-columns:repeat(3,minmax(0,1fr))!important;overflow:auto}.main{overflow:auto!important}}
 @media(max-width:850px){.modules{grid-template-columns:repeat(2,minmax(0,1fr))!important}.sidebar{width:190px!important;min-width:190px!important}.main{padding:12px!important}}
+</style><style id="central-reference-v3">
+/* Preview v3: módulo em tela cheia, submenu aninhado e visual consistente */
+body.module-open .main>.topbar,body.module-open .main>.kpis,body.module-open .main>.modules,body.module-open .main>.status-row,body.module-open .main>.health-overview,body.module-open .main>.health-strip{display:none!important}
+body.module-open .main{padding:0!important;gap:0!important;height:100vh!important;min-height:0!important;overflow:hidden!important}
+body.module-open .module-frame-wrap{display:flex!important;flex:1 1 auto!important;min-height:0!important;height:100%!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--ui-shell)!important}
+body.module-open #moduleFrame{height:100%!important;flex:1!important;border:0!important;background:var(--ui-shell)!important}
+body.module-open .module-frame-toolbar{height:43px!important;min-height:43px!important;padding:0 14px!important;background:var(--ui-panel)!important;border-color:var(--ui-edge)!important}
+body.module-open .module-frame-title strong{color:var(--ui-ink)!important}
+body.module-open .module-frame-title span{color:var(--ui-sub)!important}
+body.module-open .shell-btn{background:var(--ui-accent-soft)!important;border-color:var(--ui-edge)!important;color:var(--ui-ink)!important}
+body.module-open .shell-btn:hover{border-color:var(--ui-accent)!important}
+body:not(.module-open) .module-frame-wrap{display:none!important}
+.central-truck-scene{background:linear-gradient(180deg,var(--ui-panel) 0%,transparent 30%),url('https://unsplash.com/photos/oILnSnA50-k/download?force=true&w=600') center 62%/cover no-repeat!important;height:240px!important;bottom:82px!important;opacity:.93!important;mask-image:linear-gradient(transparent 0%,#000 24%,#000 86%,transparent 100%)!important}
+.sidebar .menu button.active{box-shadow:0 5px 14px var(--ui-accent-soft)!important}
+.sidebar .menu button{color:var(--ui-sub)!important}
+.sidebar .menu button.active{color:#fff!important}
+.central-subnav{display:none;flex-direction:column;gap:2px;padding:3px 0 7px 23px;margin:0 0 3px 11px;border-left:1px solid var(--ui-edge)}
+.central-subnav.open{display:flex}
+.central-subnav button{min-height:30px!important;padding:5px 10px!important;font-size:11px!important;color:var(--ui-sub)!important;font-weight:550!important;text-align:left!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.central-subnav button:hover{color:var(--ui-accent)!important;background:var(--ui-accent-soft)!important}
+.central-subnav button.selected{color:var(--ui-accent)!important;font-weight:750!important}
+body[data-central-theme="light"] .module-frame-toolbar{background:#fff!important}
+body[data-central-theme="light"] .module-frame-wrap{background:#f3f6fa!important}
+body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!important}
+body[data-central-theme="orange"] .kpi-card,body[data-central-theme="green"] .kpi-card,body[data-central-theme="blue"] .kpi-card{background:var(--ui-panel)!important;border:1px solid var(--ui-edge)!important;box-shadow:none!important}
+body .kpi-card::before,body .kpi-card::after{opacity:.14!important}
+body .kpi-card .kpi-title{color:var(--ui-sub)!important}
+body .kpi-card .kpi-value{color:var(--ui-ink)!important}
+body .kpi-card .kpi-value.positive{color:var(--ui-accent)!important}
+body[data-central-theme="light"] .kpi-card{background:#fff!important;border:1px solid var(--ui-edge)!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2437,5 +2467,29 @@ body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:va
    apply(saved);
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script><script id="central-preview-v3">
+(function(){
+ const titles={dados:'Passar Dados',instrutivo:'Instrutivo',refaturamento:'Refaturamento',faturamento:'Faturamento',painel902:'Painel 902',agrupaPdf:'Agrupa/remove PDF',leitor:'Leitor Scanner',assistenteCiot:'Assistente CIOT',calculadora:'Calculadora'};
+ function sync(){
+  const active=document.querySelector('.sidebar .menu button.active[data-menu]');
+  const name=active?.dataset.menu||'home';
+  document.querySelectorAll('.central-subnav').forEach(n=>n.classList.toggle('open',n.dataset.for===name && document.body.classList.contains('module-open')));
+ }
+ function build(){
+  const menu=document.querySelector('.sidebar .menu');if(!menu)return;
+  menu.querySelectorAll('button[data-menu]').forEach(b=>{
+   const key=b.dataset.menu;if(!titles[key])return;
+   const wrap=document.createElement('div');wrap.className='central-subnav';wrap.dataset.for=key;
+   const view=document.createElement('button');view.type='button';view.className='selected';view.textContent='Visão do módulo';view.addEventListener('click',()=>window.abrirSistema?.(key));
+   const tab=document.createElement('button');tab.type='button';tab.textContent='Abrir em nova aba';tab.addEventListener('click',()=>window.abrirModuloNovaAba?.());
+   const home=document.createElement('button');home.type='button';home.textContent='Voltar à Central';home.addEventListener('click',()=>window.abrirHome?.());
+   wrap.append(view,tab,home);b.after(wrap);
+  });
+  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(sync).observe(menu,{subtree:true,attributes:true,attributeFilter:['class']});
+  sync();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 })();
 </script></body></html>
