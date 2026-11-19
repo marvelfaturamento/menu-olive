@@ -947,6 +947,14 @@ body .kpi-card .kpi-title{color:var(--ui-sub)!important}
 body .kpi-card .kpi-value{color:var(--ui-ink)!important}
 body .kpi-card .kpi-value.positive{color:var(--ui-accent)!important}
 body[data-central-theme="light"] .kpi-card{background:#fff!important;border:1px solid var(--ui-edge)!important}
+</style><style id="central-iframe-v4">
+/* Em módulos com menu próprio, transfere navegação para a lateral da Central */
+body.module-open .sidebar .central-truck-scene{opacity:.72!important}
+body.module-open .sidebar .menu{overflow-y:auto;min-height:0;scrollbar-width:thin}
+body.module-open .sidebar{overflow:hidden}
+body.module-open .sidebar .central-subnav{flex-shrink:0}
+body.module-open .main .module-frame-wrap{width:100%!important}
+body.module-open .main .module-frame-toolbar{flex-shrink:0}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2491,5 +2499,56 @@ body[data-central-theme="light"] .kpi-card{background:#fff!important;border:1px 
   sync();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
+})();
+</script><script id="central-iframe-v4">
+(function(){
+ const frame=document.getElementById('moduleFrame');if(!frame)return;
+ let frameObserver=null;
+ function update(){
+  if(!document.body.classList.contains('module-open'))return;
+  let d;try{d=frame.contentDocument;if(!d?.body)return}catch(_){return}
+  const name=document.querySelector('.sidebar .menu button.active[data-menu]')?.dataset.menu;
+  const nav=d.querySelector('.sidebar .menu');
+  const submenu=document.querySelector('.central-subnav[data-for="'+name+'"]');
+  if(!submenu)return;
+  let st=d.getElementById('marvel-central-preview-theme');
+  if(!st){st=d.createElement('style');st.id='marvel-central-preview-theme';d.head.appendChild(st)}
+  const theme=document.body.dataset.centralTheme||'orange';
+  const accent=({blue:'#2679ff',orange:'#ff850b',green:'#20c873',light:'#1769e6'})[theme]||'#ff850b';
+  const light=theme==='light';
+  st.textContent=[
+   ':root{--accent:'+accent+';--blue:'+accent+';--primary:'+accent+';--brand:'+accent+'}',
+   'body{background:'+(light?'#edf1f6':'#080e17')+'!important;color:'+(light?'#17263b':'#edf3fc')+'!important}',
+   '.app{background:'+(light?'#edf1f6':'#080e17')+'!important}',
+   '.app>.sidebar{display:none!important}',
+   '.app>.main{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:20px!important;background:'+(light?'#edf1f6':'#080e17')+'!important}',
+   '.card,.kpi-card,.chip{border-color:'+(light?'#d8e0ea':'#2d3646')+'!important}',
+   '.btn:not(.secondary),.menu button.active{background:'+accent+'!important;border-color:'+accent+'!important}',
+   '.btn.secondary:hover{border-color:'+accent+'!important}',
+   '.card{background:'+(light?'#fff':'#151d29')+'!important}',
+   '.topbar{background:transparent!important}',
+   '.title h2,.card h3{color:'+(light?'#17263b':'#f4f6fa')+'!important}',
+   '.sub{color:'+(light?'#65748b':'#aebacd')+'!important}'
+  ].join('');
+  if(nav){
+   const buttons=[...nav.querySelectorAll('button[data-view]')];
+   if(buttons.length){
+    submenu.replaceChildren();
+    buttons.forEach(b=>{
+     const child=document.createElement('button');child.type='button';child.textContent=b.dataset.label||b.textContent.trim();child.classList.toggle('selected',b.classList.contains('active'));
+     child.addEventListener('click',()=>{try{b.click()}catch(_){ }setTimeout(update,70)});
+     submenu.appendChild(child);
+    });
+    submenu.classList.add('open');
+   }
+   if(frameObserver)frameObserver.disconnect();
+   frameObserver=new MutationObserver(()=>{const active=nav.querySelector('button.active[data-view]')?.dataset.view;submenu.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('selected',buttons[i]?.dataset.view===active))});
+   frameObserver.observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});
+  }
+ }
+ frame.addEventListener('load',()=>setTimeout(update,100));
+ const side=document.querySelector('.sidebar .menu');
+ if(side)new MutationObserver(()=>{if(document.body.classList.contains('module-open'))setTimeout(update,40)}).observe(side,{subtree:true,attributes:true,attributeFilter:['class']});
+ document.querySelector('.central-theme-panel')?.addEventListener('click',()=>setTimeout(update,80));
 })();
 </script></body></html>
