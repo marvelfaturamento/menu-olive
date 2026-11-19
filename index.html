@@ -977,6 +977,27 @@ body.module-open .main{min-width:0!important}
 body.module-open .module-frame-wrap{min-width:0!important}
 .central-truck-scene{z-index:0!important}
 .sidebar .menu{z-index:2!important}
+</style><style id="central-ui-refine-v9">
+.sidebar .user-box-bottom{padding:5px 7px!important;min-height:0!important;gap:2px!important}
+.sidebar .user-box-bottom .user-compact{gap:5px!important;padding:2px 3px!important;min-height:30px!important}
+.sidebar .user-box-bottom .user-avatar{width:27px!important;height:27px!important;font-size:15px!important}
+.sidebar .user-box-bottom .user-meta{line-height:1.05!important}
+.sidebar .user-box-bottom .user-meta strong{font-size:11px!important}
+.sidebar .user-box-bottom .user-meta span{font-size:9px!important}
+.sidebar .user-box-bottom .logout-btn{margin-top:2px!important;padding:5px 9px!important;font-size:10px!important}
+.sidebar .user-box-bottom .user-config-btn{width:27px!important;height:27px!important;flex-shrink:0}
+.central-theme-toggle{width:27px;height:27px;min-width:27px;border:1px solid var(--ui-edge);border-radius:8px;background:var(--ui-accent-soft);color:var(--ui-ink);cursor:pointer;font-size:17px;line-height:1;display:grid;place-items:center}
+.central-theme-toggle:hover{border-color:var(--ui-accent);color:var(--ui-accent)}
+.sidebar .user-box-bottom{overflow:visible!important}
+.sidebar .user-compact{position:relative}
+.central-theme-panel{display:none!important;position:absolute!important;bottom:calc(100% + 8px);right:0;z-index:1000!important;width:178px!important;box-shadow:0 10px 32px rgba(0,0,0,.3);padding:10px!important;justify-content:space-around;flex-wrap:nowrap!important;background:var(--ui-panel)!important}
+.central-theme-panel.is-open{display:flex!important}
+.central-theme-panel span{display:none!important}
+.central-truck-scene{bottom:60px!important;height:235px!important;opacity:.95!important;filter:sepia(.2) saturate(1.2)}
+body[data-central-theme="blue"] .central-truck-scene{filter:sepia(1) saturate(1.7) hue-rotate(172deg)}
+body[data-central-theme="green"] .central-truck-scene{filter:sepia(1) saturate(1.5) hue-rotate(78deg)}
+body[data-central-theme="light"] .central-truck-scene{filter:grayscale(1) brightness(1.22);opacity:.7!important}
+body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate(1.5)}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2489,8 +2510,14 @@ body.module-open .module-frame-wrap{min-width:0!important}
    const panel=document.createElement('div');panel.className='central-theme-panel';
    panel.innerHTML='<span>APARÊNCIA</span>'+themes.map(t=>'<button type="button" data-theme="'+t+'" title="Tema '+({blue:'azul',light:'claro',orange:'laranja',green:'verde'}[t])+'" style="background:'+colors[t]+'"></button>').join('');
    const menu=side.querySelector('.menu');
-   if(menu)side.insertBefore(panel,menu);
-   panel.addEventListener('click',e=>{const btn=e.target.closest('button[data-theme]');if(btn){e.stopPropagation();apply(btn.dataset.theme)}});
+   const user=side.querySelector('.user-compact');
+   const gear=user?.querySelector('#btnAdminUsers');
+   const toggle=document.createElement('button');toggle.type='button';toggle.className='central-theme-toggle';toggle.title='Alterar aparência';toggle.setAttribute('aria-label','Escolher cor do painel');toggle.setAttribute('aria-expanded','false');toggle.textContent='◐';
+   if(gear)gear.before(toggle);else user?.append(toggle);
+   if(user)user.append(panel);
+   toggle.addEventListener('click',e=>{e.stopPropagation();const open=panel.classList.toggle('is-open');toggle.setAttribute('aria-expanded',String(open))});
+   document.addEventListener('click',e=>{if(!panel.contains(e.target)&&e.target!==toggle){panel.classList.remove('is-open');toggle.setAttribute('aria-expanded','false')}});
+   panel.addEventListener('click',e=>{const btn=e.target.closest('button[data-theme]');if(btn){e.stopPropagation();apply(btn.dataset.theme);panel.classList.remove('is-open');toggle.setAttribute('aria-expanded','false')}});
    const scene=document.createElement('div');scene.className='central-truck-scene';scene.setAttribute('aria-hidden','true');side.appendChild(scene);
    const ribbon=document.createElement('div');ribbon.className='central-test-ribbon';ribbon.textContent='AMBIENTE VISUAL DE TESTES';document.body.appendChild(ribbon);
    let saved='orange';try{saved=localStorage.getItem('marvel_central_theme_test_v2')||'orange'}catch(_){}
@@ -2565,6 +2592,14 @@ body.module-open .module-frame-wrap{min-width:0!important}
     css+='button[disabled]{opacity:.6}';
     css+='.badge,.pill,.chip{color:#173354!important}';
     css+='canvas{filter:none!important}';
+    if(k==='painel902'){
+      css+='.kpi,.kpi-card,.stat,.stat-card,.metric,.metric-card,.card-kpi,.card-stat,[class*="kpi"],[class*="stat-card"]{background:#fff!important;color:#101820!important;border-color:#cbd6e5!important}';
+      css+='.kpi *,.kpi-card *,.stat *,.stat-card *,.metric *,.metric-card *,.card-kpi *,.card-stat *{color:#101820!important;text-shadow:none!important}';
+      css+='.kpi small,.stat small,.metric small,.kpi-label,.stat-label{color:#334155!important}';
+      css+='.kpi.active,.kpi-card.active,.stat.active,.stat-card.active{background:#dcecff!important;border-color:#2679ff!important}';
+      css+='.kpi button,.stat button,.metric button{color:#101820!important}';
+      css+='button[disabled]{background:#e5eaf1!important;color:#4b5563!important;opacity:.8!important}';
+    }
     if(k==='painel902'){
       css+='.app>.main,.app>.main>section,.app>.main>.panel{background:#f1f4f8!important;color:#14243a!important}';
       css+='.kpi,.stat,.metric,.stat-card,.kpi-card,.summary-card{background:#fff!important;color:#14243a!important;border:1px solid #d4deea!important}';
