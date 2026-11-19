@@ -947,14 +947,24 @@ body .kpi-card .kpi-title{color:var(--ui-sub)!important}
 body .kpi-card .kpi-value{color:var(--ui-ink)!important}
 body .kpi-card .kpi-value.positive{color:var(--ui-accent)!important}
 body[data-central-theme="light"] .kpi-card{background:#fff!important;border:1px solid var(--ui-edge)!important}
-</style><style id="central-iframe-v4">
-/* Em módulos com menu próprio, transfere navegação para a lateral da Central */
-body.module-open .sidebar .central-truck-scene{opacity:.72!important}
-body.module-open .sidebar .menu{overflow-y:auto;min-height:0;scrollbar-width:thin}
-body.module-open .sidebar{overflow:hidden}
-body.module-open .sidebar .central-subnav{flex-shrink:0}
-body.module-open .main .module-frame-wrap{width:100%!important}
-body.module-open .main .module-frame-toolbar{flex-shrink:0}
+</style><style id="central-safe-v5">
+/* v5: o layout interno de cada módulo permanece intocado */
+body.module-open .main>.topbar,body.module-open .main>.kpis,body.module-open .main>.modules,body.module-open .main>.status-row,body.module-open .main>.health-overview{display:none!important}
+body.module-open .main{padding:0!important;overflow:hidden!important;height:100vh!important;min-width:0!important}
+body.module-open .module-frame-wrap{height:100%!important;min-width:0!important;width:100%!important;flex:1 1 auto!important;border:0!important;border-radius:0!important}
+body.module-open #moduleFrame{width:100%!important;height:100%!important;min-width:0!important}
+.sidebar .menu{overflow-y:auto!important;overflow-x:hidden!important;min-height:0!important;flex:1 1 auto!important;scrollbar-width:thin}
+.sidebar{overflow:hidden!important}
+.sidebar .user-box-bottom{flex:0 0 auto!important}
+.central-subnav{display:none;flex-direction:column;gap:2px;padding:3px 0 7px 19px;margin:0 0 3px 12px;border-left:1px solid var(--ui-edge);flex-shrink:0}
+.central-subnav.open{display:flex}
+.sidebar .central-subnav button{min-height:29px!important;padding:5px 9px!important;font-size:11px!important;text-align:left!important;font-weight:550!important;border:0!important;background:transparent!important;box-shadow:none!important;color:var(--ui-sub)!important}
+.sidebar .central-subnav button.selected{color:var(--ui-accent)!important;font-weight:750!important}
+.sidebar .central-subnav button:hover{color:var(--ui-accent)!important;background:var(--ui-accent-soft)!important}
+.central-truck-scene{height:210px!important;bottom:90px!important;opacity:.68!important;pointer-events:none!important;mask-image:linear-gradient(transparent,#000 25%,#000 90%,transparent)!important}
+.sidebar .menu{position:relative;z-index:3}
+body .module-frame-toolbar{background:var(--ui-panel)!important}
+body .shell-btn{background:var(--ui-accent-soft)!important;color:var(--ui-ink)!important;border-color:var(--ui-edge)!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2476,79 +2486,63 @@ body.module-open .main .module-frame-toolbar{flex-shrink:0}
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script><script id="central-preview-v3">
+</script><script id="central-safe-v5">
 (function(){
- const titles={dados:'Passar Dados',instrutivo:'Instrutivo',refaturamento:'Refaturamento',faturamento:'Faturamento',painel902:'Painel 902',agrupaPdf:'Agrupa/remove PDF',leitor:'Leitor Scanner',assistenteCiot:'Assistente CIOT',calculadora:'Calculadora'};
- function sync(){
-  const active=document.querySelector('.sidebar .menu button.active[data-menu]');
-  const name=active?.dataset.menu||'home';
-  document.querySelectorAll('.central-subnav').forEach(n=>n.classList.toggle('open',n.dataset.for===name && document.body.classList.contains('module-open')));
- }
- function build(){
-  const menu=document.querySelector('.sidebar .menu');if(!menu)return;
-  menu.querySelectorAll('button[data-menu]').forEach(b=>{
-   const key=b.dataset.menu;if(!titles[key])return;
-   const wrap=document.createElement('div');wrap.className='central-subnav';wrap.dataset.for=key;
-   const view=document.createElement('button');view.type='button';view.className='selected';view.textContent='Visão do módulo';view.addEventListener('click',()=>window.abrirSistema?.(key));
-   const tab=document.createElement('button');tab.type='button';tab.textContent='Abrir em nova aba';tab.addEventListener('click',()=>window.abrirModuloNovaAba?.());
-   const home=document.createElement('button');home.type='button';home.textContent='Voltar à Central';home.addEventListener('click',()=>window.abrirHome?.());
-   wrap.append(view,tab,home);b.after(wrap);
-  });
-  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
-  new MutationObserver(sync).observe(menu,{subtree:true,attributes:true,attributeFilter:['class']});
-  sync();
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
-})();
-</script><script id="central-iframe-v4">
-(function(){
- const frame=document.getElementById('moduleFrame');if(!frame)return;
- let frameObserver=null;
- function update(){
-  if(!document.body.classList.contains('module-open'))return;
-  let d;try{d=frame.contentDocument;if(!d?.body)return}catch(_){return}
-  const name=document.querySelector('.sidebar .menu button.active[data-menu]')?.dataset.menu;
-  const nav=d.querySelector('.sidebar .menu');
-  const submenu=document.querySelector('.central-subnav[data-for="'+name+'"]');
-  if(!submenu)return;
-  let st=d.getElementById('marvel-central-preview-theme');
-  if(!st){st=d.createElement('style');st.id='marvel-central-preview-theme';d.head.appendChild(st)}
+ const frame=document.getElementById('moduleFrame'),menu=document.querySelector('.sidebar .menu');
+ if(!frame||!menu)return;
+ const names={dados:'Passar Dados',instrutivo:'Instrutivo',refaturamento:'Refaturamento',faturamento:'Faturamento',painel902:'Painel 902',agrupaPdf:'Agrupa/remove PDF',leitor:'Leitor Scanner',assistenteCiot:'Assistente CIOT',calculadora:'Calculadora'};
+ let expanded=null,frameObs=null;
+ function activeKey(){return menu.querySelector('button.active[data-menu]')?.dataset.menu||'home'}
+ function setExpanded(key){expanded=key;menu.querySelectorAll('.central-subnav').forEach(el=>el.classList.toggle('open',el.dataset.for===key));}
+ function themeFrame(){
+  let doc;try{doc=frame.contentDocument;if(!doc?.head)return}catch(_){return}
   const theme=document.body.dataset.centralTheme||'orange';
-  const accent=({blue:'#2679ff',orange:'#ff850b',green:'#20c873',light:'#1769e6'})[theme]||'#ff850b';
+  const accent={blue:'#2679ff',orange:'#ff850b',green:'#20c873',light:'#1769e6'}[theme];
   const light=theme==='light';
-  st.textContent=[
-   ':root{--accent:'+accent+';--blue:'+accent+';--primary:'+accent+';--brand:'+accent+'}',
-   'body{background:'+(light?'#edf1f6':'#080e17')+'!important;color:'+(light?'#17263b':'#edf3fc')+'!important}',
-   '.app{background:'+(light?'#edf1f6':'#080e17')+'!important}',
-   '.app>.sidebar{display:none!important}',
-   '.app>.main{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:20px!important;background:'+(light?'#edf1f6':'#080e17')+'!important}',
-   '.card,.kpi-card,.chip{border-color:'+(light?'#d8e0ea':'#2d3646')+'!important}',
-   '.btn:not(.secondary),.menu button.active{background:'+accent+'!important;border-color:'+accent+'!important}',
-   '.btn.secondary:hover{border-color:'+accent+'!important}',
-   '.card{background:'+(light?'#fff':'#151d29')+'!important}',
-   '.topbar{background:transparent!important}',
-   '.title h2,.card h3{color:'+(light?'#17263b':'#f4f6fa')+'!important}',
-   '.sub{color:'+(light?'#65748b':'#aebacd')+'!important}'
-  ].join('');
-  if(nav){
-   const buttons=[...nav.querySelectorAll('button[data-view]')];
+  let st=doc.getElementById('marvel-theme-safe');if(!st){st=doc.createElement('style');st.id='marvel-theme-safe';doc.head.appendChild(st)}
+  // Apenas cores: não altera display, width, grid, flex, position ou overflow do módulo
+  st.textContent=':root{--accent:'+accent+';--primary:'+accent+';--brand:'+accent+'}'+
+    'body{background-color:'+(light?'#f3f5f9':'#0c121e')+';}'+
+    'button.active,.btn-primary,.tab.active{accent-color:'+accent+';}'+
+    '.app .menu button.active{border-color:'+accent+';}';
+ }
+ function loadSubmenu(){
+  let doc;try{doc=frame.contentDocument;if(!doc?.body)return}catch(_){return}
+  themeFrame();
+  const key=activeKey(),sub=menu.querySelector('.central-subnav[data-for="'+key+'"]');
+  if(!sub)return;
+  const inner=doc.querySelector('.sidebar .menu');
+  if(frameObs){frameObs.disconnect();frameObs=null}
+  if(inner){
+   const buttons=[...inner.querySelectorAll('button[data-view]')];
    if(buttons.length){
-    submenu.replaceChildren();
+    sub.replaceChildren();
     buttons.forEach(b=>{
-     const child=document.createElement('button');child.type='button';child.textContent=b.dataset.label||b.textContent.trim();child.classList.toggle('selected',b.classList.contains('active'));
-     child.addEventListener('click',()=>{try{b.click()}catch(_){ }setTimeout(update,70)});
-     submenu.appendChild(child);
+     const child=document.createElement('button');child.type='button';child.textContent=b.dataset.label||b.textContent.trim();
+     child.dataset.view=b.dataset.view||'';
+     child.addEventListener('click',()=>{b.click();highlight()});
+     sub.appendChild(child);
     });
-    submenu.classList.add('open');
+    const highlight=()=>{const selected=inner.querySelector('button.active[data-view]')?.dataset.view;sub.querySelectorAll('button').forEach(btn=>btn.classList.toggle('selected',btn.dataset.view===selected))};
+    highlight();frameObs=new MutationObserver(highlight);frameObs.observe(inner,{subtree:true,attributes:true,attributeFilter:['class']});
    }
-   if(frameObserver)frameObserver.disconnect();
-   frameObserver=new MutationObserver(()=>{const active=nav.querySelector('button.active[data-view]')?.dataset.view;submenu.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('selected',buttons[i]?.dataset.view===active))});
-   frameObserver.observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});
   }
  }
- frame.addEventListener('load',()=>setTimeout(update,100));
- const side=document.querySelector('.sidebar .menu');
- if(side)new MutationObserver(()=>{if(document.body.classList.contains('module-open'))setTimeout(update,40)}).observe(side,{subtree:true,attributes:true,attributeFilter:['class']});
- document.querySelector('.central-theme-panel')?.addEventListener('click',()=>setTimeout(update,80));
+ menu.querySelectorAll('button[data-menu]').forEach(btn=>{
+  const key=btn.dataset.menu;if(!names[key])return;
+  const sub=document.createElement('div');sub.className='central-subnav';sub.dataset.for=key;
+  const view=document.createElement('button');view.type='button';view.textContent='Visão do módulo';view.onclick=()=>window.abrirSistema?.(key);sub.append(view);btn.after(sub);
+  // Captura clique para recolher sem reabrir módulo já ativo
+  btn.addEventListener('click',event=>{
+   if(expanded===key){event.stopImmediatePropagation();event.preventDefault();setExpanded(null);return}
+   setExpanded(key);setTimeout(loadSubmenu,120);
+  },true);
+ });
+ const home=menu.querySelector('button[data-menu="home"]');home?.addEventListener('click',()=>setExpanded(null));
+ frame.addEventListener('load',()=>setTimeout(loadSubmenu,150));
+ const themePanel=document.querySelector('.central-theme-panel');
+ if(themePanel)themePanel.addEventListener('click',()=>setTimeout(themeFrame,80));
+ const mo=new MutationObserver(()=>{if(!document.body.classList.contains('module-open'))setExpanded(null);else if(expanded===null)setExpanded(activeKey())});
+ mo.observe(document.body,{attributes:true,attributeFilter:['class']});
 })();
 </script></body></html>
