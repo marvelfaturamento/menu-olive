@@ -2532,7 +2532,7 @@ body.module-open .module-frame-wrap{min-width:0!important}
   }else if(k==='instrutivo'){
    css+='#menu{width:265px!important;min-width:265px!important;background:'+t.panel+'!important;color:'+t.ink+'!important}#menu>.logo,#menu>.menu-btn{display:none!important}#main{background:'+t.bg+'!important;min-width:0!important;flex:1!important}#main header{background:'+t.panel+'!important;color:'+t.ink+'!important}#conteudo .card,#conteudo .midia-box{background:'+t.panel+'!important;color:'+t.ink+'!important}#lista{color:'+t.ink+'!important}';
   }else if(k==='painel902'){
-   css+='.app{grid-template-columns:minmax(0,1fr)!important}.app>.side{display:none!important}.app>.main{width:100%!important;min-width:0!important}';
+   css+='.app{display:block!important;grid-template-columns:none!important}.app>aside.side,.app>.side{display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;max-width:0!important;padding:0!important;margin:0!important;position:absolute!important;pointer-events:none!important}.app>main.main,.app>.main{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding-left:16px!important}';
   }else if(k==='agrupaPdf'){
    css+='.wrap>.topbar{display:none!important}.wrap{width:100%!important;max-width:none!important;min-width:0!important}';
   }else if(k==='leitor'){
@@ -2540,6 +2540,17 @@ body.module-open .module-frame-wrap{min-width:0!important}
   }else if(k==='calculadora'){
    css+='.layout>.side{display:none!important}.layout>.main{width:100%!important;min-width:0!important;margin-left:0!important;flex:1!important}';
   }
+  if(light){
+   css+='body,main,section,article,header,footer,.main,.content,.wrap,.panel,.card,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card{color:#17263d!important}';
+   css+='.panel,.card,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card{background:#fff!important;border-color:#d6dfeb!important}';
+   css+='h1,h2,h3,h4,h5,h6,p,small,label,td,th,span,.label,.value,.k,.v,.hint,.sub,.muted,.desc,.title,.subtitle,.legend,.chart-label,.chartjs-render-monitor{color:#17263d}';
+   css+='table,thead,tbody,tr,td,th{color:#17263d!important}table{background:#fff!important}thead,tr:nth-child(even){background:#f1f5fa!important}';
+   css+='.alert,.warning,.danger,.error{color:#8d2c20!important}';
+   css+='canvas{filter:brightness(.64) contrast(1.2)}';
+   css+='input,select,textarea{background:#fff!important;color:#17263d!important;border-color:#cbd5e1!important}';
+   css+='button:not(.active):not(.selected){color:#17263d}';
+  }
+  if(k==='painel902'){const nav=d.querySelector('.app>aside.side');if(nav){nav.style.setProperty('display','none','important');nav.style.setProperty('width','0','important')}const app=d.querySelector('.app');if(app){app.style.setProperty('display','block','important');app.style.setProperty('grid-template-columns','none','important')}}
   st.textContent=css;
  }
  function navigation(){
