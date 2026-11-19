@@ -965,6 +965,18 @@ body.module-open #moduleFrame{width:100%!important;height:100%!important;min-wid
 .sidebar .menu{position:relative;z-index:3}
 body .module-frame-toolbar{background:var(--ui-panel)!important}
 body .shell-btn{background:var(--ui-accent-soft)!important;color:var(--ui-ink)!important;border-color:var(--ui-edge)!important}
+</style><style id="central-integrated-v6">
+.sidebar .logo{min-height:58px!important;padding:10px 12px!important;margin-bottom:2px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:9px!important}
+.sidebar .logo h1{font-size:14px!important;line-height:1.1!important;letter-spacing:-.35px!important}
+.sidebar .logo p{font-size:8px!important;line-height:1.2!important;margin-top:3px!important}
+.sidebar .logo:before{content:'M';display:grid;place-items:center;flex:0 0 29px;height:29px;border-radius:9px;background:linear-gradient(140deg,#43c5ff,#1b5ff4);color:#fff;font-size:17px;font-weight:900;box-shadow:0 3px 10px #0002}
+.sidebar .menu button[data-menu]{flex-shrink:0}
+.sidebar .central-subnav.open{display:flex!important}
+.sidebar .central-subnav button{flex-shrink:0}
+body.module-open .main{min-width:0!important}
+body.module-open .module-frame-wrap{min-width:0!important}
+.central-truck-scene{z-index:0!important}
+.sidebar .menu{z-index:2!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2486,63 +2498,82 @@ body .shell-btn{background:var(--ui-accent-soft)!important;color:var(--ui-ink)!i
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script><script id="central-safe-v5">
+</script><script id="central-integrated-v6">
 (function(){
  const frame=document.getElementById('moduleFrame'),menu=document.querySelector('.sidebar .menu');
  if(!frame||!menu)return;
  const names={dados:'Passar Dados',instrutivo:'Instrutivo',refaturamento:'Refaturamento',faturamento:'Faturamento',painel902:'Painel 902',agrupaPdf:'Agrupa/remove PDF',leitor:'Leitor Scanner',assistenteCiot:'Assistente CIOT',calculadora:'Calculadora'};
- let expanded=null,frameObs=null;
- function activeKey(){return menu.querySelector('button.active[data-menu]')?.dataset.menu||'home'}
- function setExpanded(key){expanded=key;menu.querySelectorAll('.central-subnav').forEach(el=>el.classList.toggle('open',el.dataset.for===key));}
- function themeFrame(){
-  let doc;try{doc=frame.contentDocument;if(!doc?.head)return}catch(_){return}
-  const theme=document.body.dataset.centralTheme||'orange';
-  const accent={blue:'#2679ff',orange:'#ff850b',green:'#20c873',light:'#1769e6'}[theme];
-  const light=theme==='light';
-  let st=doc.getElementById('marvel-theme-safe');if(!st){st=doc.createElement('style');st.id='marvel-theme-safe';doc.head.appendChild(st)}
-  // Apenas cores: não altera display, width, grid, flex, position ou overflow do módulo
-  st.textContent=':root{--accent:'+accent+';--primary:'+accent+';--brand:'+accent+'}'+
-    'body{background-color:'+(light?'#f3f5f9':'#0c121e')+';}'+
-    'button.active,.btn-primary,.tab.active{accent-color:'+accent+';}'+
-    '.app .menu button.active{border-color:'+accent+';}';
- }
- function loadSubmenu(){
-  let doc;try{doc=frame.contentDocument;if(!doc?.body)return}catch(_){return}
-  themeFrame();
-  const key=activeKey(),sub=menu.querySelector('.central-subnav[data-for="'+key+'"]');
-  if(!sub)return;
-  const inner=doc.querySelector('.sidebar .menu');
-  if(frameObs){frameObs.disconnect();frameObs=null}
-  if(inner){
-   const buttons=[...inner.querySelectorAll('button[data-view]')];
-   if(buttons.length){
-    sub.replaceChildren();
-    buttons.forEach(b=>{
-     const child=document.createElement('button');child.type='button';child.textContent=b.dataset.label||b.textContent.trim();
-     child.dataset.view=b.dataset.view||'';
-     child.addEventListener('click',()=>{b.click();highlight()});
-     sub.appendChild(child);
-    });
-    const highlight=()=>{const selected=inner.querySelector('button.active[data-view]')?.dataset.view;sub.querySelectorAll('button').forEach(btn=>btn.classList.toggle('selected',btn.dataset.view===selected))};
-    highlight();frameObs=new MutationObserver(highlight);frameObs.observe(inner,{subtree:true,attributes:true,attributeFilter:['class']});
-   }
+ let expanded=null,observer=null,lastKey=null;
+ const key=()=>menu.querySelector('button.active[data-menu]')?.dataset.menu||'home';
+ function expand(k){expanded=k;menu.querySelectorAll('.central-subnav').forEach(n=>n.classList.toggle('open',n.dataset.for===k));}
+ function getDoc(){try{return frame.contentDocument?.body?frame.contentDocument:null}catch(_){return null}}
+ function paint(){
+  const doc=getDoc();if(!doc)return;
+  const theme=document.body.dataset.centralTheme||'orange',light=theme==='light';
+  const accent={blue:'#2679ff',orange:'#ff850b',green:'#20c873',light:'#2679ff'}[theme];
+  const panel=light?'#ffffff':theme==='green'?'#10251d':theme==='blue'?'#101f38':'#261b13';
+  const bg=light?'#f1f4f8':theme==='green'?'#091810':theme==='blue'?'#081324':'#160f0a';
+  const edge=light?'#d9e1ed':theme==='green'?'#27533e':theme==='blue'?'#263c60':'#55351e';
+  const ink=light?'#15233a':'#edf4ff';
+  let style=doc.getElementById('central-integrated-theme');
+  if(!style){style=doc.createElement('style');style.id='central-integrated-theme';doc.head.append(style)}
+  const module=key();
+  let css=':root{--accent:'+accent+';--primary:'+accent+';--brand:'+accent+';--bg:'+bg+';--card:'+panel+';--panel:'+panel+';--panel2:'+panel+';--line:'+edge+';--stroke:'+edge+';--text:'+ink+';--muted:'+(light?'#63748c':'#afbdcc')+';--sidebar:'+panel+'}';
+  css+='body{background:'+bg+'!important;color:'+ink+'!important}';
+  if(module==='refaturamento'){
+    css+='.app{grid-template-columns:minmax(0,1fr)!important}.app>.sidebar{display:none!important}.app>.main{min-width:0!important;width:100%!important}';
+    css+='.panel,.card,.chip,.metric,.kpi{border-color:'+edge+'!important}';
+    css+='.panel,.card{background:'+panel+'!important}';
+  }else if(module==='faturamento'){
+    css+='.app{grid-template-columns:minmax(0,1fr)!important}.app>.sidebar{display:none!important}.app>.content{min-width:0!important;width:100%!important}';
+    css+='.panel{background:'+panel+'!important;border-color:'+edge+'!important}';
+  }else if(module==='dados'){
+    css+='.layout>.sidebar{display:none!important}.layout{display:flex!important}.layout>.main,.layout>.content,.layout>.main-content{flex:1 1 auto!important;min-width:0!important}';
+    css+='.card,.resultado,.result-card{border-color:'+edge+'!important}';
   }
+  style.textContent=css;
  }
+ function syncSubmenu(){
+  const doc=getDoc(),k=key(),sub=menu.querySelector('.central-subnav[data-for="'+k+'"]');
+  if(!doc||!sub)return;
+  if(observer){observer.disconnect();observer=null}
+  let selector,buttons;
+  if(k==='refaturamento'){selector='.app>.sidebar .menu';buttons=[...doc.querySelectorAll('.app>.sidebar .menu button[data-view]')]}
+  else if(k==='faturamento'){selector='.app>.sidebar';buttons=[...doc.querySelectorAll('.app>.sidebar button[data-page]')]}
+  else if(k==='dados'){selector='.layout>.sidebar';buttons=[...doc.querySelectorAll('.layout>.sidebar button[id^="btn"]')]}
+  else return;
+  const parent=doc.querySelector(selector);
+  if(!parent||!buttons.length)return;
+  sub.replaceChildren();
+  buttons.forEach(b=>{
+   const item=document.createElement('button');item.type='button';item.textContent=b.dataset.label||b.textContent.trim();item.dataset.target=b.dataset.view||b.dataset.page||b.id;
+   item.onclick=()=>{b.click();highlight()};
+   sub.append(item);
+  });
+  function highlight(){
+   sub.querySelectorAll('button').forEach((item,i)=>item.classList.toggle('selected',buttons[i]?.classList.contains('active')||buttons[i]?.classList.contains('selected')));
+  }
+  highlight();
+  observer=new MutationObserver(highlight);
+  observer.observe(parent,{subtree:true,attributes:true,attributeFilter:['class']});
+ }
+ function onLoaded(){lastKey=key();syncSubmenu();paint()}
  menu.querySelectorAll('button[data-menu]').forEach(btn=>{
-  const key=btn.dataset.menu;if(!names[key])return;
-  const sub=document.createElement('div');sub.className='central-subnav';sub.dataset.for=key;
-  const view=document.createElement('button');view.type='button';view.textContent='Visão do módulo';view.onclick=()=>window.abrirSistema?.(key);sub.append(view);btn.after(sub);
-  // Captura clique para recolher sem reabrir módulo já ativo
-  btn.addEventListener('click',event=>{
-   if(expanded===key){event.stopImmediatePropagation();event.preventDefault();setExpanded(null);return}
-   setExpanded(key);setTimeout(loadSubmenu,120);
+  const k=btn.dataset.menu;if(!names[k])return;
+  const sub=document.createElement('div');sub.className='central-subnav';sub.dataset.for=k;
+  const fallback=document.createElement('button');fallback.type='button';fallback.textContent='Visão do módulo';fallback.onclick=()=>window.abrirSistema?.(k);
+  sub.append(fallback);btn.after(sub);
+  btn.addEventListener('click',e=>{
+   if(expanded===k){e.preventDefault();e.stopImmediatePropagation();expand(null);return}
+   expand(k);
+   setTimeout(()=>{if(key()===k){syncSubmenu();paint()}},130);
   },true);
  });
- const home=menu.querySelector('button[data-menu="home"]');home?.addEventListener('click',()=>setExpanded(null));
- frame.addEventListener('load',()=>setTimeout(loadSubmenu,150));
- const themePanel=document.querySelector('.central-theme-panel');
- if(themePanel)themePanel.addEventListener('click',()=>setTimeout(themeFrame,80));
- const mo=new MutationObserver(()=>{if(!document.body.classList.contains('module-open'))setExpanded(null);else if(expanded===null)setExpanded(activeKey())});
- mo.observe(document.body,{attributes:true,attributeFilter:['class']});
+ menu.querySelector('button[data-menu="home"]')?.addEventListener('click',()=>expand(null));
+ frame.addEventListener('load',()=>setTimeout(onLoaded,120));
+ const panel=document.querySelector('.central-theme-panel');
+ panel?.addEventListener('click',()=>setTimeout(paint,100));
+ new MutationObserver(()=>{if(!document.body.classList.contains('module-open'))expand(null);else if(key()!==lastKey){lastKey=key();expand(lastKey);setTimeout(onLoaded,100)}}).observe(document.body,{attributes:true,attributeFilter:['class']});
+ if(document.body.classList.contains('module-open'))setTimeout(onLoaded,150);
 })();
 </script></body></html>
