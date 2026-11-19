@@ -871,6 +871,52 @@ body[data-central-theme="light"] .health-overview-status{color:#245fbb}
 .central-theme-panel button[aria-pressed="true"]{border-color:var(--ui-ink);outline:2px solid var(--ui-accent);outline-offset:2px;transform:scale(1.07)}
 .central-test-ribbon{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:20;background:var(--ui-accent);color:#fff;padding:3px 16px;border-radius:0 0 9px 9px;font-size:10px;font-weight:800;pointer-events:none}
 @media(max-width:950px){.sidebar{width:190px;min-width:190px}.central-truck-scene{height:125px}.main{padding:9px}.central-theme-panel{gap:5px}}
+</style><style id="central-reference-v2">
+/* Visual v2 inspirado na referência COMEX; isolado nesta ramificação */
+:root{--ui-accent:#ff850b;--ui-accent-soft:rgba(255,133,11,.13);--ui-shell:#080e17;--ui-panel:#131b27;--ui-ink:#f4f6fa;--ui-sub:#b4becd;--ui-edge:rgba(180,192,213,.12);--card:#151d29;--border:rgba(180,192,213,.12);--muted:#b4becd;--text:#f4f6fa}
+body[data-central-theme="blue"]{--ui-accent:#2679ff;--ui-accent-soft:rgba(38,121,255,.15)}
+body[data-central-theme="orange"]{--ui-accent:#ff850b;--ui-accent-soft:rgba(255,133,11,.15)}
+body[data-central-theme="green"]{--ui-accent:#20c873;--ui-accent-soft:rgba(32,200,115,.14)}
+body[data-central-theme="light"]{--ui-accent:#1769e6;--ui-accent-soft:rgba(23,105,230,.11);--ui-shell:#edf1f6;--ui-panel:#fff;--ui-ink:#18283d;--ui-sub:#66758a;--ui-edge:rgba(38,58,91,.14);--card:#fff;--border:rgba(38,58,91,.14);--muted:#66758a;--text:#18283d}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--ui-shell)!important;color:var(--ui-ink)!important}
+.sidebar{width:218px!important;min-width:218px!important;padding:0 0 12px!important;background:linear-gradient(180deg,var(--ui-shell),var(--ui-panel))!important;border-right:1px solid var(--ui-edge)!important;gap:4px!important}
+.sidebar .logo{padding:24px 16px 19px!important;margin:0 0 8px!important;min-height:88px;display:flex;flex-direction:column;justify-content:center;border-color:var(--ui-edge)!important}
+.sidebar .logo h1{font-size:19px!important;letter-spacing:-.6px}
+.sidebar .logo p{font-size:10px!important;letter-spacing:.15px}
+.sidebar .menu{padding:4px 9px 0!important;gap:3px!important}
+.sidebar .menu button{min-height:39px!important;padding:8px 11px!important;font-size:12px!important;font-weight:650!important;border-radius:9px!important;letter-spacing:.1px!important}
+.sidebar .menu button.active{background:linear-gradient(100deg,var(--ui-accent),color-mix(in srgb,var(--ui-accent),#ffb431 35%))!important;color:white!important;box-shadow:0 4px 12px var(--ui-accent-soft)!important}
+.sidebar .menu button:hover:not(.active){background:var(--ui-accent-soft)!important;color:var(--ui-ink)!important}
+.sidebar .menu-divider{opacity:.3}
+.central-theme-panel{order:1;margin:8px 11px 6px!important;padding:7px!important;background:transparent!important;border:1px solid var(--ui-edge)!important;gap:8px!important}
+.central-theme-panel span{font-size:9px!important;letter-spacing:.6px}
+.central-theme-panel button{width:21px!important;height:21px!important}
+.central-truck-scene{bottom:92px!important;height:195px!important;opacity:.95!important;mask-image:linear-gradient(transparent,#000 26%,#000 92%)!important}
+.user-box-bottom{position:relative;z-index:3}
+.main{padding:20px 24px!important;gap:16px!important;background:var(--ui-shell)!important}
+.topbar{padding:0 0 5px!important;border-bottom:1px solid var(--ui-edge);min-height:65px}
+.topbar h2{font-size:25px!important;font-weight:800!important}
+.topbar p{font-size:11px!important;color:var(--ui-sub)!important}
+.system-pill{border-radius:7px!important}
+.modules{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-auto-rows:minmax(0,1fr);gap:12px!important;flex:1!important;align-content:stretch}
+.module-card{background:var(--ui-panel)!important;border:1px solid var(--ui-edge)!important;border-radius:12px!important;box-shadow:0 5px 18px rgba(0,0,0,.1)!important;min-height:0!important;padding:16px!important;gap:9px!important}
+.module-card::before{display:none!important}
+.module-card:hover{border-color:var(--ui-accent)!important;background:color-mix(in srgb,var(--ui-panel),var(--ui-accent) 5%)!important}
+.module-card .module-title,.module-card h3{color:var(--ui-ink)!important;font-size:14px!important;font-weight:750!important}
+.module-card .module-desc,.module-card p{color:var(--ui-sub)}
+.module-card .module-badge{background:var(--ui-accent-soft)!important;border:1px solid var(--ui-edge)!important;color:var(--ui-accent)!important;border-radius:7px!important}
+.module-card .module-metrics{display:flex!important;gap:0!important;flex-direction:column!important;margin-top:4px}
+.module-card .metric-box{background:transparent!important;border:0!important;border-radius:0!important;border-bottom:1px solid var(--ui-edge)!important;min-height:35px!important;padding:7px 1px!important;display:flex!important;align-items:center;justify-content:space-between;gap:8px}
+.module-card .metric-label{font-size:10px!important;color:var(--ui-sub)!important}
+.module-card .metric-value{font-size:12px!important;text-align:right;color:var(--ui-ink)!important}
+.module-card .metric-box:last-child{border-bottom:0!important}
+.module-card .module-footer{margin-top:auto!important;color:var(--ui-accent)!important}
+.module-health{border-top:1px solid var(--ui-edge)!important;margin-top:6px!important;padding-top:10px!important}
+.health-overview{background:var(--ui-panel)!important;border:1px solid var(--ui-edge)!important}
+.mini-filter{background:var(--ui-panel)!important;border:1px solid var(--ui-edge)!important;border-radius:10px!important}
+.central-test-ribbon{font-size:9px!important;letter-spacing:.8px!important;background:var(--ui-accent)!important}
+@media(max-width:1300px){.modules{grid-template-columns:repeat(3,minmax(0,1fr))!important;overflow:auto}.main{overflow:auto!important}}
+@media(max-width:850px){.modules{grid-template-columns:repeat(2,minmax(0,1fr))!important}.sidebar{width:190px!important;min-width:190px!important}.main{padding:12px!important}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2370,11 +2416,11 @@ body[data-central-theme="light"] .health-overview-status{color:#245fbb}
 <script id="central-theme-test">
 (function(){
  const themes=['blue','light','orange','green'];
- const colors={blue:'#2679ff',light:'#eaf1fa',orange:'#ff8a18',green:'#1bc866'};
+ const colors={blue:'#2679ff',light:'#eaf1fa',orange:'#ff850b',green:'#20c873'};
  function apply(theme){
    const next=themes.includes(theme)?theme:'blue';
    document.body.dataset.centralTheme=next;
-   try{localStorage.setItem('marvel_central_theme_test',next)}catch(_){}
+   try{localStorage.setItem('marvel_central_theme_test_v2',next)}catch(_){}
    document.querySelectorAll('.central-theme-panel button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.theme===next)));
  }
  function init(){
@@ -2387,7 +2433,7 @@ body[data-central-theme="light"] .health-overview-status{color:#245fbb}
    panel.addEventListener('click',e=>{const btn=e.target.closest('button[data-theme]');if(btn){e.stopPropagation();apply(btn.dataset.theme)}});
    const scene=document.createElement('div');scene.className='central-truck-scene';scene.setAttribute('aria-hidden','true');side.appendChild(scene);
    const ribbon=document.createElement('div');ribbon.className='central-test-ribbon';ribbon.textContent='AMBIENTE VISUAL DE TESTES';document.body.appendChild(ribbon);
-   let saved='blue';try{saved=localStorage.getItem('marvel_central_theme_test')||'blue'}catch(_){}
+   let saved='orange';try{saved=localStorage.getItem('marvel_central_theme_test_v2')||'orange'}catch(_){}
    apply(saved);
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
