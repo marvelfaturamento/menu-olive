@@ -2568,13 +2568,18 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
    css+='.layout>.side{display:none!important}.layout>.main{width:100%!important;min-width:0!important;margin-left:0!important;flex:1!important}';
   }
   if(k==='assistenteCiot'){
-   // O CIOT tem cartões brancos mesmo nos temas coloridos: manter tinta escura legível.
-   css+='body .summaryCard,body .sidePanel,body .contentPanel,body .ciotCard,body .ciotBody,body .infoCard,body .keyCell,body .menuItem{background:#fff!important;color:#132238!important;border-color:#b8c9d5!important}';
-   css+='body .summaryCard *,body .sidePanel *,body .contentPanel *,body .ciotBody *,body .infoCard *,body .keyCell *,body .menuItem *{color:#132238!important;-webkit-text-fill-color:#132238!important;opacity:1!important;text-shadow:none!important}';
-   css+='body .summaryCard span,body .summaryCard small,body .label,body .dataLine span,body .pv b,body .menuMeta,body .menuPill,body .keyCell .label{color:#334b63!important;-webkit-text-fill-color:#334b63!important}';
+   // Tema do CIOT acompanha o seletor global, sem comprometer o contraste dos dados.
+   css+=':root{--pri:'+t.accent+'!important;--pri2:'+ (light?'#1858b0':t.accent) +'!important;--txt:#132238!important;--mut:#42546b!important;--line:#b8c9d5!important}';
+   css+='body .summaryCard,body .sidePanel,body .contentPanel,body .ciotCard,body .ciotBody,body .infoCard,body .keyCell,body .menuItem,body .metric,body .metric.liquid,body .noteChip,body .detailsInner{background:#fff!important;color:#132238!important;border-color:#b8c9d5!important}';
+   css+='body .summaryCard *,body .sidePanel *,body .contentPanel *,body .ciotBody *,body .infoCard *,body .keyCell *,body .menuItem *,body .metric *,body .metric.liquid *{color:#132238!important;-webkit-text-fill-color:#132238!important;opacity:1!important;text-shadow:none!important}';
+   css+='body .summaryCard span,body .summaryCard small,body .label,body .dataLine span,body .pv b,body .menuMeta,body .keyCell .label,body .metric .label{color:#42546b!important;-webkit-text-fill-color:#42546b!important}';
    css+='body .ciotHead,body .ciotHead *,body .appHeader,body .appHeader *,body .ciotBadge{color:#fff!important;-webkit-text-fill-color:#fff!important}';
-   css+='body .ciotHead{background:linear-gradient(100deg,#075b3e,#078654)!important}';
-   css+='body .totals,body .totals *,body .totalBox,body .totalBox *{color:#fff!important;-webkit-text-fill-color:#fff!important}';
+   css+='body .ciotHead{background:'+t.accent+'!important}';
+   css+='body .brandIcon,body .miniAction,body .menuNum{background:'+t.accent+'!important;color:#fff!important;-webkit-text-fill-color:#fff!important}';
+   css+='body .menuItem.active{border-color:'+t.accent+'!important;box-shadow:inset 3px 0 0 '+t.accent+'!important}';
+   css+='body .detailsWrap summary{display:list-item!important;visibility:visible!important;opacity:1!important;background:#eaf0f7!important;color:#132238!important;-webkit-text-fill-color:#132238!important;border:1px solid #b8c9d5!important;cursor:pointer!important;font-weight:800!important}';
+   css+='body .detailsWrap summary *,body .detailsInner,body .detailsInner *{color:#132238!important;-webkit-text-fill-color:#132238!important}';
+   css+='body .valuesGrid,body .valuesGrid *,body .metric,body .metric.liquid{background:#f4f8fb!important;color:#132238!important;-webkit-text-fill-color:#132238!important}';
   }
   if(light){
    css+='body,main,section,article,header,footer,.main,.content,.wrap,.panel,.card,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card{color:#17263d!important}';
