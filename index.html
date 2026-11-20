@@ -1022,6 +1022,13 @@ body[data-central-theme="green"] .central-truck-scene,
 body[data-central-theme="light"] .central-truck-scene,
 body[data-central-theme="orange"] .central-truck-scene{filter:none!important;opacity:1!important}
 </style>
+
+<style id="central-truck-visible-fix">
+/* Foto acima do fundo do menu, sem bloquear cliques ou cobrir os controles. */
+.sidebar .central-truck-scene{z-index:4!important;display:block!important;visibility:visible!important;bottom:72px!important;height:235px!important;mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 90%,transparent 100%)!important;-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 90%,transparent 100%)!important;pointer-events:none!important}
+.sidebar .menu{z-index:5!important;background:transparent!important}
+.sidebar .user-box-bottom{position:relative!important;z-index:6!important}
+</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
