@@ -1077,6 +1077,16 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
 .sidebar .scania-photo-layer::before{display:none!important;background:none!important}
 .sidebar .scania-photo-layer::after{content:""!important;position:absolute!important;inset:0!important;pointer-events:none!important;background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.76) 16%,rgba(17,24,39,0) 43%,rgba(17,24,39,0) 82%,#111827 100%)!important}
 </style>
+<style id="scania-sidebar-cleanup-20261120">
+/* Uma única camada fotográfica; o desenho SVG antigo fica desativado. */
+.sidebar{position:relative!important;isolation:isolate!important;overflow:hidden!important;background:#111827!important;background-image:none!important}
+.sidebar::before,.sidebar::after,.sidebar .central-truck-scene,.sidebar .central-truck-native{display:none!important}
+.sidebar .scania-photo-layer{display:block!important;position:absolute!important;left:0!important;right:0!important;bottom:70px!important;height:340px!important;z-index:1!important;opacity:1!important;overflow:hidden!important;pointer-events:none!important;background:none!important;filter:none!important;mask-image:none!important}
+.sidebar .scania-photo-layer img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important;filter:none!important;transform:none!important;image-rendering:auto!important}
+.sidebar .scania-photo-layer::before{display:none!important}
+.sidebar .scania-photo-layer::after{content:""!important;display:block!important;position:absolute!important;inset:0!important;background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.55) 17%,transparent 44%,transparent 78%,#111827 100%)!important;pointer-events:none!important}
+.sidebar>.logo,.sidebar>.menu,.sidebar>.user-box,.sidebar>.sidebar-footer{position:relative!important;z-index:2!important}
+</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -1102,7 +1112,7 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
     </div>
   </div>
 
-  <aside class="sidebar"><div class="scania-photo-layer" aria-hidden="true"><img src="assets/central-truck.svg?v=redesenho-vetorial-20261120" alt=""></div>
+  <aside class="sidebar"><div class="scania-photo-layer" aria-hidden="true"><img src="assets/carreta-sidebar.jpg?v=20261120-foto" alt=""></div>
     <div class="logo">
       <h1>Marvel Sistemas</h1>
       <p>Central operacional integrada</p>
