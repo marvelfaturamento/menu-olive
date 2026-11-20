@@ -1007,52 +1007,21 @@ body[data-central-theme="green"] .central-truck-scene{filter:sepia(1) saturate(1
 body[data-central-theme="light"] .central-truck-scene{filter:grayscale(1) brightness(1.22);opacity:.7!important}
 body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate(1.5)}
 </style>
-<style id="central-truck-photo-approved">
-/* Foto aprovada: carreta preta ao por do sol. Somente preview visual. */
-.central-truck-scene{
- background-image:linear-gradient(180deg,var(--ui-panel) 0%,transparent 26%),url('assets/carreta-sidebar.jpg')!important;
- background-position:center top,center 59%!important;
- background-size:cover,cover!important;
- background-repeat:no-repeat!important;
- filter:none!important;
- opacity:1!important;
-}
-body[data-central-theme="blue"] .central-truck-scene,
-body[data-central-theme="green"] .central-truck-scene,
-body[data-central-theme="light"] .central-truck-scene,
-body[data-central-theme="orange"] .central-truck-scene{filter:none!important;opacity:1!important}
-</style>
 
-<style id="central-truck-visible-fix">
-/* Foto acima do fundo do menu, sem bloquear cliques ou cobrir os controles. */
-.sidebar .central-truck-scene{z-index:4!important;display:block!important;visibility:visible!important;bottom:72px!important;height:235px!important;mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 90%,transparent 100%)!important;-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 90%,transparent 100%)!important;pointer-events:none!important}
-.sidebar .menu{z-index:5!important;background:transparent!important}
-.sidebar .user-box-bottom{position:relative!important;z-index:6!important}
-</style>
 
-<style id="central-truck-direct-background-v2">
-/* Renderizar a carreta diretamente no fundo da barra, independente da camada decorativa. */
-body .sidebar{
- background-color:var(--ui-panel)!important;
- background-image:linear-gradient(to bottom,transparent 0%,transparent 68%,var(--ui-panel) 100%),url('./assets/carreta-sidebar.jpg')!important;
- background-repeat:no-repeat,no-repeat!important;
- background-position:center bottom,center calc(100% - 66px)!important;
- background-size:100% 270px,100% 270px!important;
-}
-body .sidebar .central-truck-scene{display:none!important}
-body .sidebar .menu,body .sidebar .central-subnav{background-color:transparent!important}
-</style>
 
-<style id="central-truck-inline-final">body .sidebar{background-image:linear-gradient(to bottom,transparent 0%,transparent 65%,var(--ui-panel) 100%),url("data:image/jpeg;base64,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")!important;background-repeat:no-repeat!important;background-position:center bottom,center calc(100% - 66px)!important;background-size:100% 270px,100% 270px!important}</style>
 
-<style id="central-truck-foreground-fix">
-body .sidebar{isolation:isolate!important;position:relative!important}
-body .sidebar>img.central-truck-visible{display:block!important;position:absolute!important;left:0!important;bottom:65px!important;width:100%!important;height:245px!important;object-fit:cover!important;object-position:center center!important;z-index:1!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;filter:none!important;mask-image:none!important}
-body .sidebar .menu{position:relative!important;z-index:2!important;background:transparent!important}
-body .sidebar .logo{position:relative!important;z-index:2!important}
-body .sidebar .user-box-bottom{position:relative!important;z-index:3!important}
-body .sidebar .central-truck-scene{display:none!important}
-@media(max-height:650px){body .sidebar>img.central-truck-visible{height:165px!important;bottom:60px!important}}
+
+
+
+
+
+<style id="central-truck-svg-background">
+/* Arte vetorial desenhada como FUNDO, sem tags img nem fotos embutidas. */
+.sidebar{background-color:var(--ui-panel)!important;background-image:linear-gradient(to bottom,var(--ui-panel) 0%,var(--ui-panel) 49%,transparent 71%,rgba(5,12,22,.36) 100%),url('assets/central-truck.svg')!important;background-repeat:no-repeat,no-repeat!important;background-position:center center,center calc(100% - 56px)!important;background-size:100% 100%,100% 295px!important}
+.sidebar .central-truck-scene{display:none!important}
+.sidebar .menu,.sidebar .central-subnav{position:relative;z-index:2;background:transparent!important}
+.sidebar .user-box-bottom{position:relative;z-index:3}
 </style>
 </head>
 <body>
@@ -1099,7 +1068,7 @@ body .sidebar .central-truck-scene{display:none!important}
       <button data-menu="calculadora" onclick="abrirSistema(&#39;calculadora&#39;)">🧮 Calculadora</button>
     </div>
 
-    <img class="central-truck-visible" src="data:image/jpeg;base64,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" alt="Carreta preta ao pôr do sol" loading="eager" />
+    
     <div class="user-box user-box-bottom">
       <div class="user-compact">
         <div class="user-avatar">👤</div>
