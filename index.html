@@ -1023,6 +1023,13 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
 .sidebar .menu,.sidebar .central-subnav{position:relative;z-index:2;background:transparent!important}
 .sidebar .user-box-bottom{position:relative;z-index:3}
 </style>
+
+<style id="central-truck-gradient-refinement">
+/* Integra a cena ao painel, sem afetar menus nem funcionalidades */
+.sidebar{position:relative!important;isolation:isolate}
+.sidebar::after{content:"";position:absolute;left:0;right:0;bottom:55px;height:325px;pointer-events:none;z-index:0;background:linear-gradient(to bottom,var(--ui-panel,#101a28) 0%,rgba(16,26,40,.92) 13%,rgba(16,26,40,.22) 42%,rgba(16,26,40,0) 62%,rgba(16,26,40,.55) 100%)}
+.sidebar .menu,.sidebar .sidebar-bottom,.sidebar .user-card,.sidebar .profile-card{position:relative;z-index:1}
+</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
