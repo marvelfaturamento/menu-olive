@@ -1030,7 +1030,13 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
 .sidebar::after{content:"";position:absolute;left:0;right:0;bottom:55px;height:325px;pointer-events:none;z-index:0;background:linear-gradient(to bottom,var(--ui-panel,#101a28) 0%,rgba(16,26,40,.92) 13%,rgba(16,26,40,.22) 42%,rgba(16,26,40,0) 62%,rgba(16,26,40,.55) 100%)}
 .sidebar .menu,.sidebar .sidebar-bottom,.sidebar .user-card,.sidebar .profile-card{position:relative;z-index:1}
 </style>
-</head>
+<style id="central-truck-native-v10">
+.sidebar{position:relative!important;isolation:isolate;background-image:linear-gradient(180deg,var(--ui-panel) 0%,var(--ui-panel) 47%,rgba(17,25,38,.97) 57%,rgba(17,25,38,.65) 73%,rgba(17,25,38,.18) 88%,var(--ui-panel) 100%)!important}
+.sidebar .central-truck-scene{display:none!important}
+.central-truck-native{position:absolute;left:0;right:0;bottom:65px;height:320px;z-index:0;pointer-events:none;overflow:hidden;opacity:.96;mask-image:linear-gradient(transparent 0%,#000 23%,#000 83%,transparent 100%)}
+.central-truck-native svg{display:block;width:100%;height:100%;filter:drop-shadow(0 12px 14px rgba(0,0,0,.65))}
+.sidebar>.logo,.sidebar>.menu,.sidebar>.central-subnav,.sidebar>.user-box-bottom,.sidebar>.sidebar-footer{position:relative;z-index:2}
+</style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
     <div class="login-card">
@@ -1055,7 +1061,32 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
     </div>
   </div>
 
-  <aside class="sidebar">
+  <aside class="sidebar"><div class="central-truck-native" aria-hidden="true"><svg viewBox="0 0 230 320" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"><defs>
+<linearGradient id="trsky" x2="0" y2="1"><stop stop-color="#101925"/><stop offset=".52" stop-color="#19283a"/><stop offset="1" stop-color="#ed7118"/></linearGradient>
+<linearGradient id="trcab" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9a32d"/><stop offset=".35" stop-color="#ef680b"/><stop offset=".7" stop-color="#9d2b0a"/><stop offset="1" stop-color="#3c1b16"/></linearGradient>
+<linearGradient id="trfront" x2="1" y2=".3"><stop stop-color="#fda330"/><stop offset=".38" stop-color="#ed6610"/><stop offset="1" stop-color="#7d240b"/></linearGradient>
+<linearGradient id="trroad" x2="0" y2="1"><stop stop-color="#19202a"/><stop offset="1" stop-color="#060a10"/></linearGradient>
+<radialGradient id="trsun"><stop stop-color="#ffb441" stop-opacity=".95"/><stop offset="1" stop-color="#ef6214" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="230" height="320" fill="url(#trsky)"/><ellipse cx="135" cy="175" rx="165" ry="110" fill="url(#trsun)"/>
+<path d="M0 212L47 197 87 207 142 192 230 210V320H0Z" fill="#161d27"/><path d="M0 250L230 232V320H0Z" fill="url(#trroad)"/>
+<path d="M98 235L76 320M159 235L230 320" stroke="#c47737" stroke-opacity=".4" stroke-width="2"/>
+<path d="M18 138L139 119 165 128 164 233 17 241Z" fill="#20242b" stroke="#67707a" stroke-width="1.3"/>
+<path d="M23 144L135 129 151 134 150 220 22 230Z" fill="#353b42"/>
+<path d="M29 147L133 134M30 160L136 147M30 173L138 160M30 186L139 173M30 199L140 186" stroke="#777b7e" stroke-width="1" opacity=".4"/>
+<path d="M149 152L177 146 205 169 214 219 208 247 147 245 140 215Z" fill="url(#trcab)" stroke="#ffad46" stroke-width="1.5"/>
+<path d="M155 159L177 154 196 172 198 194 150 195Z" fill="#101c2a" stroke="#edb47a" stroke-width="2"/>
+<path d="M159 162L178 158 188 169 154 185Z" fill="#638398" opacity=".42"/>
+<path d="M200 177L208 190 211 219 200 219Z" fill="#e87718"/>
+<path d="M149 198L200 197 210 219 209 240 146 240 141 221Z" fill="url(#trfront)"/>
+<path d="M153 207L201 206 204 229 149 230Z" fill="#151b21" stroke="#ffad4b" stroke-width="1"/>
+<path d="M156 212L199 211M154 217L201 216M152 222L202 221M150 227L203 226" stroke="#7c8790" stroke-width="2"/>
+<path d="M142 232L211 231 216 242 141 244Z" fill="#a4a9a9" stroke="#323a42" stroke-width="2"/>
+<path d="M143 224L151 224 151 233 140 234Z" fill="#ffe9a7"/><path d="M201 224L211 223 214 231 202 233Z" fill="#ffe9a7"/>
+<path d="M143 232L117 279 166 247 151 235Z" fill="#ffaf3a" opacity=".12"/><path d="M210 232L230 281 201 249Z" fill="#ffad39" opacity=".18"/>
+<path d="M153 244a13 13 0 1 0 26 0a13 13 0 1 0 -26 0" fill="#080b10" stroke="#555b63" stroke-width="3"/><circle cx="166" cy="244" r="6" fill="#9ba2a6"/><path d="M189 244a13 13 0 1 0 26 0a13 13 0 1 0 -26 0" fill="#080b10" stroke="#555b63" stroke-width="3"/><circle cx="202" cy="244" r="6" fill="#9ba2a6"/>
+<path d="M166 172L144 173 141 180 154 180" fill="#e7771a" stroke="#ffb04d" stroke-width="1.5"/><path d="M0 273Q95 256 230 274V320H0Z" fill="#080c12" opacity=".44"/>
+</svg></div>
     <div class="logo">
       <h1>Marvel Sistemas</h1>
       <p>Central operacional integrada</p>
