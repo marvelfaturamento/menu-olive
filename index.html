@@ -1029,6 +1029,19 @@ body[data-central-theme="orange"] .central-truck-scene{filter:none!important;opa
 .sidebar .menu{z-index:5!important;background:transparent!important}
 .sidebar .user-box-bottom{position:relative!important;z-index:6!important}
 </style>
+
+<style id="central-truck-direct-background-v2">
+/* Renderizar a carreta diretamente no fundo da barra, independente da camada decorativa. */
+body .sidebar{
+ background-color:var(--ui-panel)!important;
+ background-image:linear-gradient(to bottom,transparent 0%,transparent 68%,var(--ui-panel) 100%),url('./assets/carreta-sidebar.jpg')!important;
+ background-repeat:no-repeat,no-repeat!important;
+ background-position:center bottom,center calc(100% - 66px)!important;
+ background-size:100% 270px,100% 270px!important;
+}
+body .sidebar .central-truck-scene{display:none!important}
+body .sidebar .menu,body .sidebar .central-subnav{background-color:transparent!important}
+</style>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
