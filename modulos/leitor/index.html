@@ -501,7 +501,9 @@ function openTab(id){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
+  const tabs=[...document.querySelectorAll('.app>aside button.tab')];
+  const idx={pdf:0,img:1,paste:2,txt:3}[id];
+  if(idx!==undefined && tabs[idx]) tabs[idx].classList.add('active');
 }
 
 function logPDF(msg){
