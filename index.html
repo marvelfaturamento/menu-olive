@@ -1036,6 +1036,14 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
 .central-truck-native{display:block!important;position:absolute;left:0;right:0;bottom:65px;height:320px;z-index:0;pointer-events:none;overflow:hidden;opacity:.96;mask-image:linear-gradient(transparent 0%,#000 23%,#000 83%,transparent 100%)}
 .central-truck-native svg{display:block;width:100%;height:100%;filter:drop-shadow(0 12px 14px rgba(0,0,0,.65))}
 .sidebar>.logo,.sidebar>.menu,.sidebar>.central-subnav,.sidebar>.user-box-bottom,.sidebar>.sidebar-footer{position:relative;z-index:2}
+</style><style id="central-truck-visibility-fix">
+/* A carreta e desenhada por elementos SVG nativos, nunca por imagem de fundo. */
+.sidebar{position:relative!important;isolation:isolate!important;background:linear-gradient(180deg,#131b27 0%,#111a28 55%,#172033 76%,#101827 100%)!important;overflow:hidden!important}
+.sidebar .central-truck-native{display:block!important;visibility:visible!important;position:absolute!important;left:0!important;right:0!important;bottom:57px!important;width:100%!important;height:330px!important;z-index:8!important;opacity:1!important;filter:none!important;mask-image:linear-gradient(to bottom,transparent 0%,#000 18%,#000 86%,transparent 100%)!important;pointer-events:none!important}
+.sidebar .central-truck-native svg{display:block!important;width:100%!important;height:100%!important;opacity:1!important;visibility:visible!important}
+.sidebar>.menu,.sidebar>.central-subnav{background:transparent!important;z-index:9!important}
+.sidebar>.logo,.sidebar>.user-box-bottom,.sidebar>.sidebar-footer{z-index:10!important}
+.sidebar .central-truck-scene{display:none!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
