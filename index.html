@@ -2567,6 +2567,15 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
   }else if(k==='calculadora'){
    css+='.layout>.side{display:none!important}.layout>.main{width:100%!important;min-width:0!important;margin-left:0!important;flex:1!important}';
   }
+  if(k==='assistenteCiot'){
+   // O CIOT tem cartões brancos mesmo nos temas coloridos: manter tinta escura legível.
+   css+='body .summaryCard,body .sidePanel,body .contentPanel,body .ciotCard,body .ciotBody,body .infoCard,body .keyCell,body .menuItem{background:#fff!important;color:#132238!important;border-color:#b8c9d5!important}';
+   css+='body .summaryCard *,body .sidePanel *,body .contentPanel *,body .ciotBody *,body .infoCard *,body .keyCell *,body .menuItem *{color:#132238!important;-webkit-text-fill-color:#132238!important;opacity:1!important;text-shadow:none!important}';
+   css+='body .summaryCard span,body .summaryCard small,body .label,body .dataLine span,body .pv b,body .menuMeta,body .menuPill,body .keyCell .label{color:#334b63!important;-webkit-text-fill-color:#334b63!important}';
+   css+='body .ciotHead,body .ciotHead *,body .appHeader,body .appHeader *,body .ciotBadge{color:#fff!important;-webkit-text-fill-color:#fff!important}';
+   css+='body .ciotHead{background:linear-gradient(100deg,#075b3e,#078654)!important}';
+   css+='body .totals,body .totals *,body .totalBox,body .totalBox *{color:#fff!important;-webkit-text-fill-color:#fff!important}';
+  }
   if(light){
    css+='body,main,section,article,header,footer,.main,.content,.wrap,.panel,.card,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card{color:#17263d!important}';
    css+='.panel,.card,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card{background:#fff!important;border-color:#d6dfeb!important}';
