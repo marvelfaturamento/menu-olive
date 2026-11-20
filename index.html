@@ -1006,7 +1006,23 @@ body[data-central-theme="blue"] .central-truck-scene{filter:sepia(1) saturate(1.
 body[data-central-theme="green"] .central-truck-scene{filter:sepia(1) saturate(1.5) hue-rotate(78deg)}
 body[data-central-theme="light"] .central-truck-scene{filter:grayscale(1) brightness(1.22);opacity:.7!important}
 body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate(1.5)}
-</style></head>
+</style>
+<style id="central-truck-photo-approved">
+/* Foto aprovada: carreta preta ao por do sol. Somente preview visual. */
+.central-truck-scene{
+ background-image:linear-gradient(180deg,var(--ui-panel) 0%,transparent 26%),url('assets/carreta-sidebar.jpg')!important;
+ background-position:center top,center 59%!important;
+ background-size:cover,cover!important;
+ background-repeat:no-repeat!important;
+ filter:none!important;
+ opacity:1!important;
+}
+body[data-central-theme="blue"] .central-truck-scene,
+body[data-central-theme="green"] .central-truck-scene,
+body[data-central-theme="light"] .central-truck-scene,
+body[data-central-theme="orange"] .central-truck-scene{filter:none!important;opacity:1!important}
+</style>
+</head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
     <div class="login-card">
