@@ -2728,7 +2728,12 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
    const current=doc();const live=current&&[...current.querySelectorAll(k==='leitor'?'.app>aside button.tab':k==='refaturamento'?'.app>.sidebar .menu button[data-view]':k==='painel902'?'.app>.side .navbtn[data-tab]':k==='instrutivo'?'#menu>.menu-btn':k==='calculadora'?'.layout>.side button.nav[id^="menu"]':k==='dados'?'.layout>.sidebar button[id^="btn"]':k==='agrupaPdf'?'.wrap>.topbar .tabbtn[data-tab]':'.app>.sidebar button[data-page]')];
    const target=live?.[i]||b;if(target?.isConnected){target.click();setTimeout(()=>{navigation();paint()},80)}else{navigation();}
   };sub.append(item)});
-  function select(){sub.querySelectorAll('button').forEach((item,i)=>item.classList.toggle('selected',buttons[i]?.classList.contains('active')))}
+  function select(){
+   const scanner=k==='leitor';
+   const activePanel=scanner?d.querySelector('.app>main .panel.active')?.id:null;
+   const activeIndex=scanner?({pdf:0,img:1,paste:2,txt:3}[activePanel]??(d.location.pathname.includes('xml-nfe')?4:0)):-1;
+   sub.querySelectorAll('button').forEach((item,i)=>item.classList.toggle('selected',scanner?i===activeIndex:buttons[i]?.classList.contains('active')));
+  }
   select();observer=new MutationObserver(select);observer.observe(parent,{subtree:true,attributes:true,attributeFilter:['class']});
  }
  function updatePhotoContrast(){
