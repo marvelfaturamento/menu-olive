@@ -938,12 +938,13 @@ body:not(.module-open) .module-frame-wrap{display:none!important}
 .central-subnav button{min-height:30px!important;padding:5px 10px!important;font-size:11px!important;color:var(--ui-sub)!important;font-weight:550!important;text-align:left!important;border:0!important;background:transparent!important;box-shadow:none!important}
 .central-subnav button:hover{color:var(--ui-accent)!important;background:var(--ui-accent-soft)!important}
 .central-subnav button.selected{color:var(--ui-accent)!important;font-weight:750!important}
-/* Texto legível mesmo quando os submenus passam sobre a fotografia clara do caminhão. */
-.sidebar .central-subnav{position:relative;z-index:2;border-left-color:var(--ui-accent)!important}
-.sidebar .central-subnav button{border-radius:6px!important;background:rgba(7,18,33,.86)!important;color:#f5f9ff!important;-webkit-text-fill-color:#f5f9ff!important;text-shadow:0 1px 2px rgba(0,0,0,.55)!important;padding:6px 9px!important;margin:1px 2px!important}
-.sidebar .central-subnav button:hover,.sidebar .central-subnav button.selected{background:var(--ui-accent)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important}
-body[data-central-theme="light"] .sidebar .central-subnav button{background:rgba(255,255,255,.94)!important;color:#14243a!important;-webkit-text-fill-color:#14243a!important;text-shadow:none!important;box-shadow:0 1px 4px rgba(0,0,0,.13)!important}
-body[data-central-theme="light"] .sidebar .central-subnav button:hover,body[data-central-theme="light"] .sidebar .central-subnav button.selected{background:#dbeafe!important;color:#123c78!important;-webkit-text-fill-color:#123c78!important}
+/* Submenus sem preenchimento: apenas tipografia com contraste sobre a fotografia. */
+.sidebar .central-subnav{position:relative;z-index:2}
+.sidebar .central-subnav button{background:transparent!important;box-shadow:none!important;border:0!important;color:var(--ui-sub)!important;-webkit-text-fill-color:var(--ui-sub)!important;text-shadow:0 1px 2px rgba(0,0,0,.5)!important}
+.sidebar .central-subnav button:hover,.sidebar .central-subnav button.selected{background:transparent!important;box-shadow:none!important;color:var(--ui-accent)!important;-webkit-text-fill-color:var(--ui-accent)!important;font-weight:750!important}
+/* Na região iluminada da imagem, letras escuras; fora dela, respeitar o tema. */
+.sidebar .central-subnav button.central-on-light{color:#10243d!important;-webkit-text-fill-color:#10243d!important;text-shadow:0 1px 1px rgba(255,255,255,.6)!important}
+.sidebar .central-subnav button.central-on-light:hover,.sidebar .central-subnav button.central-on-light.selected{color:#0759b8!important;-webkit-text-fill-color:#0759b8!important}
 
 body[data-central-theme="light"] .module-frame-toolbar{background:#fff!important}
 body[data-central-theme="light"] .module-frame-wrap{background:#f3f6fa!important}
@@ -2714,7 +2715,18 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
   function select(){sub.querySelectorAll('button').forEach((item,i)=>item.classList.toggle('selected',buttons[i]?.classList.contains('active')))}
   select();observer=new MutationObserver(select);observer.observe(parent,{subtree:true,attributes:true,attributeFilter:['class']});
  }
- function loaded(){navigation();paint()}
+ function updatePhotoContrast(){
+  const scene=document.querySelector('.central-truck-scene');if(!scene)return;
+  const sceneRect=scene.getBoundingClientRect();
+  menu.querySelectorAll('.central-subnav button').forEach(btn=>{
+   const rect=btn.getBoundingClientRect();const center=rect.top+rect.height/2;
+   btn.classList.toggle('central-on-light',center>=sceneRect.top+sceneRect.height*.47 && center<=sceneRect.bottom);
+  });
+ }
+ function loaded(){navigation();paint();updatePhotoContrast()}
+ window.addEventListener('resize',updatePhotoContrast);
+ menu.addEventListener('scroll',updatePhotoContrast,{passive:true});
+ new MutationObserver(updatePhotoContrast).observe(menu,{childList:true,subtree:true});
  menu.querySelectorAll('button[data-menu]').forEach(btn=>{
   const k=btn.dataset.menu;if(!labels[k])return;
   const sub=document.createElement('div');sub.className='central-subnav';sub.dataset.for=k;
