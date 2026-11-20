@@ -1033,7 +1033,7 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
 <style id="central-truck-native-v10">
 .sidebar{position:relative!important;isolation:isolate;background-image:linear-gradient(180deg,var(--ui-panel) 0%,var(--ui-panel) 47%,rgba(17,25,38,.97) 57%,rgba(17,25,38,.65) 73%,rgba(17,25,38,.18) 88%,var(--ui-panel) 100%)!important}
 .sidebar .central-truck-scene{display:none!important}
-.central-truck-native{position:absolute;left:0;right:0;bottom:65px;height:320px;z-index:0;pointer-events:none;overflow:hidden;opacity:.96;mask-image:linear-gradient(transparent 0%,#000 23%,#000 83%,transparent 100%)}
+.central-truck-native{display:none!important;position:absolute;left:0;right:0;bottom:65px;height:320px;z-index:0;pointer-events:none;overflow:hidden;opacity:.96;mask-image:linear-gradient(transparent 0%,#000 23%,#000 83%,transparent 100%)}
 .central-truck-native svg{display:block;width:100%;height:100%;filter:drop-shadow(0 12px 14px rgba(0,0,0,.65))}
 .sidebar>.logo,.sidebar>.menu,.sidebar>.central-subnav,.sidebar>.user-box-bottom,.sidebar>.sidebar-footer{position:relative;z-index:2}
 </style></head>
@@ -1061,53 +1061,7 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
     </div>
   </div>
 
-  <aside class="sidebar"><div class="central-truck-native" aria-hidden="true"><svg viewBox="0 0 270 345" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"><defs>
-<linearGradient id="night" x1="0" y1="0" x2=".25" y2="1"><stop stop-color="#111b2b"/><stop offset=".58" stop-color="#162134"/><stop offset=".83" stop-color="#5e392c"/><stop offset="1" stop-color="#0b1019"/></linearGradient>
-<radialGradient id="horizon"><stop stop-color="#ff9a37" stop-opacity=".8"/><stop offset=".35" stop-color="#d65a20" stop-opacity=".25"/><stop offset="1" stop-color="#ed6920" stop-opacity="0"/></radialGradient>
-<linearGradient id="trailer" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#667078"/><stop offset=".08" stop-color="#313c47"/><stop offset=".7" stop-color="#171f29"/><stop offset="1" stop-color="#090e17"/></linearGradient>
-<linearGradient id="cabSide" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#ffc15b"/><stop offset=".2" stop-color="#ff871b"/><stop offset=".55" stop-color="#d54b0b"/><stop offset="1" stop-color="#762209"/></linearGradient>
-<linearGradient id="cabFront" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#ffb33e"/><stop offset=".3" stop-color="#f47a10"/><stop offset=".7" stop-color="#bd3c09"/><stop offset="1" stop-color="#5c2115"/></linearGradient>
-<linearGradient id="glass" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#8fa4a9"/><stop offset=".13" stop-color="#253d4c"/><stop offset=".55" stop-color="#071624"/><stop offset="1" stop-color="#020b15"/></linearGradient>
-<linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#343036"/><stop offset=".35" stop-color="#151923"/><stop offset="1" stop-color="#050910"/></linearGradient>
-<radialGradient id="lamp"><stop stop-color="#fffce3"/><stop offset=".18" stop-color="#ffe3a0"/><stop offset=".5" stop-color="#ffad35" stop-opacity=".5"/><stop offset="1" stop-color="#ff9a20" stop-opacity="0"/></radialGradient>
-<filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
-</defs>
-<rect width="270" height="345" fill="url(#night)"/><ellipse cx="180" cy="221" rx="170" ry="115" fill="url(#horizon)"/>
-<path d="M0 232L29 224 60 228 105 214 139 219 192 207 270 221V345H0Z" fill="#141b25" opacity=".9"/>
-<path d="M0 265L270 243V345H0Z" fill="url(#road)"/>
-<path d="M98 255L34 345M190 251L267 345" stroke="#e0a05c" stroke-width="1.8" opacity=".24"/>
-<path d="M0 295L270 268" stroke="#c67e43" opacity=".1" stroke-width="2"/>
-<!-- Semi-trailer, perspective and metallic ribbing -->
-<path d="M6 139L172 110 201 126 201 242 7 267Z" fill="#080c12" opacity=".7" transform="translate(3 5)"/>
-<path d="M9 136L171 111 196 126 195 239 9 260Z" fill="url(#trailer)" stroke="#879099" stroke-width="1.3"/>
-<path d="M171 111L196 126 195 239 172 230Z" fill="#101720" stroke="#424b53"/>
-<path d="M17 144L165 122 165 225 17 248Z" fill="none" stroke="#77818a" stroke-width=".8" opacity=".65"/>
-<path d="M18 153L164 131M18 167L164 145M18 181L164 159M18 195L164 173M18 209L164 187M18 223L164 201M18 237L164 215" stroke="#99a3aa" stroke-width=".8" opacity=".22"/>
-<path d="M14 139L169 115" stroke="#c2cbd0" stroke-width="1.3" opacity=".7"/>
-<path d="M17 250L191 229" stroke="#10151b" stroke-width="5"/>
-<path d="M37 259L38 274 66 272 67 256M86 253L87 269 115 267 116 249" fill="#12171e" stroke="#42474e" stroke-width="1.3"/>
-<ellipse cx="52" cy="270" rx="14" ry="17" fill="#06080d" stroke="#323940" stroke-width="3"/><ellipse cx="101" cy="266" rx="14" ry="17" fill="#06080d" stroke="#323940" stroke-width="3"/>
-<!-- Truck body in realistic three-quarter perspective -->
-<path d="M169 166L206 157 239 178 254 216 256 255 234 266 165 258 157 225Z" fill="#05080d" opacity=".65" transform="translate(2 5)"/>
-<path d="M168 163L207 153 236 175 250 213 252 246 236 257 166 251 157 219Z" fill="url(#cabSide)" stroke="#ffbb63" stroke-width="1.6"/>
-<path d="M206 153L236 175 248 213 211 208 200 181Z" fill="#bd430e" opacity=".5"/>
-<path d="M174 169L205 161 229 178 237 204 168 210Z" fill="url(#glass)" stroke="#e6a06a" stroke-width="2.3"/>
-<path d="M179 172L202 166 215 175 172 198Z" fill="#b1c8c9" opacity=".25"/>
-<path d="M207 166L229 181 235 202 211 201Z" fill="#091622" stroke="#f39c45" stroke-width="1.2"/>
-<path d="M168 210L239 205 251 223 252 248 164 249 158 228Z" fill="url(#cabFront)" stroke="#ffad3c" stroke-width="1.5"/>
-<path d="M170 218L239 215 246 239 165 242Z" fill="#151a1e" stroke="#ed8533" stroke-width="1.5"/>
-<path d="M173 221L238 218M172 226L241 223M170 231L243 228M168 236L244 233" stroke="#899398" stroke-width="2" opacity=".8"/>
-<path d="M163 245L251 241 257 253 158 258Z" fill="#aeb3b2" stroke="#22272d" stroke-width="2.5"/>
-<path d="M160 247L253 243" stroke="#f6d2a4" stroke-width="1" opacity=".8"/>
-<path d="M163 230L173 229 171 240 158 242Z" fill="#fff0b5"/><path d="M238 226L250 225 254 238 240 239Z" fill="#fff0b5"/>
-<ellipse cx="164" cy="236" rx="30" ry="20" fill="url(#lamp)" opacity=".7" filter="url(#soft)"/><ellipse cx="249" cy="233" rx="32" ry="22" fill="url(#lamp)" opacity=".65" filter="url(#soft)"/>
-<path d="M159 236L92 345 178 263Z" fill="#ffb24b" opacity=".075"/><path d="M251 235L270 345 226 268Z" fill="#ffc05e" opacity=".09"/>
-<path d="M171 252L174 265 190 266 193 252M220 252L222 268 241 268 243 251" fill="#171a20" stroke="#464b52" stroke-width="2"/>
-<ellipse cx="183" cy="264" rx="16" ry="18" fill="#05070b" stroke="#4b5054" stroke-width="3"/><ellipse cx="183" cy="264" rx="8" ry="9" fill="#9ba1a2" stroke="#353b42" stroke-width="2"/><circle cx="183" cy="264" r="3" fill="#404b53"/>
-<ellipse cx="232" cy="265" rx="16" ry="18" fill="#05070b" stroke="#4b5054" stroke-width="3"/><ellipse cx="232" cy="265" rx="8" ry="9" fill="#9ba1a2" stroke="#353b42" stroke-width="2"/><circle cx="232" cy="265" r="3" fill="#404b53"/>
-<path d="M170 186L157 188 154 195 169 194" fill="#cf4d12" stroke="#ffac4b" stroke-width="1.5"/>
-<path d="M0 306Q110 284 270 301V345H0Z" fill="#060b13" opacity=".43"/>
-</svg></div>
+  <aside class="sidebar">
     <div class="logo">
       <h1>Marvel Sistemas</h1>
       <p>Central operacional integrada</p>
