@@ -1070,7 +1070,14 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
 .sidebar .scania-photo-layer img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center 52%!important;filter:contrast(1.1) saturate(1.12)!important;image-rendering:auto!important}
 .sidebar .scania-photo-layer:after{content:"";position:absolute!important;inset:0!important;background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.5) 10%,transparent 32%,transparent 87%,#111827 100%)!important}
 .sidebar>.logo,.sidebar>.menu,.sidebar>.user-box{position:relative!important;z-index:6!important}
-</style></head>
+</style>
+<style id="scania-vector-redraw-20261120">
+.sidebar .scania-photo-layer{background:none!important;bottom:70px!important;height:340px!important;overflow:hidden!important;opacity:1!important}
+.sidebar .scania-photo-layer img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important;image-rendering:auto!important;filter:none!important;transform:none!important;opacity:1!important}
+.sidebar .scania-photo-layer::before{display:none!important;background:none!important}
+.sidebar .scania-photo-layer::after{content:""!important;position:absolute!important;inset:0!important;pointer-events:none!important;background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.76) 16%,rgba(17,24,39,0) 43%,rgba(17,24,39,0) 82%,#111827 100%)!important}
+</style>
+</head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
     <div class="login-card">
@@ -1095,7 +1102,7 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
     </div>
   </div>
 
-  <aside class="sidebar"><div class="scania-photo-layer" aria-hidden="true"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABgQEhUSDxgVExUaGRgcIzsmIyAgI0gzNis7VUtaWFRLUlFeaodzXmSAZVFSdqB3gIyQl5mXW3GmsqWTsIeUl5L/2wBDARkaGiMfI0UmJkWSYVJhkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpL/wAARCABzAHMDASIAAhEBAxEB/8QAGgAAAgMBAQAAAAAAAAAAAAAAAAMBAgQFBv/EADQQAAICAQIDBgQFAwUAAAAAAAABAgMRBBIhMUEFEzNRcYEiMmGhFCNCcpFDUrFTYpLB8P/EABkBAAMBAQEAAAAAAAAAAAAAAAACAwEEBf/EACARAAICAwEBAQADAAAAAAAAAAABAhEDEjEhBEETMmH/2gAMAwEAAhEDEQA/AOIIn4svYeIn4svY1dMfBlenc6JWqSSjngWjpZSWVOOMLmIIHFNK0c2s74L3Ky0so7vjg8Jvn0Qgk0AAAAwAAAAgqvmLlF8xjNRcCCTQAAAANAizxZew8RPxZexOPRnwgCQwUFIAtgMGG0QBbAYCwoqBbaG0LCihRfMO2iV8wBVFiQA0wAAAA0CZeLL2HC1HNsvYkh6sjBO0uoMsoN9DdhlAXtJ2jVU2WVL8jNkNoxG0lRNKofXgT3cV1y/QzdDLGzOoE7B+3yROx+Qu4yxmZwMf6/c6jikcv+o/UeErJ5Y0XAgkqQAAAANBFUd1k/Ykvpdve2bk3y5EJOkWxq5UMjBrzGRjJ9TRDbJcModGpJZbeFzb4I5ZZq6dyxf6Z4wf0ZFtsKXFWvjLkorIrV6xNuuh5j1nj/Bj0f5k07prak3mXEeMW1cicsqT1ib1dRJZ3S/4ssp6f/US9Uzn6ucJNOEs4f1FX2RlY5Vp1x6KLePuV/jTXSLzST4jt1Rqm8QnGT58Ghsqq0uKZ52NklyskdrsvU12qUMySSTW6WX9SGXE4rZMtiz7PVovKEf0wZ5+Xiv1Z6ix1rlx9WeXl4sv3Mf5Xdi/XxEkkEnacIAAAYaB+ggpW25TfIQbux/Eu+HPGJy5nUGzqwK5o2PZVDdLdFGHU3Wah7eMa/7c8/U3W0SslmWX5fQo6FBZlhepyY5QXr6deSMpefhzu54CtLU3Ruw3wf8AhnQsnWspST9DJpNdCjTKpp5fPhk6HOTVpHPpFP1mZwX4auaxmW7ItJLyQ/VzhKO+Cg89U/8Aozxa3J2RUoZ5R5loO0QnGnQxJeZqg1iDjzUo5x6mbfpMP8m3P7h3ZUmtdUsJRbwLk/q2NDp3pVLHX7I8pPxpfuZ7Z0JV7srHoeKn48/3M5vidtlvqlskSBBJ6RxAAAAGru57d217fPAzQ6iFFtinnjgp3mY/L8TWG/oM0FVVt1itzzWMM5slauy+JtTVDbO0LJ8rnjpgyT1MZcXOUv5J1kK6tTKNO+UE+f1M25SjLdKcX0UnlMSEIpWkPKbumPduOKrk+OOWRdTlHjOMoJ8F8Cef5L7q48Y2tfFtz9McyYOMtRByn3q48M9Clfgl/pSFD1M3XTQ3anx2tv7FLaZ1ZhZFqS6NDaNZbptQrarNvHCw+OBvaushq7VOEpS+HD3pZ+wep0HjVmDH0+zNugpuldCyqEpd29zwuRh/j+DoaHX/AIfT21wlYpTwlteF7hO2vDIVZ0bO2bO52fHhPyOA3mxvzZosbcm8fczL5jMONQ4blnsXAAOkgAAAAb3CHdN4XLhLz/8AMzV2uu6WHzwWM9rxa/Yi1ZROnY2dm6Tb5lY/MuPAVuJTNS8Bu3Zv1C00qHKNcd2fQzaaiFtqScoPzQve8YJqnskpLmIotKh3JOSYynQq67u42LOevAfqey7dJFSU5vPH4WU0Nzq1UZ55PqaO0tT3jj0aXQnKUt0vwpGMdGznWOya2znKS8mzpdj6N2btzxBcceZgVsurz68TpdnaxVppw5/2vA2W9fBcVOXpv1+j0kaE4wr3emGeX/qP1PTdoamqzTxW6UX/ALo5+55n9b9RflunZv0JKi4AB2HKAAAAaDNd4r9gAkOUAANAklAAAWg2pcGXtbfUAEfR1wWOpbXJgAS4EejrZylBJttGFfMABiNzdLgAFyAAAAB//9k=" alt=""></div>
+  <aside class="sidebar"><div class="scania-photo-layer" aria-hidden="true"><img src="assets/central-truck.svg?v=redesenho-vetorial-20261120" alt=""></div>
     <div class="logo">
       <h1>Marvel Sistemas</h1>
       <p>Central operacional integrada</p>
