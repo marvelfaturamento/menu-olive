@@ -2708,6 +2708,22 @@ body[data-central-theme="orange"] .central-truck-scene{filter:sepia(.6) saturate
   if(!parent||!buttons.length)return;
   sub.replaceChildren();
   buttons.forEach((b,i)=>{const item=document.createElement('button');item.type='button';item.textContent=b.dataset.label||b.dataset.title||b.textContent.trim()||b.title||b.id;item.onclick=()=>{
+   if(k==='leitor'){
+    const tab=['pdf','img','paste','txt','xml'][i];if(!tab)return;
+    const base=new URL('modulos/leitor/index.html',location.href);
+    const current=frame.contentWindow?.location?.pathname||'';
+    const inBase=current.endsWith('/modulos/leitor/index.html');
+    if(tab==='xml'){
+     frame.src=new URL('modulos/leitor/xml-nfe-v12.html',location.href).href;
+    }else if(inBase && typeof frame.contentWindow?.openTab==='function'){
+     frame.contentWindow.openTab(tab);
+    }else{
+     frame.addEventListener('load',function onScannerReady(){frame.removeEventListener('load',onScannerReady);try{frame.contentWindow?.openTab?.(tab)}catch(_){}setTimeout(()=>{navigation();paint()},60)},{once:true});
+     frame.src=base.href;
+    }
+    sub.querySelectorAll('button').forEach((x,j)=>x.classList.toggle('selected',j===i));
+    return;
+   }
    // Reencontrar a aba a cada clique: o leitor XML recria partes da navegação.
    const current=doc();const live=current&&[...current.querySelectorAll(k==='leitor'?'.app>aside button.tab':k==='refaturamento'?'.app>.sidebar .menu button[data-view]':k==='painel902'?'.app>.side .navbtn[data-tab]':k==='instrutivo'?'#menu>.menu-btn':k==='calculadora'?'.layout>.side button.nav[id^="menu"]':k==='dados'?'.layout>.sidebar button[id^="btn"]':k==='agrupaPdf'?'.wrap>.topbar .tabbtn[data-tab]':'.app>.sidebar button[data-page]')];
    const target=live?.[i]||b;if(target?.isConnected){target.click();setTimeout(()=>{navigation();paint()},80)}else{navigation();}
