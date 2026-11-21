@@ -1141,6 +1141,20 @@ body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:
 body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#f3f7fc 0%,rgba(17,24,39,.12) 22%,rgba(17,24,39,.36) 44%,rgba(17,24,39,.40) 72%,#f3f7fc 100%)!important}
 .sidebar .menu button,.sidebar .menu .submenu button,.sidebar .menu a{position:relative;z-index:7;text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 8px rgba(0,0,0,.48)}
 .sidebar .menu button.active{text-shadow:none}
+</style><style id="scania-readable-navigation-20261121">
+/* Contrast is supplied by a stable translucent panel, not by text shadows. */
+.sidebar .menu{position:relative!important;z-index:7!important}
+.sidebar .menu button,.sidebar .menu a{ text-shadow:none!important}
+.sidebar .menu button:not(.active){background:transparent}
+.sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.08) 16%,rgba(17,24,39,.22) 48%,rgba(17,24,39,.24) 72%,#111827 100%)!important}
+body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#f3f7fc 0%,rgba(243,247,252,.08) 16%,rgba(243,247,252,.18) 48%,rgba(243,247,252,.22) 72%,#f3f7fc 100%)!important}
+.sidebar .menu button:not(.active),.sidebar .menu a{position:relative!important;isolation:isolate!important}
+.sidebar .menu button:not(.active)::before,.sidebar .menu a::before{content:"";position:absolute;inset:1px 2px;z-index:-1;border-radius:7px;background:rgba(12,22,38,.78);opacity:0;pointer-events:none}
+.sidebar .menu button:not(.active){color:inherit}
+.sidebar .menu button:not(.active):hover::before,.sidebar .menu a:hover::before{opacity:1}
+.sidebar .scania-photo-layer{z-index:1!important}
+.sidebar .menu{z-index:7!important}
+.sidebar .menu button:not(.active){text-shadow:0 1px 2px rgba(0,0,0,.18)!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
