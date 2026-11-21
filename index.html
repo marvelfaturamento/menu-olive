@@ -2719,9 +2719,9 @@ body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!importa
  function doc(){try{return frame.contentDocument?.body?frame.contentDocument:null}catch(_){return null}}
  function expand(k){expanded=k;menu.querySelectorAll('.central-subnav').forEach(el=>el.classList.toggle('open',el.dataset.for===k))}
  const themes={
-  blue:{accent:'#2679ff',bg:'#14243a',panel:'#203550',ink:'#f4f8ff',muted:'#c2d0e2',edge:'#385371',field:'#2a405d'},
-  orange:{accent:'#ff850b',bg:'#241d1a',panel:'#382c26',ink:'#fff8f0',muted:'#e1c9b6',edge:'#614b3d',field:'#44352d'},
-  green:{accent:'#20c873',bg:'#152820',panel:'#233c30',ink:'#f2fff7',muted:'#c2dbcd',edge:'#42634f',field:'#2d493a'},
+  blue:{accent:'#2679ff',bg:'#20334a',panel:'#2d455f',ink:'#f7faff',muted:'#d1dceb',edge:'#4b6480',field:'#36516d'},
+  orange:{accent:'#ff850b',bg:'#302822',panel:'#46372e',ink:'#fffaf5',muted:'#ebd6c4',edge:'#725746',field:'#534135'},
+  green:{accent:'#20c873',bg:'#20372c',panel:'#2f4a3a',ink:'#f7fff9',muted:'#d1e7d8',edge:'#52705d',field:'#395844'},
   light:{accent:'#2679ff',bg:'#f1f4f8',panel:'#fff',ink:'#17263d',muted:'#526580',edge:'#d6dfeb',field:'#f7f9fc'}
  };
  function paint(){
@@ -2743,9 +2743,9 @@ body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!importa
   }else if(k==='instrutivo'){
    // O Instrutivo acompanha cada tema; superfícies internas mais suaves, sem azul fixo.
    const instr={
-    blue:{side:'#263d59',area:'#1c2d44',card:'#304760',field:'#223952',text:'#f4f8ff',sub:'#d3e1f1',active:'#3c638d',edge:'#47617c'},
-    orange:{side:'#413229',area:'#2c231e',card:'#4b392e',field:'#392b24',text:'#fff7ee',sub:'#f1d9c4',active:'#70503a',edge:'#705443'},
-    green:{side:'#294639',area:'#1c3027',card:'#335243',field:'#254235',text:'#f3fff7',sub:'#d0e9da',active:'#416c53',edge:'#517361'},
+    blue:{side:'#344d68',area:'#263b53',card:'#3c556e',field:'#2f4862',text:'#f7faff',sub:'#dce8f5',active:'#4a7299',edge:'#58738c'},
+    orange:{side:'#503d31',area:'#382d26',card:'#5b4638',field:'#46362d',text:'#fffaf5',sub:'#f4e0cf',active:'#7c5c45',edge:'#80614d'},
+    green:{side:'#375544',area:'#2a4033',card:'#41634e',field:'#355341',text:'#f7fff9',sub:'#ddf0e3',active:'#527d61',edge:'#64816c'},
     light:{side:'#e7edf5',area:'#edf2f8',card:'#e7edf5',field:'#fff',text:'#243954',sub:'#526780',active:'#c8dcf4',edge:'#d1dbe8'}
    }[document.body.dataset.centralTheme]||{side:'#263d59',area:'#1c2d44',card:'#304760',field:'#223952',text:'#f4f8ff',sub:'#d3e1f1',active:'#3c638d',edge:'#47617c'};
    css+='#menu{width:265px!important;min-width:265px!important;background:'+instr.side+'!important;color:'+instr.text+'!important;border-right:1px solid '+instr.edge+'!important}#menu>.logo,#menu>.menu-btn{display:none!important}';
