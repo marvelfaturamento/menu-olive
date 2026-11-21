@@ -1163,6 +1163,24 @@ body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:
 .sidebar .central-theme-panel,.sidebar .central-theme-panel.is-open{z-index:105!important;pointer-events:auto!important}
 .sidebar .central-theme-panel button{position:relative!important;z-index:106!important;pointer-events:auto!important;cursor:pointer!important}
 .sidebar .scania-photo-layer,.sidebar .scania-photo-layer *{pointer-events:none!important}
+</style><style id="scania-navigation-contrast-final-20261121">
+/* Strong, clean typography for blue, orange and green themes. */
+body:not([data-central-theme="light"]) .sidebar .menu button:not(.active),
+body:not([data-central-theme="light"]) .sidebar .central-subnav button:not(.selected){
+color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;
+}
+body:not([data-central-theme="light"]) .sidebar .central-subnav button.selected{
+color:var(--ui-accent)!important;-webkit-text-fill-color:var(--ui-accent)!important;font-weight:800!important;text-shadow:0 1px 2px rgba(0,0,0,.8)!important;
+}
+/* Light theme: no dark drop-shadow, clear dark labels and frosted menu rows. */
+body[data-central-theme="light"] .sidebar .menu button:not(.active),
+body[data-central-theme="light"] .sidebar .central-subnav button:not(.selected){
+color:#152d4a!important;-webkit-text-fill-color:#152d4a!important;text-shadow:none!important;background:rgba(247,250,255,.80)!important;border-radius:7px!important;
+}
+body[data-central-theme="light"] .sidebar .central-subnav button.selected{
+color:#0759b8!important;-webkit-text-fill-color:#0759b8!important;text-shadow:none!important;font-weight:800!important;background:rgba(247,250,255,.82)!important;border-radius:7px!important;
+}
+body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
