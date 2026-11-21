@@ -2720,7 +2720,7 @@ body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!importa
  function expand(k){expanded=k;menu.querySelectorAll('.central-subnav').forEach(el=>el.classList.toggle('open',el.dataset.for===k))}
  const themes={
   blue:{accent:'#2679ff',bg:'#20334a',panel:'#2d455f',ink:'#f7faff',muted:'#d1dceb',edge:'#4b6480',field:'#36516d'},
-  orange:{accent:'#ff850b',bg:'#302822',panel:'#46372e',ink:'#fffaf5',muted:'#ebd6c4',edge:'#725746',field:'#534135'},
+  orange:{accent:'#ff901f',bg:'#423025',panel:'#624531',ink:'#fffaf4',muted:'#f5ddc5',edge:'#886247',field:'#725039'},
   green:{accent:'#20c873',bg:'#20372c',panel:'#2f4a3a',ink:'#f7fff9',muted:'#d1e7d8',edge:'#52705d',field:'#395844'},
   light:{accent:'#2679ff',bg:'#f1f4f8',panel:'#fff',ink:'#17263d',muted:'#526580',edge:'#d6dfeb',field:'#f7f9fc'}
  };
@@ -2744,7 +2744,7 @@ body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!importa
    // O Instrutivo acompanha cada tema; superfícies internas mais suaves, sem azul fixo.
    const instr={
     blue:{side:'#344d68',area:'#263b53',card:'#3c556e',field:'#2f4862',text:'#f7faff',sub:'#dce8f5',active:'#4a7299',edge:'#58738c'},
-    orange:{side:'#503d31',area:'#382d26',card:'#5b4638',field:'#46362d',text:'#fffaf5',sub:'#f4e0cf',active:'#7c5c45',edge:'#80614d'},
+    orange:{side:'#785138',area:'#503827',card:'#896047',field:'#674832',text:'#fffaf4',sub:'#ffe5cd',active:'#a56b3d',edge:'#a57654'},
     green:{side:'#375544',area:'#2a4033',card:'#41634e',field:'#355341',text:'#f7fff9',sub:'#ddf0e3',active:'#527d61',edge:'#64816c'},
     light:{side:'#e7edf5',area:'#edf2f8',card:'#e7edf5',field:'#fff',text:'#243954',sub:'#526780',active:'#c8dcf4',edge:'#d1dbe8'}
    }[document.body.dataset.centralTheme]||{side:'#263d59',area:'#1c2d44',card:'#304760',field:'#223952',text:'#f4f8ff',sub:'#d3e1f1',active:'#3c638d',edge:'#47617c'};
