@@ -2736,6 +2736,16 @@ body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!importa
   if(k==='refaturamento'){
    css+='.app{grid-template-columns:minmax(0,1fr)!important}.app>.sidebar{display:none!important}.app>.main{width:100%!important;min-width:0!important}';
    css+='.main .card,.main .panel{background:'+t.panel+'!important}.chip{background:'+t.field+'!important;color:'+t.ink+'!important}';
+   if(document.body.dataset.centralTheme==='orange'){
+    // Replace remaining fixed navy surfaces in Refaturamento; preserve warning and status colors.
+    css+=':root{--navy:#624531;--navy-dark:#423025;--blue:#ff901f;--primary:#ff901f}';
+    css+='.main,.view,.topbar{border-color:'+t.edge+'!important}';
+    css+='table thead,table thead tr,table thead th,.table thead,.table thead th{background:#624531!important;background-color:#624531!important;color:#fffaf4!important;border-color:#886247!important}';
+    css+='.chip,.box-info,.pend-ref,.pend-ref input,.pend-ref select{background:#725039!important;color:#fffaf4!important;border-color:#886247!important}';
+    css+='.btn.secondary,.btn:not(.danger),button.btn:not(.danger){background:#a56632!important;color:#fff!important;border-color:#bd814c!important}';
+    css+='input,select,textarea{background:#725039!important;color:#fffaf4!important;border-color:#886247!important}';
+    css+='[style*="background:#111f38"],[style*="background: #111f38"],[style*="background:#132238"],[style*="background:#172640"],[style*="background:#172c4a"],[style*="background:#15243d"]{background:#624531!important;color:#fffaf4!important;border-color:#886247!important}';
+   }
   }else if(k==='faturamento'){
    css+='.app{grid-template-columns:minmax(0,1fr)!important}.app>.sidebar{display:none!important}.app>.content{width:100%!important;min-width:0!important}';
   }else if(k==='dados'){
