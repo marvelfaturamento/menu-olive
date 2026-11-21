@@ -2873,41 +2873,60 @@ body[data-central-theme="accessible"] :focus-visible{outline:3px solid #ffd166!i
       css+='.dropzone,.drop-area{color:#14243a!important;border-color:#8fa8c6!important}';
     }
   }
-  if(k==='refaturamento'){
+  // Accessible chart palette: applied on redraw and reverted on theme change.
+  {
    const ChartLib=d.defaultView?.Chart;
    if(ChartLib){
-    const ink=light?'#101820':'#cfe0ff';
-    const grid=light?'#d3dbe6':'rgba(255,255,255,.07)';
+    const accessible=document.body.dataset.centralTheme==='accessible';
+    const ink=light?'#101820':accessible?'#ffffff':'#cfe0ff';
+    const grid=light?'#d3dbe6':accessible?'rgba(255,255,255,.24)':'rgba(255,255,255,.07)';
+    const palette=['#ffd166','#6ec9ff','#f5f5f5','#f28e6b','#b4a1ff','#74dec1','#ffb6df','#c5e36c'];
+    const points=['circle','rect','triangle','rectRot','cross','star','line','dash'];
     ChartLib.defaults.color=ink;
     if(ChartLib.defaults.plugins?.legend?.labels)ChartLib.defaults.plugins.legend.labels.color=ink;
-    const recolor=(chart)=>{
-     if(!chart?.options)return;
-     const scales=chart.options.scales||{};
-     Object.values(scales).forEach(axis=>{
-      if(axis.ticks)axis.ticks.color=ink;
-      if(axis.title)axis.title.color=ink;
-      if(axis.grid)axis.grid.color=grid;
-     });
-     if(chart.options.plugins?.legend?.labels)chart.options.plugins.legend.labels.color=ink;
-     if(chart.options.plugins?.title)chart.options.plugins.title.color=ink;
-    };
-    if(!ChartLib.__centralContrastHook){
-     const originalDraw=ChartLib.prototype.draw;
-     ChartLib.prototype.draw=function(){
-      const isLight=d.defaultView?.parent?.document?.body?.dataset?.centralTheme==='light' || d.defaultView?.parent?.document?.body?.classList?.contains('theme-light');
-      const themeInk=isLight?'#101820':'#cfe0ff';
-      const themeGrid=isLight?'#d3dbe6':'rgba(255,255,255,.07)';
-      Object.values(this.options?.scales||{}).forEach(axis=>{
-       if(axis.ticks)axis.ticks.color=themeInk;
-       if(axis.title)axis.title.color=themeInk;
-       if(axis.grid)axis.grid.color=themeGrid;
+    if(!ChartLib.__centralAccessibleHook){
+     const originalUpdate=ChartLib.prototype.update;
+     const adapt=function(chart){
+      const mode=d.defaultView?.parent?.document?.body?.dataset?.centralTheme||'blue';
+      const on=mode==='accessible',isLight=mode==='light';
+      const labelInk=isLight?'#101820':on?'#fff':'#cfe0ff';
+      const gridInk=isLight?'#d3dbe6':on?'rgba(255,255,255,.24)':'rgba(255,255,255,.07)';
+      Object.values(chart.options?.scales||{}).forEach(axis=>{
+       if(axis.ticks)axis.ticks.color=labelInk;
+       if(axis.title)axis.title.color=labelInk;
+       if(axis.grid)axis.grid.color=gridInk;
       });
-      if(this.options?.plugins?.legend?.labels)this.options.plugins.legend.labels.color=themeInk;
-      return originalDraw.apply(this,arguments);
+      if(chart.options?.plugins?.legend?.labels)chart.options.plugins.legend.labels.color=labelInk;
+      if(chart.options?.plugins?.title)chart.options.plugins.title.color=labelInk;
+      (chart.data?.datasets||[]).forEach((ds,di)=>{
+       if(!ds.__centralOriginal){
+        ds.__centralOriginal={backgroundColor:Array.isArray(ds.backgroundColor)?ds.backgroundColor.slice():ds.backgroundColor,borderColor:Array.isArray(ds.borderColor)?ds.borderColor.slice():ds.borderColor,borderDash:Array.isArray(ds.borderDash)?ds.borderDash.slice():ds.borderDash,pointStyle:ds.pointStyle,pointRadius:ds.pointRadius,borderWidth:ds.borderWidth};
+       }
+       const orig=ds.__centralOriginal;
+       if(on){
+        const count=Math.max(chart.data?.labels?.length||0,1);
+        const color=palette[di%palette.length];
+        const multi=chart.config?.type==='pie'||chart.config?.type==='doughnut'||chart.config?.type==='polarArea'||chart.config?.type==='radar'||chart.config?.type==='bar'&&chart.data.datasets.length===1&&Array.isArray(orig.backgroundColor);
+        ds.backgroundColor=multi?Array.from({length:count},(_,i)=>palette[i%palette.length]):color;
+        ds.borderColor=multi?'#121820':color;
+        ds.borderWidth=multi?2:Math.max(Number(orig.borderWidth)||0,2);
+        ds.borderDash=di%3===1?[7,4]:di%3===2?[2,4]:[];
+        ds.pointStyle=points[di%points.length];
+        ds.pointRadius=chart.config?.type==='line'?4:orig.pointRadius;
+       }else{
+        ds.backgroundColor=Array.isArray(orig.backgroundColor)?orig.backgroundColor.slice():orig.backgroundColor;
+        ds.borderColor=Array.isArray(orig.borderColor)?orig.borderColor.slice():orig.borderColor;
+        ds.borderDash=orig.borderDash;
+        ds.pointStyle=orig.pointStyle;
+        ds.pointRadius=orig.pointRadius;
+        ds.borderWidth=orig.borderWidth;
+       }
+      });
      };
-     ChartLib.__centralContrastHook=true;
+     ChartLib.prototype.update=function(){adapt(this);return originalUpdate.apply(this,arguments)};
+     ChartLib.__centralAccessibleHook=true;
     }
-    Object.values(ChartLib.instances||{}).forEach(chart=>{try{recolor(chart);chart.update('none')}catch(e){}});
+    Object.values(ChartLib.instances||{}).forEach(chart=>{try{chart.update('none')}catch(e){}});
    }
   }
   st.textContent=css;
