@@ -1190,6 +1190,12 @@ body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{backgr
 body[data-central-theme="accessible"] :focus-visible{outline:3px solid #ffd166!important;outline-offset:2px!important}
 .central-theme-panel{width:220px!important;flex-wrap:wrap!important}
 .central-theme-panel button[data-theme="accessible"]{color:#fff!important;font-size:13px!important;font-weight:900!important;border:2px solid #ffd166!important}
+</style><style id="scania-gradient-restored-20261121">
+/* Fade photo seamlessly into each sidebar theme at both ends. */
+.sidebar .scania-photo-layer{isolation:isolate!important}
+.sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.78) 8%,rgba(17,24,39,.15) 31%,rgba(17,24,39,.06) 58%,rgba(17,24,39,.54) 82%,#111827 100%)!important}
+body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#f3f7fc 0%,rgba(243,247,252,.83) 9%,rgba(243,247,252,.10) 33%,rgba(243,247,252,.05) 57%,rgba(243,247,252,.58) 84%,#f3f7fc 100%)!important}
+body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.85) 10%,rgba(17,24,39,.40) 32%,rgba(17,24,39,.35) 56%,rgba(17,24,39,.80) 84%,#111827 100%)!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2728,9 +2734,9 @@ body[data-central-theme="accessible"] :focus-visible{outline:3px solid #ffd166!i
  function doc(){try{return frame.contentDocument?.body?frame.contentDocument:null}catch(_){return null}}
  function expand(k){expanded=k;menu.querySelectorAll('.central-subnav').forEach(el=>el.classList.toggle('open',el.dataset.for===k))}
  const themes={
-  blue:{accent:'#2679ff',bg:'#20334a',panel:'#2d455f',ink:'#f7faff',muted:'#d1dceb',edge:'#4b6480',field:'#36516d'},
-  orange:{accent:'#ff901f',bg:'#423025',panel:'#624531',ink:'#fffaf4',muted:'#f5ddc5',edge:'#886247',field:'#725039'},
-  green:{accent:'#20c873',bg:'#20372c',panel:'#2f4a3a',ink:'#f7fff9',muted:'#d1e7d8',edge:'#52705d',field:'#395844'},
+  blue:{accent:'#2679ff',bg:'#1d3047',panel:'#354d67',ink:'#f7faff',muted:'#d1dceb',edge:'#6a829b',field:'#405b77'},
+  orange:{accent:'#ff901f',bg:'#392b23',panel:'#73513a',ink:'#fffaf4',muted:'#f5ddc5',edge:'#a57c5c',field:'#815d43'},
+  green:{accent:'#20c873',bg:'#1b3027',panel:'#395745',ink:'#f7fff9',muted:'#d1e7d8',edge:'#718d79',field:'#456750'},
   light:{accent:'#2679ff',bg:'#f1f4f8',panel:'#fff',ink:'#17263d',muted:'#526580',edge:'#d6dfeb',field:'#f7f9fc'},
   accessible:{accent:'#ffd166',bg:'#121820',panel:'#242e3b',ink:'#ffffff',muted:'#e4edf6',edge:'#8c9eb0',field:'#303e4d'}
  };
