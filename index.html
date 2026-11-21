@@ -2719,9 +2719,9 @@ body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!importa
  function doc(){try{return frame.contentDocument?.body?frame.contentDocument:null}catch(_){return null}}
  function expand(k){expanded=k;menu.querySelectorAll('.central-subnav').forEach(el=>el.classList.toggle('open',el.dataset.for===k))}
  const themes={
-  blue:{accent:'#2679ff',bg:'#0b1628',panel:'#14233a',ink:'#eff5ff',muted:'#a9bad0',edge:'#294362',field:'#1a2b44'},
-  orange:{accent:'#ff850b',bg:'#1a1411',panel:'#29201b',ink:'#fff5e9',muted:'#d2b8a2',edge:'#57402d',field:'#34271e'},
-  green:{accent:'#20c873',bg:'#0c1c16',panel:'#142a21',ink:'#eafff2',muted:'#a7c9b6',edge:'#2c5840',field:'#1c3729'},
+  blue:{accent:'#2679ff',bg:'#14243a',panel:'#203550',ink:'#f4f8ff',muted:'#c2d0e2',edge:'#385371',field:'#2a405d'},
+  orange:{accent:'#ff850b',bg:'#241d1a',panel:'#382c26',ink:'#fff8f0',muted:'#e1c9b6',edge:'#614b3d',field:'#44352d'},
+  green:{accent:'#20c873',bg:'#152820',panel:'#233c30',ink:'#f2fff7',muted:'#c2dbcd',edge:'#42634f',field:'#2d493a'},
   light:{accent:'#2679ff',bg:'#f1f4f8',panel:'#fff',ink:'#17263d',muted:'#526580',edge:'#d6dfeb',field:'#f7f9fc'}
  };
  function paint(){
@@ -2741,7 +2741,18 @@ body[data-central-theme="light"] .sidebar .menu button.active{color:#fff!importa
   }else if(k==='dados'){
    css+='.layout>.sidebar{display:none!important}.layout>.main,.layout>.content,.layout>.main-content{flex:1 1 auto!important;min-width:0!important}';
   }else if(k==='instrutivo'){
-   css+='#menu{width:265px!important;min-width:265px!important;background:#e7edf5!important;color:#243954!important;border-right:1px solid #d1dbe8!important}#menu>.logo,#menu>.menu-btn{display:none!important}#menu #busca{background:#fff!important;color:#243954!important;border:1px solid #cad6e6!important}#menu #busca::placeholder{color:#6c7e95!important}#menu #lista{color:#243954!important}#menu #lista .item{color:#243954!important;-webkit-text-fill-color:#243954!important;font-weight:600!important}#menu #lista .item:hover{background:#d8e4f3!important}#menu #lista .item.active{background:#c8dcf4!important;color:#164b85!important;-webkit-text-fill-color:#164b85!important}#main{background:#edf2f8!important;min-width:0!important;flex:1!important}#main header{background:#e7edf5!important;color:#243954!important;border-color:#d1dbe8!important}#main header h3{color:#243954!important}#conteudo .card,#conteudo .midia-box{background:#e7edf5!important;color:#243954!important;border:1px solid #d7e1ed!important}#conteudo .card h3,#conteudo .midia-box h3{color:#243954!important}';
+   // O Instrutivo acompanha cada tema; superfícies internas mais suaves, sem azul fixo.
+   const instr={
+    blue:{side:'#263d59',area:'#1c2d44',card:'#304760',field:'#223952',text:'#f4f8ff',sub:'#d3e1f1',active:'#3c638d',edge:'#47617c'},
+    orange:{side:'#413229',area:'#2c231e',card:'#4b392e',field:'#392b24',text:'#fff7ee',sub:'#f1d9c4',active:'#70503a',edge:'#705443'},
+    green:{side:'#294639',area:'#1c3027',card:'#335243',field:'#254235',text:'#f3fff7',sub:'#d0e9da',active:'#416c53',edge:'#517361'},
+    light:{side:'#e7edf5',area:'#edf2f8',card:'#e7edf5',field:'#fff',text:'#243954',sub:'#526780',active:'#c8dcf4',edge:'#d1dbe8'}
+   }[document.body.dataset.centralTheme]||{side:'#263d59',area:'#1c2d44',card:'#304760',field:'#223952',text:'#f4f8ff',sub:'#d3e1f1',active:'#3c638d',edge:'#47617c'};
+   css+='#menu{width:265px!important;min-width:265px!important;background:'+instr.side+'!important;color:'+instr.text+'!important;border-right:1px solid '+instr.edge+'!important}#menu>.logo,#menu>.menu-btn{display:none!important}';
+   css+='#menu #busca{background:'+instr.field+'!important;color:'+instr.text+'!important;border:1px solid '+instr.edge+'!important}#menu #busca::placeholder{color:'+instr.sub+'!important}';
+   css+='#menu #lista{color:'+instr.text+'!important}#menu #lista .item{color:'+instr.text+'!important;-webkit-text-fill-color:'+instr.text+'!important;font-weight:600!important}#menu #lista .item:hover{background:'+instr.active+'!important}#menu #lista .item.active{background:'+instr.active+'!important;color:'+instr.text+'!important;-webkit-text-fill-color:'+instr.text+'!important}';
+   css+='#main{background:'+instr.area+'!important;min-width:0!important;flex:1!important}#main header{background:'+instr.side+'!important;color:'+instr.text+'!important;border-color:'+instr.edge+'!important}#main header h3{color:'+instr.text+'!important}';
+   css+='#conteudo .card,#conteudo .midia-box{background:'+instr.card+'!important;color:'+instr.text+'!important;border:1px solid '+instr.edge+'!important}#conteudo .card h3,#conteudo .midia-box h3{color:'+instr.text+'!important}';
   }else if(k==='painel902'){
    css+='.app{display:block!important;grid-template-columns:none!important}.app>aside.side,.app>.side{display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;max-width:0!important;padding:0!important;margin:0!important;position:absolute!important;pointer-events:none!important}.app>main.main,.app>.main{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding-left:16px!important}';
   }else if(k==='agrupaPdf'){
