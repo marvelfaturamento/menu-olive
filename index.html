@@ -2680,6 +2680,11 @@ body[data-central-theme="light"] .sidebar .logo p{color:#607591!important}
   if(k==='leitor'){
    // Leitor XML alterna entre telas; nunca ocultar o conteúdo por regra global de tema.
    css+='body .app>aside button.tab{pointer-events:auto!important}';
+   // DANFE/DACTE é documento fiscal: nunca recebe as cores dos cards do painel.
+   css+='#pages .doc-page,#pages .doc-page .box,#pages .doc-page .section,#pages .doc-page .prod-table th,#pages .doc-page .comp-table th,#pages .doc-page .docs-table th{background:#fff!important;background-color:#fff!important;color:#000!important}';
+   css+='#pages .doc-page .box{border-color:#111!important}#pages .doc-page .section{border-color:#111!important}';
+   css+='#pages .doc-page .title,#pages .doc-page .val,#pages .doc-page .section,#pages .doc-page td,#pages .doc-page th{color:#000!important}';
+
   }
   if(k==='assistenteCiot'){
    // Tema do CIOT acompanha o seletor global, sem comprometer o contraste dos dados.
