@@ -3107,6 +3107,18 @@ body.module-open .main,body.module-open #moduleFrameWrap,body.module-open #modul
    css+='.chart-title{color:'+foreground+'!important;font-weight:800!important}';
    css+='.panel,.chart-card{overflow:hidden}';
   }
+  // Light mode must style the module's full canvas, not just its borders.
+  // Preserve document pages and status colors while removing hard-coded navy shells.
+  if(light){
+   css+='html,body,body>.app,body>.layout,body>.wrap,body>.container,body>.main,body>.content,.app,.layout,.main,.content,.main-content,.page,.page-content,.view,.workspace,.dashboard,#main,#conteudo{background-color:#edf2f8!important;color:#172b46!important}';
+   css+='header,.topbar,.toolbar,.page-header,.content-header,.section-header{background-color:#f7f9fd!important;color:#172b46!important;border-color:#d6dfeb!important}';
+   css+='.sidebar,.side,.sidePanel,#menu{background-color:#e7edf5!important;color:#172b46!important;border-color:#d6dfeb!important}';
+   css+='.card,.panel,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card,.chart-card,.mini-card,.table-wrap{background-color:#fff!important;color:#172b46!important;border-color:#d6dfeb!important}';
+   css+='input,select,textarea{background-color:#fff!important;color:#172b46!important;border-color:#cbd7e7!important}';
+   css+='input::placeholder,textarea::placeholder{color:#63758c!important}';
+   css+='body{background-image:none!important}';
+   if(k==='instrutivo')css+='#main,#conteudo{background-color:#edf2f8!important}#menu{background-color:#e7edf5!important}';
+  }
   st.textContent=css;
  }
  function navigation(){
