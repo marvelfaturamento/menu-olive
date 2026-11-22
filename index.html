@@ -1345,13 +1345,13 @@ body.module-open .module-frame-wrap{border-left:0!important}
 body.module-open #moduleFrame{border-left:0!important}
 </style><style id="marvel-seam-unified-production-20261122">
 /* Single source of truth: sidebar seam is measured from its actual rendered edge. */
-body[data-central-theme="blue"].module-open .sidebar{border-right:0!important;box-shadow:none!important;background:#111827!important}
+body[data-central-theme="blue"].module-open .sidebar{border-right:0!important;box-shadow:none!important;background:#111827!important;overflow:visible!important}
 body[data-central-theme="blue"].module-open .sidebar::after{display:none!important}
 body[data-central-theme="blue"].module-open .main::before{display:none!important}
 body[data-central-theme="blue"].module-open .main{border-left:0!important}
 body[data-central-theme="blue"].module-open .module-frame-wrap{border-left:0!important}
 body[data-central-theme="blue"].module-open #moduleFrame{border-left:0!important}
-#marvel-seam-bridge{display:none;pointer-events:none;position:fixed;top:var(--marvel-seam-top,42px);bottom:0;left:var(--marvel-seam-edge,202px);width:clamp(180px,28vw,310px);z-index:2147483000;background:linear-gradient(90deg,#111827 0%,rgba(17,24,39,.98) 2%,rgba(16,35,56,.85) 18%,rgba(14,44,73,.60) 40%,rgba(12,52,91,.28) 70%,rgba(10,56,100,0) 100%)}
+#marvel-seam-bridge{display:none;pointer-events:none;position:fixed;top:0;bottom:0;left:var(--marvel-seam-edge,202px);width:clamp(180px,23vw,280px);z-index:2147483000;background:linear-gradient(90deg,#111827 0%,rgba(17,24,39,.94) 3%,rgba(16,35,56,.73) 20%,rgba(14,44,73,.40) 43%,rgba(12,52,91,.14) 70%,rgba(10,56,100,0) 100%)}
 body[data-central-theme="blue"].module-open #marvel-seam-bridge{display:block}
 @media(max-width:700px){#marvel-seam-bridge{width:150px}}
 </style></head>
@@ -3226,7 +3226,7 @@ body[data-central-theme="blue"].module-open #marvel-seam-bridge{display:block}
     const bounds=sidebar.getBoundingClientRect();
     document.documentElement.style.setProperty('--marvel-seam-edge',Math.round(bounds.right)+'px');
     const toolbar=document.querySelector('.module-frame-toolbar');
-    document.documentElement.style.setProperty('--marvel-seam-top',Math.max(0,Math.round(toolbar?.getBoundingClientRect().bottom||0))+'px');
+    document.documentElement.style.setProperty('--marvel-seam-top','0px');
   };
   sync();
   window.addEventListener('resize',sync,{passive:true});
