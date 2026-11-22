@@ -1196,6 +1196,20 @@ body[data-central-theme="accessible"] :focus-visible{outline:3px solid #ffd166!i
 .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.78) 8%,rgba(17,24,39,.15) 31%,rgba(17,24,39,.06) 58%,rgba(17,24,39,.54) 82%,#111827 100%)!important}
 body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#f3f7fc 0%,rgba(243,247,252,.83) 9%,rgba(243,247,252,.10) 33%,rgba(243,247,252,.05) 57%,rgba(243,247,252,.58) 84%,#f3f7fc 100%)!important}
 body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.85) 10%,rgba(17,24,39,.40) 32%,rgba(17,24,39,.35) 56%,rgba(17,24,39,.80) 84%,#111827 100%)!important}
+</style><style id="central-seamless-background-20261122">
+/* The gradient is part of the background, never an overlay on module content. */
+body[data-central-theme="blue"] .sidebar{
+  border-right:0!important;
+  background:#111827!important;
+  background-image:linear-gradient(90deg,#111827 0%,#111827 48%,#11243c 76%,#10345a 100%)!important;
+}
+body[data-central-theme="blue"] .sidebar::before,
+body[data-central-theme="blue"] .sidebar::after{display:none!important}
+body[data-central-theme="blue"] .main{
+  background:linear-gradient(90deg,#10345a 0%,#0c3c70 150px,#0c4a87 340px,#0c4a87 100%)!important;
+}
+body[data-central-theme="blue"] .module-frame-wrap{background:transparent!important}
+body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2934,6 +2948,11 @@ body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{backgr
     }
     Object.values(ChartLib.instances||{}).forEach(chart=>{try{chart.update('none')}catch(e){}});
    }
+  }
+  // Wide, gradual navy-to-blue transition on the module BACKGROUND only.
+  // Cards, tables and controls retain their own opaque surfaces.
+  if(document.body.dataset.centralTheme==='blue'){
+   css+='html,body{background:linear-gradient(90deg,#10345a 0px,#103c70 135px,#0c4a87 320px,#0c4a87 100%)!important;background-attachment:fixed!important}';
   }
   st.textContent=css;
  }
