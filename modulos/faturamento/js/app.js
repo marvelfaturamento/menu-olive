@@ -622,16 +622,16 @@ function chartOpts(currency=false, datalabels=false, percentAxis=false){
     maintainAspectRatio:false,
     interaction:{mode:'index',intersect:false},
     plugins:{
-      legend:{labels:{color:'#eef4ff'}},
+      legend:{position:'top',labels:{color:'#244a73',font:{size:12,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:15}},
       datalabels:datalabels ? {
-        color:'#fff',
+        color:'#173d69',
         formatter:(v)=> currency ? shortNumber(v) : `${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%`,
         anchor:'end', align:'top', offset:2, clamp:true, font:{size:10,weight:'700'}
       } : {display:false}
     },
     scales:{
-      x:{ticks:{color:'#d9e4ff'},grid:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:'#d9e4ff', callback:(v)=>percentAxis?`${v}%`:shortNumber(v)}, grid:{color:'rgba(255,255,255,.06)'}}
+      x:{ticks:{color:'#527398'},grid:{color:'rgba(28,89,155,.11)'}},
+      y:{ticks:{color:'#527398', callback:(v)=>percentAxis?`${v}%`:shortNumber(v)}, grid:{color:'rgba(28,89,155,.11)'}}
     }
   };
 }
@@ -648,9 +648,9 @@ function renderGraficos(){
   state.charts.comparativo=new Chart(comparativoChart,{
     type:'line',
     data:{labels,datasets:[
-      {label:'Lucro real',data:total,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.3}
+      {label:'Lucro real',data:total,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
+      {label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
+      {label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6}
     ]},
     options:chartOpts(true,false,false)
   });
@@ -659,11 +659,11 @@ function renderGraficos(){
   const interSum=inter.reduce((s,v)=>s+v,0), nacSum=nac.reduce((s,v)=>s+v,0);
   state.charts.pizza=new Chart(pizzaChart,{
     type:'pie',
-    data:{labels:['Internacional','Nacional'],datasets:[{data:[interSum,nacSum],backgroundColor:['#35b9ff','#ff5f96'],borderColor:'#1c3165',borderWidth:2}]},
+    data:{labels:['Internacional','Nacional'],datasets:[{data:[interSum,nacSum],backgroundColor:['#35b9ff','#ff5f96'],borderColor:'#ffffff',borderWidth:3}]},
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{labels:{color:'#eef4ff'}},
+        legend:{position:'top',labels:{color:'#244a73',font:{size:12,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:15}},
         datalabels:{
           color:'#fff',
           formatter:(v,ctx)=>{ const sum=ctx.chart.data.datasets[0].data.reduce((s,n)=>s+n,0); const pct=sum?(v/sum)*100:0; return `${fmtPct(pct)}\n${shortNumber(v)}`; },
@@ -702,8 +702,8 @@ function renderAnual(){
   state.charts.annualMain=new Chart(annualMainChart,{
     type:'line',
     data:{labels,datasets:[
-      {label:'Bruto',data:bruto,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Lucro real',data:liquido,borderColor:'#1fc16b',backgroundColor:'transparent',borderWidth:3,tension:.3},
+      {label:'Bruto',data:bruto,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
+      {label:'Lucro real',data:liquido,borderColor:'#1fc16b',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
       {label:'Meta',data:meta,borderColor:'#f2c14f',backgroundColor:'transparent',borderWidth:3,borderDash:[8,5],tension:0,pointRadius:3}
     ]},
     options:chartOpts(true,false,false)
@@ -726,8 +726,8 @@ function renderAnual(){
   state.charts.annualInterNac=new Chart(annualInterNacChart,{
     type:'line',
     data:{labels,datasets:[
-      {label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.3}
+      {label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
+      {label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6}
     ]},
     options:chartOpts(true,false,false)
   });
