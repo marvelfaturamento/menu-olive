@@ -353,16 +353,13 @@ div:has(>input+.suggestions):focus-within{z-index:1002}
 @media(max-width:850px){.grid{grid-template-columns:1fr;max-width:620px}.main{overflow-y:auto}.resultado-box{min-height:260px}}
 @media(max-width:500px){.main{padding:10px}.grid>.card{padding:14px}.resultado-box{padding:17px}}
 
-/* Integrated sidebar-to-content gradient: truck is decorative and does not affect form interaction. */
-.main{justify-content:flex-start!important;padding:clamp(12px,1.6vw,25px)!important;
- background-image:linear-gradient(90deg,rgba(6,38,79,.35) 0%,rgba(7,53,106,.82) 16%,rgba(7,55,112,.98) 33%,transparent 56%),linear-gradient(125deg,#07315f,#07539b 65%,#073768)!important;
- background-color:#073768!important;background-position:left center!important}
-.main::before{content:"";position:absolute;inset:0 auto 0 0;width:min(35%,390px);height:100%;z-index:0;pointer-events:none;transform:none;border:0;border-radius:0;box-shadow:none;
- background:linear-gradient(90deg,rgba(7,49,95,.28),rgba(7,53,106,.70) 48%,#073768 100%),linear-gradient(0deg,#073768 3%,transparent 34%,transparent 73%,#073768 100%),url("/assets/carreta-sidebar.jpg") left bottom/cover no-repeat;
- opacity:.36;mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.7) 45%,transparent 100%)}
-.grid{width:100%!important;max-width:none!important;margin:0!important;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr)!important}
-@media(min-width:1100px){.grid{max-width:none!important}}
-@media(max-width:850px){.grid{grid-template-columns:1fr!important}.main::before{opacity:.16;width:180px}}
+/* Balanced dashboard proportions. Keep the Scania exclusively in the master sidebar. */
+.main{justify-content:center!important;padding:clamp(12px,1.5vw,24px)!important;
+background:radial-gradient(ellipse at 85% 100%,rgba(26,118,206,.32),transparent 55%),linear-gradient(125deg,#07315f,#085099 68%,#073768)!important}
+.main::before{content:none!important;display:none!important;background:none!important}
+.grid{width:100%!important;max-width:1120px!important;margin:0 auto!important;grid-template-columns:minmax(0,1.12fr) minmax(330px,.88fr)!important;gap:16px!important}
+@media(min-width:1100px){.grid{max-width:1120px!important}}
+@media(max-width:850px){.grid{grid-template-columns:1fr!important;max-width:620px!important}}
 </style></head>
 
 <body>
