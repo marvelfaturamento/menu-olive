@@ -1231,6 +1231,21 @@ body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{displa
 body.module-open #moduleFrameWrap.marvel-premium-dados-active{position:relative!important;overflow:hidden!important}
 body.module-open #moduleFrameWrap.marvel-premium-dados-active::after{content:none!important;display:none!important;background:none!important}
 body.module-open #moduleFrameWrap.marvel-premium-dados-active #moduleFrame{position:relative;z-index:1}
+</style><style id="marvel-sidebar-seam-blend-20261122">
+/* Seamless edge: fade the actual sidebar photo into the blue module canvas.
+   Only the sidebar edge is extended; no second truck is drawn inside the iframe. */
+body.module-open:has(.menu button.active[data-menu="dados"]) .sidebar{z-index:6!important;overflow:visible!important}
+body.module-open:has(.menu button.active[data-menu="dados"]) .sidebar::after{
+ content:"";position:absolute;pointer-events:none;left:calc(100% - 1px);
+ bottom:65px;width:115px;height:340px;z-index:0;
+ background:linear-gradient(90deg,rgba(6,37,76,.58) 0%,rgba(6,47,96,.42) 30%,rgba(7,53,106,0) 100%);
+ -webkit-mask-image:linear-gradient(0deg,transparent 0%,#000 17%,#000 75%,transparent 100%);
+ mask-image:linear-gradient(0deg,transparent 0%,#000 17%,#000 75%,transparent 100%);
+}
+body.module-open:has(.menu button.active[data-menu="dados"]) .sidebar .scania-photo-layer{
+ -webkit-mask-image:linear-gradient(0deg,transparent 0%,#000 15%,#000 76%,transparent 100%)!important;
+ mask-image:linear-gradient(0deg,transparent 0%,#000 15%,#000 76%,transparent 100%)!important;
+}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
