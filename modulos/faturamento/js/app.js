@@ -34,6 +34,56 @@ if (window.Chart) {
 }
 
 
+
+/* Canvas labels: draw opaque black over inherited pale axis/legend text.
+   Render-only hook; never mutates options or triggers chart.update(). */
+if (window.Chart) {
+  Chart.register({
+    id:'marvelBlackCanvasLabels',
+    afterDraw(chart) {
+      const ctx=chart.ctx;
+      ctx.save();
+      ctx.fillStyle='#000000';
+      ctx.textBaseline='middle';
+      for (const axis of Object.values(chart.scales||{})) {
+        if (!axis || !axis.ticks || !axis.options?.display) continue;
+        const horizontal=axis.isHorizontal();
+        const font=axis.options.ticks?.font||{};
+        ctx.font='bold '+(font.size||12)+'px Arial, sans-serif';
+        if(horizontal){
+          ctx.textAlign='center';
+          const y=axis.bottom-((axis.options.ticks?.padding||3)+7);
+          axis.ticks.forEach((tick,i)=>{
+            const x=axis.getPixelForTick(i);
+            if(Number.isFinite(x)) ctx.fillText(String(tick.label??''),x,y);
+          });
+        } else {
+          ctx.textAlign=axis.position==='right'?'left':'right';
+          const x=axis.position==='right'?axis.left+7:axis.right-7;
+          axis.ticks.forEach((tick,i)=>{
+            const y=axis.getPixelForTick(i);
+            if(Number.isFinite(y)) ctx.fillText(String(tick.label??''),x,y);
+          });
+        }
+      }
+      const legend=chart.legend;
+      if(legend?.legendItems?.length && legend.legendHitBoxes?.length){
+        ctx.font='bold 12px Arial, sans-serif';
+        ctx.textAlign='left';
+        legend.legendItems.forEach((item,i)=>{
+          const hit=legend.legendHitBoxes[i];
+          if(!hit)return;
+          const symbolWidth=legend.options?.labels?.boxWidth||10;
+          const labelX=hit.left+symbolWidth+9;
+          const labelY=hit.top+hit.height/2;
+          ctx.fillText(String(item.text||''),labelX,labelY);
+        });
+      }
+      ctx.restore();
+    }
+  });
+}
+
 function setText(id, value){
   const el = document.getElementById(id);
   if (el) el.textContent = value;
