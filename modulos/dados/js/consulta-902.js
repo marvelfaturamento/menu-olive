@@ -37,8 +37,8 @@ const search=async()=>{
  const q=$("pd902Busca").value.trim();if(q.length<2){status.textContent="Informe ao menos 2 caracteres.";return;}
  let token="";
  try {
-   if (window.parent && typeof window.parent.marvelGetAccessToken === "function") {
-     token = await window.parent.marvelGetAccessToken();
+   if (window.top && typeof window.top.marvelGetAccessToken === "function") {
+     token = await window.top.marvelGetAccessToken();
    }
  } catch (err) {
    status.textContent="Não foi possível renovar a sessão do Menu Marvel. Entre novamente no sistema.";
@@ -68,9 +68,9 @@ const search=async()=>{
  try{
  const request=async(t)=>fetch("https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/passar-dados-consulta-902",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:JSON.stringify({action:"search",q})});
  let resp=await request(token);
- if(resp.status===401 && typeof window.parent?.marvelRefreshAccessToken==="function"){
+ if(resp.status===401 && typeof window.top?.marvelRefreshAccessToken==="function"){
    status.textContent="Renovando sessão para consultar o Painel 902...";
-   token=await window.parent.marvelRefreshAccessToken();
+   token=await window.top.marvelRefreshAccessToken();
    resp=await request(token);
  }
  const payload=await resp.json();if(!resp.ok)throw Error(payload.error||"Falha na consulta");
