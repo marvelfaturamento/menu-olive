@@ -44,7 +44,26 @@ const search=async()=>{
    status.textContent="Não foi possível renovar a sessão do Menu Marvel. Entre novamente no sistema.";
    return;
  }
- if(!token){status.textContent="Sessão do Menu Marvel não encontrada. Entre novamente no sistema.";return;}
+ if(!token){
+   // Recuperação da sessão Supabase central quando o módulo foi carregado
+   // isoladamente ou o iframe não consegue acessar a função do menu.
+   try {
+     const authClient=window.supabase?.createClient(
+       "https://rqwmhywgckuwhbidqves.supabase.co",
+       "sb_publishable_r4Ftl_7kEjwZVTOlY04pKg_Jp03aBH1",
+       {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}
+     );
+     if(authClient){
+       const {data,error}=await authClient.auth.getSession();
+       if(!error)token=data?.session?.access_token||"";
+       if(!token){
+         const refreshed=await authClient.auth.refreshSession();
+         if(!refreshed.error)token=refreshed.data?.session?.access_token||"";
+       }
+     }
+   }catch(_){}
+ }
+ if(!token){status.textContent="Sessão de autenticação indisponível. Volte ao Início, saia e entre novamente no Menu Marvel.";return;}
  const btn=$("pd902Buscar");btn.disabled=true;status.textContent="Consultando cargas...";results.replaceChildren();
  try{
  const request=async(t)=>fetch("https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/passar-dados-consulta-902",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:JSON.stringify({action:"search",q})});
