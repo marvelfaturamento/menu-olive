@@ -1206,7 +1206,7 @@ body[data-central-theme="blue"] .sidebar{
 body[data-central-theme="blue"] .sidebar::before,
 body[data-central-theme="blue"] .sidebar::after{display:none!important}
 body[data-central-theme="blue"] .main{
-  background:linear-gradient(90deg,#14243a 0%,#173451 180px,#16446b 380px,#125080 580px,#0e568e 800px,#0c4a87 1100px)!important;
+  background:linear-gradient(90deg,#14243a 0%,#173451 8%,#16446b 20%,#125080 38%,#0e568e 62%,#0c4a87 90%)!important;
 }
 body[data-central-theme="blue"] .module-frame-wrap{background:transparent!important}
 body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent!important}
@@ -2759,6 +2759,11 @@ body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent
   let st=d.getElementById('central-integrated-theme');if(!st){st=d.createElement('style');st.id='central-integrated-theme';d.head.append(st)}
   let css=':root{--accent:'+t.accent+';--primary:'+t.accent+';--brand:'+t.accent+';--bg:'+t.bg+';--panel:'+t.panel+';--panel2:'+t.panel+';--card:'+t.panel+';--line:'+t.edge+';--stroke:'+t.edge+';--border:'+t.edge+';--text:'+t.ink+';--muted:'+t.muted+';--sidebar:'+t.panel+';--marvel-dark:'+t.panel+';--marvel-blue:'+t.accent+'}';
   css+='html,body{background:'+t.bg+'!important;color:'+t.ink+'!important}';
+  // The iframe owns its opaque page background: fade must be painted HERE, behind its content.
+  // A long gradient removes the hard vertical seam without dimming cards, tables or labels.
+  if(!light && document.body.dataset.centralTheme==='blue'){
+   css+='html,body{background-color:#0c4a87!important;background-image:linear-gradient(90deg,#14243a 0%,#173451 7%,#16446b 18%,#125080 34%,#0e568e 52%,#0c4a87 76%)!important;background-attachment:fixed!important;background-repeat:no-repeat!important}';
+  }
   const panel='.card,.panel,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card';
   css+=panel+'{background-color:'+t.panel+'!important;border-color:'+t.edge+'!important;color:'+t.ink+'}';
   css+='input,select,textarea{border-color:'+t.edge+';background-color:'+t.field+';color:'+t.ink+'}';
