@@ -3138,6 +3138,13 @@ body[data-central-theme="light"] .sidebar::after{
    css+='body{background-image:none!important}';
    if(k==='instrutivo')css+='#main,#conteudo{background-color:#edf2f8!important}#menu{background-color:#e7edf5!important}';
   }
+  if(light && k==='calculadora'){
+   // Calculator direction/action buttons retained navy backgrounds with navy text.
+   css+='button:not(.active),.btn:not(.active),.direction-btn,.action-btn{color:#12345b!important;-webkit-text-fill-color:#12345b!important;background:#e5efff!important;border-color:#b7cdec!important;opacity:1!important}';
+   css+='button.active,.btn.active,button[aria-pressed="true"],.btn.primary,button.primary{background:#2679ff!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#2679ff!important;opacity:1!important}';
+   css+='button:disabled,.btn:disabled{background:#e4e9f1!important;color:#526580!important;-webkit-text-fill-color:#526580!important;opacity:.8!important}';
+   css+='button svg,.btn svg{color:inherit!important}';
+  }
   st.textContent=css;
  }
  function navigation(){
