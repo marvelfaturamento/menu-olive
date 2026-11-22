@@ -1335,6 +1335,14 @@ body[data-central-theme="light"].module-open .sidebar .marvel-sidebar-color-brid
  background:linear-gradient(90deg,rgba(17,24,39,.78),rgba(79,99,124,.34) 15%,rgba(79,99,124,.12) 34%,transparent 100%)!important;
 }
 @media(max-width:900px){body.module-open .sidebar .marvel-sidebar-color-bridge{width:220px!important}}
+</style><style id="marvel-background-only-fade-20261122">
+/* Confine all sidebar overlays to the sidebar; do not cover iframe content. */
+body.module-open .sidebar{border-right:0!important;overflow:hidden!important}
+body.module-open .sidebar .marvel-sidebar-color-bridge{display:none!important}
+body.module-open .sidebar::after{right:0!important;max-width:100%!important}
+body.module-open .main{border-left:0!important}
+body.module-open .module-frame-wrap{border-left:0!important}
+body.module-open #moduleFrame{border-left:0!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2885,6 +2893,9 @@ body[data-central-theme="light"].module-open .sidebar .marvel-sidebar-color-brid
   let st=d.getElementById('central-integrated-theme');if(!st){st=d.createElement('style');st.id='central-integrated-theme';d.head.append(st)}
   let css=':root{--accent:'+t.accent+';--primary:'+t.accent+';--brand:'+t.accent+';--bg:'+t.bg+';--panel:'+t.panel+';--panel2:'+t.panel+';--card:'+t.panel+';--line:'+t.edge+';--stroke:'+t.edge+';--border:'+t.edge+';--text:'+t.ink+';--muted:'+t.muted+';--sidebar:'+t.panel+';--marvel-dark:'+t.panel+';--marvel-blue:'+t.accent+'}';
   css+='html,body{background:'+t.bg+'!important;color:'+t.ink+'!important}';
+  // Transition belongs to the module background, not an overlay on charts, tables or text.
+  // CSS is injected into the iframe, so the foreground remains fully opaque.
+  css+='html,body{background-image:linear-gradient(90deg,rgba(17,24,39,.28) 0%,rgba(17,24,39,.12) 10%,transparent 28%)!important;background-attachment:fixed!important}';
   const panel='.card,.panel,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card';
   css+=panel+'{background-color:'+t.panel+'!important;border-color:'+t.edge+'!important;color:'+t.ink+'}';
   css+='input,select,textarea{border-color:'+t.edge+';background-color:'+t.field+';color:'+t.ink+'}';
