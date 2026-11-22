@@ -1357,6 +1357,13 @@ body[data-central-theme="blue"].module-open .sidebar::after{display:none!importa
 body[data-central-theme="blue"].module-open .main{position:relative!important;isolation:isolate!important;overflow:hidden!important}
 body[data-central-theme="blue"].module-open .main::before{content:""!important;display:block!important;position:absolute!important;top:0!important;bottom:0!important;left:0!important;width:min(520px,70%)!important;z-index:5!important;pointer-events:none!important;background:linear-gradient(90deg,rgba(23,52,81,.84) 0%,rgba(23,52,81,.55) 14%,rgba(22,68,107,.27) 43%,rgba(18,80,128,.08) 76%,transparent 100%)!important}
 body[data-central-theme="blue"].module-open .module-frame-toolbar{position:relative!important;z-index:6!important}
+</style><style id="marvel-production-visible-bridge-20261122">
+/* The bridge is above the cross-origin iframe, not trapped behind it. */
+body[data-central-theme="blue"].module-open .sidebar{background:#111827!important;border-right:0!important;box-shadow:none!important}
+body[data-central-theme="blue"].module-open .sidebar::before,body[data-central-theme="blue"].module-open .sidebar::after{display:none!important}
+body[data-central-theme="blue"].module-open .main::before{display:none!important}
+body[data-central-theme="blue"].module-open #marvel-seam-bridge{display:block!important;position:fixed!important;top:45px!important;bottom:0!important;left:214px!important;width:282px!important;z-index:2147483000!important;pointer-events:none!important;background:linear-gradient(90deg,#111827 0%,rgba(17,24,39,.96) 9%,rgba(15,37,61,.82) 29%,rgba(12,49,82,.50) 58%,rgba(9,54,98,.18) 83%,transparent 100%)!important}
+@media(max-width:650px){body[data-central-theme="blue"].module-open #marvel-seam-bridge{width:120px!important}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -3221,4 +3228,4 @@ body[data-central-theme="blue"].module-open .module-frame-toolbar{position:relat
  obs.observe(document.body,{attributes:true,attributeFilter:['class']});
  if(document.body.classList.contains('module-open'))setTimeout(loaded,160);
 })();
-</script></body></html>
+</script><div id="marvel-seam-bridge" aria-hidden="true" style="display:none"></div></body></html>
