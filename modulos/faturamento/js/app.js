@@ -22,6 +22,17 @@ function aclRestritoPorUsuario(){ return false; }
 function aclUserMatch(v){ return true; }
 
 if (window.Chart && window.ChartDataLabels) Chart.register(ChartDataLabels);
+// Set actual Chart.js defaults once, without lifecycle hooks or mutating chart options.
+if (window.Chart) {
+  Chart.defaults.color = '#000000';
+  Chart.defaults.font.family = 'Arial, sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.font.weight = 'bold';
+  Chart.defaults.plugins.legend.labels.color = '#000000';
+  Chart.defaults.plugins.legend.labels.font = {size:12, weight:'bold'};
+  Chart.defaults.scale.ticks.color = '#000000';
+}
+
 
 function setText(id, value){
   const el = document.getElementById(id);
@@ -617,7 +628,7 @@ function renderDiario(){
 function destroyChart(key){ if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; } }
 
 function chartOpts(currency=false, datalabels=false, percentAxis=false){
-  const ink='#101820', muted='#101820', grid='rgba(32,92,158,.12)';
+  const ink='#000000', muted='#000000', grid='rgba(32,92,158,.12)';
   return {
     responsive:true,maintainAspectRatio:false,
     interaction:{mode:'index',intersect:false},
@@ -627,7 +638,7 @@ function chartOpts(currency=false, datalabels=false, percentAxis=false){
       datalabels:datalabels?{color:ink,formatter:(v)=>currency?shortNumber(v):`${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%`,anchor:'end',align:'top',offset:2,clamp:true,font:{size:10,weight:'700'}}:{display:false}
     },
     scales:{
-      x:{ticks:{color:muted,font:{size:11,weight:'600'}},border:{color:grid},grid:{display:false}},
+      x:{ticks:{color:muted,font:{size:12,weight:'bold'}},border:{color:grid},grid:{display:false}},
       y:{beginAtZero:true,ticks:{color:muted,font:{size:11,weight:'600'},callback:(v)=>percentAxis?`${v}%`:shortNumber(v)},border:{display:false},grid:{color:grid}}
     }
   };
@@ -660,7 +671,7 @@ function renderGraficos(){
     options:{
       responsive:true, maintainAspectRatio:false,cutout:'63%',
       plugins:{
-        legend:{position:'top',labels:{color:'#101820',font:{size:12,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:15}},
+        legend:{position:'top',labels:{color:'#000000',font:{size:12,weight:'bold'},usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:15}},
         datalabels:{
           color:'#fff',
           formatter:(v,ctx)=>{ const sum=ctx.chart.data.datasets[0].data.reduce((s,n)=>s+n,0); const pct=sum?(v/sum)*100:0; return `${fmtPct(pct)}\n${shortNumber(v)}`; },
