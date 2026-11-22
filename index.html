@@ -1343,27 +1343,17 @@ body.module-open .sidebar::after{right:0!important;max-width:100%!important}
 body.module-open .main{border-left:0!important}
 body.module-open .module-frame-wrap{border-left:0!important}
 body.module-open #moduleFrame{border-left:0!important}
-</style><style id="marvel-production-continuous-fade-20261122">
-body[data-central-theme="blue"].module-open{background:linear-gradient(90deg,#111827 0px,#111827 115px,#14243a 205px,#173451 350px,#16446b 550px,#125080 780px,#0e568e 1050px,#0c4a87 1350px)!important}
-body[data-central-theme="blue"].module-open .sidebar{background:transparent!important;border-right:0!important;box-shadow:none!important}
-body[data-central-theme="blue"].module-open .sidebar::after{background:transparent!important}
-body[data-central-theme="blue"].module-open .main{background:transparent!important}
-body[data-central-theme="blue"].module-open .module-frame-wrap{background:transparent!important;border:0!important}
-body[data-central-theme="blue"].module-open #moduleFrame{background:transparent!important}
-</style><style id="marvel-production-sidebar-seam-fix-20261122">
-/* Applied in the parent document, including cross-origin module iframes. */
-body[data-central-theme="blue"].module-open .sidebar{background:linear-gradient(90deg,#111827 0%,#14243a 72%,#173451 100%)!important;position:relative!important;z-index:3!important;border-right:0!important}
+</style><style id="marvel-seam-unified-production-20261122">
+/* Single source of truth: sidebar seam is measured from its actual rendered edge. */
+body[data-central-theme="blue"].module-open .sidebar{border-right:0!important;box-shadow:none!important;background:#111827!important}
 body[data-central-theme="blue"].module-open .sidebar::after{display:none!important}
-body[data-central-theme="blue"].module-open .main{position:relative!important;isolation:isolate!important;overflow:hidden!important}
-body[data-central-theme="blue"].module-open .main::before{content:""!important;display:block!important;position:absolute!important;top:0!important;bottom:0!important;left:0!important;width:min(520px,70%)!important;z-index:5!important;pointer-events:none!important;background:linear-gradient(90deg,rgba(23,52,81,.84) 0%,rgba(23,52,81,.55) 14%,rgba(22,68,107,.27) 43%,rgba(18,80,128,.08) 76%,transparent 100%)!important}
-body[data-central-theme="blue"].module-open .module-frame-toolbar{position:relative!important;z-index:6!important}
-</style><style id="marvel-production-visible-bridge-20261122">
-/* The bridge is above the cross-origin iframe, not trapped behind it. */
-body[data-central-theme="blue"].module-open .sidebar{background:#111827!important;border-right:0!important;box-shadow:none!important}
-body[data-central-theme="blue"].module-open .sidebar::before,body[data-central-theme="blue"].module-open .sidebar::after{display:none!important}
 body[data-central-theme="blue"].module-open .main::before{display:none!important}
-body[data-central-theme="blue"].module-open #marvel-seam-bridge{display:block!important;position:fixed!important;top:45px!important;bottom:0!important;left:214px!important;width:282px!important;z-index:2147483000!important;pointer-events:none!important;background:linear-gradient(90deg,#111827 0%,rgba(17,24,39,.96) 9%,rgba(15,37,61,.82) 29%,rgba(12,49,82,.50) 58%,rgba(9,54,98,.18) 83%,transparent 100%)!important}
-@media(max-width:650px){body[data-central-theme="blue"].module-open #marvel-seam-bridge{width:120px!important}}
+body[data-central-theme="blue"].module-open .main{border-left:0!important}
+body[data-central-theme="blue"].module-open .module-frame-wrap{border-left:0!important}
+body[data-central-theme="blue"].module-open #moduleFrame{border-left:0!important}
+#marvel-seam-bridge{display:none;pointer-events:none;position:fixed;top:var(--marvel-seam-top,42px);bottom:0;left:var(--marvel-seam-edge,202px);width:clamp(180px,28vw,310px);z-index:2147483000;background:linear-gradient(90deg,#111827 0%,rgba(17,24,39,.98) 2%,rgba(16,35,56,.85) 18%,rgba(14,44,73,.60) 40%,rgba(12,52,91,.28) 70%,rgba(10,56,100,0) 100%)}
+body[data-central-theme="blue"].module-open #marvel-seam-bridge{display:block}
+@media(max-width:700px){#marvel-seam-bridge{width:150px}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -3228,4 +3218,19 @@ body[data-central-theme="blue"].module-open #marvel-seam-bridge{display:block!im
  obs.observe(document.body,{attributes:true,attributeFilter:['class']});
  if(document.body.classList.contains('module-open'))setTimeout(loaded,160);
 })();
-</script><div id="marvel-seam-bridge" aria-hidden="true" style="display:none"></div></body></html>
+</script><div id="marvel-seam-bridge" aria-hidden="true"></div><script id="marvel-seam-measure-20261122">
+(function(){
+  const sync=()=>{
+    const sidebar=document.querySelector('.sidebar');
+    if(!sidebar)return;
+    const bounds=sidebar.getBoundingClientRect();
+    document.documentElement.style.setProperty('--marvel-seam-edge',Math.round(bounds.right)+'px');
+    const toolbar=document.querySelector('.module-frame-toolbar');
+    document.documentElement.style.setProperty('--marvel-seam-top',Math.max(0,Math.round(toolbar?.getBoundingClientRect().bottom||0))+'px');
+  };
+  sync();
+  window.addEventListener('resize',sync,{passive:true});
+  if(window.ResizeObserver){const sidebar=document.querySelector('.sidebar');if(sidebar)new ResizeObserver(sync).observe(sidebar)}
+  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
+})();
+</script></body></html>
