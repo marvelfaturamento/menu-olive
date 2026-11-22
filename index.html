@@ -3117,6 +3117,15 @@ body[data-central-theme="light"] .sidebar::after{
    css+='.modo-toggle{gap:8px!important}.modo-btn{border-radius:10px!important}';
    css+='@media(max-width:950px){.grid{grid-template-columns:1fr!important}}';
   }
+  if(k==='dados' && !light){
+   // Layered luminous sweeping curves, scoped to the Passar Dados canvas only.
+   // CSS artwork: no image overlay, no changes to calculations or controls.
+   css+='body{background:radial-gradient(ellipse 58% 22% at 75% 85%,rgba(43,183,255,.38),transparent 80%),radial-gradient(ellipse 55% 45% at 90% 18%,rgba(15,118,225,.30),transparent 90%),linear-gradient(125deg,#08294e 0%,#075092 65%,#0874c9 100%)!important;background-attachment:fixed!important}';
+   css+='.layout>.main{isolation:isolate!important;overflow:hidden!important}';
+   css+='.layout>.main::before{content:""!important;position:fixed!important;left:15%!important;right:-22%!important;bottom:-30%!important;width:auto!important;height:72%!important;border:0!important;border-top:3px solid rgba(133,233,255,.94)!important;border-radius:68% 52% 0 0!important;transform:rotate(-13deg)!important;background:linear-gradient(180deg,rgba(17,170,255,.27),rgba(24,134,245,.10) 18%,transparent 55%)!important;box-shadow:0 -3px 13px rgba(75,213,255,.85),0 -16px 42px rgba(18,169,255,.43),inset 0 18px 45px rgba(21,147,246,.28)!important;pointer-events:none!important;z-index:0!important}';
+   css+='.layout>.main::after{content:""!important;position:fixed!important;left:34%!important;right:-24%!important;bottom:-43%!important;height:79%!important;border-top:2px solid rgba(22,175,255,.80)!important;border-radius:70% 44% 0 0!important;transform:rotate(-13deg)!important;box-shadow:0 -2px 15px rgba(28,171,255,.40)!important;pointer-events:none!important;z-index:0!important}';
+   css+='.layout>.main>*{position:relative!important;z-index:1!important}';
+  }
   if(k==='faturamento'){
    css+='.content{padding:clamp(12px,1.8vw,28px)!important}';
    css+='.hero{padding:20px 24px!important;margin-bottom:16px!important}';
