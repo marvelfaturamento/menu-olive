@@ -1196,6 +1196,54 @@ body[data-central-theme="accessible"] :focus-visible{outline:3px solid #ffd166!i
 .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.78) 8%,rgba(17,24,39,.15) 31%,rgba(17,24,39,.06) 58%,rgba(17,24,39,.54) 82%,#111827 100%)!important}
 body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#f3f7fc 0%,rgba(243,247,252,.83) 9%,rgba(243,247,252,.10) 33%,rgba(243,247,252,.05) 57%,rgba(243,247,252,.58) 84%,#f3f7fc 100%)!important}
 body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.85) 10%,rgba(17,24,39,.40) 32%,rgba(17,24,39,.35) 56%,rgba(17,24,39,.80) 84%,#111827 100%)!important}
+</style><style id="premium-dados-host-layout">
+/* Remove theme-colored strip around the Passar Dados iframe. */
+body.module-open:has(#moduleFrame[src*="dados"]) .module-frame-wrap,
+body.module-open:has(#moduleFrame[src*="dados"]) .main,
+body.module-open:has(#moduleFrame[src*="dados"]) .module-content,
+body.module-open:has(#moduleFrame[src*="dados"]) #moduleFrame{background:#062d59!important;background-color:#062d59!important}
+body.module-open:has(#moduleFrame[src*="dados"]) .module-frame-wrap{padding:0!important;margin:0!important;border:0!important}
+</style><style id="premium-dados-host-final">
+/* Target the selected module, not the iframe URL (which may vary). */
+body.module-open:has(.menu button.active[data-menu="dados"])>.app .main,
+body.module-open:has(.menu button.active[data-menu="dados"]) .main,
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrameWrap,
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{
+ background:#06325f!important;background-color:#06325f!important;
+}
+body.module-open:has(.menu button.active[data-menu="dados"]) .main{padding:0!important;margin:0!important;gap:0!important}
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrameWrap{padding:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{display:block!important;width:100%!important}
+</style><style id="marvel-premium-truck-blend">
+/* Truck bleeds softly from the sidebar into the Passar Dados content.
+   The decorative layer does not capture clicks or alter the embedded application. */
+#moduleFrameWrap.marvel-premium-dados-active{background:#07366d!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+#moduleFrameWrap.marvel-premium-dados-active::after{
+ content:"";position:absolute;pointer-events:none;z-index:4;
+ left:0;bottom:0;width:clamp(140px,20vw,300px);height:clamp(260px,57vh,510px);
+ background-image:linear-gradient(90deg,rgba(7,43,86,.06) 0%,rgba(7,54,109,.20) 43%,rgba(7,54,109,1) 100%),linear-gradient(0deg,rgba(7,54,109,1),transparent 23%,transparent 68%,rgba(7,54,109,1)),url("assets/carreta-sidebar.jpg");
+ background-size:100% 100%,100% 100%,cover;background-position:center,center,42% center;
+ opacity:.34;filter:saturate(.85);-webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.65) 48%,transparent 100%);mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.65) 48%,transparent 100%);
+}
+@media(max-width:900px){#moduleFrameWrap.marvel-premium-dados-active::after{opacity:.13;width:140px}}
+</style><style id="marvel-premium-seamless-shell-v2">
+/* Blend the existing Scania into the calculator across the sidebar seam. */
+body.module-open #moduleFrameWrap.marvel-premium-dados-active{position:relative!important;overflow:visible!important;isolation:isolate!important}
+body.module-open #moduleFrameWrap.marvel-premium-dados-active::after{
+ left:-55px!important;bottom:0!important;width:clamp(170px,24vw,350px)!important;
+ height:clamp(270px,58vh,510px)!important;z-index:2!important;
+ background-image:
+ linear-gradient(90deg,rgba(7,47,96,.02) 0%,rgba(7,51,103,.22) 35%,rgba(7,55,112,.95) 95%,#073768 100%),
+ linear-gradient(0deg,#073768 0%,transparent 30%,transparent 67%,#073768 100%),
+ url("assets/carreta-sidebar.jpg")!important;
+ background-size:100% 100%,100% 100%,cover!important;
+ background-position:center,center,center bottom!important;
+ opacity:.26!important;
+ -webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.55) 48%,transparent 100%)!important;
+ mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.55) 48%,transparent 100%)!important;
+}
+body.module-open #moduleFrameWrap.marvel-premium-dados-active #moduleFrame{position:relative;z-index:1}
+@media(max-width:700px){body.module-open #moduleFrameWrap.marvel-premium-dados-active::after{opacity:.10!important;width:160px!important}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -1813,6 +1861,7 @@ body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{backgr
         setTimeout(resetarRolagemModulo, 60);
       };
       frame.src = destino;
+      wrap.classList.toggle("marvel-premium-dados-active", nome === "dados");
       wrap.classList.add("active");
       document.body.classList.add("module-open");
       setMenuAtivo(nome);
@@ -2934,6 +2983,46 @@ body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{backgr
     }
     Object.values(ChartLib.instances||{}).forEach(chart=>{try{chart.update('none')}catch(e){}});
    }
+  }
+  // Visual premium experimental: only presentation of Passar Dados and Faturamento.
+  // Existing module HTML, calculations, data loading, event handlers and permissions remain untouched.
+  if(k==='dados'||k==='faturamento'){
+   const isAccessible=document.body.dataset.centralTheme==='accessible';
+   const isLight=document.body.dataset.centralTheme==='light';
+   const hue=document.body.dataset.centralTheme==='orange'?'255,145,40':document.body.dataset.centralTheme==='green'?'40,192,120':isAccessible?'255,209,102':'35,145,255';
+   const shell=isLight?'#e8f0fb':isAccessible?'#121820':document.body.dataset.centralTheme==='orange'?'#483323':document.body.dataset.centralTheme==='green'?'#173d30':'#082b56';
+   const foreground=isAccessible?'#fff':'#142b4c';
+   const surface=isAccessible?'#263443':'#f9fcff';
+   const line=isAccessible?'#899bab':'#cbdcf0';
+   css+='html,body{background:'+shell+'!important}';
+   css+='body{background:radial-gradient(ellipse at 80% 12%,rgba('+hue+',.30),transparent 46%),radial-gradient(ellipse at 16% 100%,rgba('+hue+',.24),transparent 48%),linear-gradient(145deg,'+shell+',#071d38)!important;background-attachment:fixed!important}';
+   css+='.main,.content{background:transparent!important;min-width:0!important}';
+   css+='.main::before,.content::before{content:"";position:fixed;right:-10%;bottom:-18%;width:90%;height:48%;border-top:2px solid rgba('+hue+',.48);border-radius:55% 0 0 0;transform:rotate(-11deg);box-shadow:0 -14px 60px rgba('+hue+',.12);pointer-events:none;z-index:0}';
+   css+='.main>* ,.content>*{position:relative;z-index:1}';
+   css+='.card,.panel,.mini-card,.chart-card,.meta-card,.hero,.resultado-box{background:'+surface+'!important;color:'+foreground+'!important;border:1px solid '+line+'!important;border-radius:18px!important;box-shadow:0 14px 32px rgba(2,16,40,.16)!important}';
+   css+='.card h1,.card h2,.card h3,.panel h1,.panel h2,.panel h3,.chart-card h3,.hero h1,.hero h2,.mini-card .value,.mini-card .label{color:'+foreground+'!important}';
+   css+='.card input,.card select,.card textarea,.panel input,.panel select,.panel textarea{background:'+(isAccessible?'#344658':'#f2f7ff')+'!important;color:'+foreground+'!important;border:1px solid '+line+'!important;border-radius:9px!important}';
+   css+='button,.btn-primary,.btn-secondary,.btn-success{border-radius:10px!important;transition:transform .15s ease,box-shadow .15s ease}button:hover,.btn-primary:hover,.btn-secondary:hover,.btn-success:hover{transform:translateY(-1px)}';
+   css+='.cards,.charts-grid,.mini-charts{gap:14px!important}';
+   css+='@media(max-width:1100px){.cards,.charts-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))!important}}';
+  }
+  if(k==='dados'){
+   css+='.layout{background:transparent!important}.layout>.main{width:100%!important;max-width:none!important;padding:clamp(12px,2vw,30px)!important}';
+   css+='.grid{gap:22px!important;align-items:start!important;max-width:1280px!important;margin:0 auto!important}';
+   css+='.grid>.card{padding:clamp(18px,2vw,28px)!important}';
+   css+='.resultado-box{background:linear-gradient(155deg,#0a315d,#0b4b89)!important;color:#fff!important;border:1px solid rgba(80,195,255,.7)!important}';
+   css+='.resultado-box *{color:#fff!important}';
+   css+='.modo-toggle{gap:8px!important}.modo-btn{border-radius:10px!important}';
+   css+='@media(max-width:950px){.grid{grid-template-columns:1fr!important}}';
+  }
+  if(k==='faturamento'){
+   css+='.content{padding:clamp(12px,1.8vw,28px)!important}';
+   css+='.hero{padding:20px 24px!important;margin-bottom:16px!important}';
+   css+='.mini-card{padding:18px!important;min-height:115px!important}';
+   css+='.mini-card .value{font-size:clamp(19px,2vw,30px)!important;font-weight:800!important}';
+   css+='.chart-card{padding:20px!important}';
+   css+='.chart-title{color:'+foreground+'!important;font-weight:800!important}';
+   css+='.panel,.chart-card{overflow:hidden}';
   }
   st.textContent=css;
  }
