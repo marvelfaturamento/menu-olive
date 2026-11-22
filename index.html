@@ -1647,7 +1647,7 @@ body[data-central-theme="light"] .sidebar::after{
     </section>
   </main>
 
-  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere ou bloqueie menus e submenus por usuário.</div></div><div style="display:flex;gap:8px"><button class="admin-save" onclick="abrirNovoUsuario()">＋ Criar usuário</button><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div></div><div id="newUserBox" class="admin-user" style="display:none;margin-bottom:14px"><div class="admin-user-top"><input id="nuEmail" type="email" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuUser" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuPass" type="password" placeholder="Senha inicial (mín. 8)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><button class="admin-save" onclick="criarNovoUsuario(this)">Criar</button></div><div class="admin-msg">No primeiro login o usuário será obrigado a criar uma nova senha.</div></div><div id="adminUsersList"></div></div></div>
+  <div id="adminOverlay" class="admin-overlay"><div class="admin-panel"><div class="admin-head"><div><h2>⚙️ Usuários e Acessos</h2><div class="admin-msg">Libere ou bloqueie menus e submenus por usuário.</div></div><div style="display:flex;gap:8px"><button class="admin-save" onclick="abrirNovoUsuario()">＋ Criar usuário</button><button class="admin-close" onclick="fecharAdminUsuarios()">✕ Fechar</button></div></div><div id="newUserBox" class="admin-user" style="display:none;margin-bottom:14px"><div class="admin-user-top"><input id="nuEmail" type="email" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuUser" placeholder="E-mail" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><input id="nuPass" type="password" placeholder="Senha inicial (mín. 8)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#142445;color:#fff"><button class="admin-save" onclick="criarNovoUsuario(this)">Criar</button></div><div class="admin-msg">No primeiro login o usuário será obrigado a criar uma nova senha.</div></div><div style="margin:0 0 10px"><input id="adminUserSearch" type="search" placeholder="🔎 Buscar usuário por nome ou e-mail..." oninput="filtrarUsuariosAdmin()" autocomplete="off" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid #365174;background:#142445;color:#fff;font-size:13px"></div><div id="adminUsersList"></div></div></div>
   <div id="passwordOverlay" class="password-overlay"><div class="password-card"><h2>🔐 Crie sua nova senha</h2><p>Este é seu primeiro acesso ao novo sistema. Por segurança, substitua a senha temporária antes de continuar.</p><input id="newPassword" type="password" autocomplete="new-password" placeholder="Nova senha"><input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirme a nova senha"><button id="btnChangePassword" type="button">Salvar nova senha</button><div id="passwordMsg" class="msg"></div></div></div>
 
 <script>
@@ -2009,6 +2009,7 @@ body[data-central-theme="light"] .sidebar::after{
     async function abrirAdminUsuarios(){
       if(getSessaoMenu()?.perfil!=="admin") return;
       document.getElementById("adminOverlay").classList.add("active");
+      document.getElementById("adminUserSearch").value="";
       const root=document.getElementById("adminUsersList"); root.innerHTML='<div class="admin-msg">Carregando usuários...</div>';
       let data,error;
       try {
@@ -2043,6 +2044,14 @@ body[data-central-theme="light"] .sidebar::after{
       }).join("")||'<div class="admin-msg">Nenhum usuário cadastrado.</div>';
     }
     window.abrirAdminUsuarios = abrirAdminUsuarios;
+    function filtrarUsuariosAdmin(){
+      const q=(document.getElementById("adminUserSearch")?.value||"").trim().toLocaleLowerCase("pt-BR");
+      document.querySelectorAll("#adminUsersList .admin-user").forEach(el=>{
+        const name=el.querySelector(".admin-user-top > div:first-child")?.textContent||"";
+        el.style.display=name.toLocaleLowerCase("pt-BR").includes(q)?"":"none";
+      });
+    }
+    window.filtrarUsuariosAdmin=filtrarUsuariosAdmin;
     function toggleUsuarioAcessos(btn){
       const box=btn.closest(".admin-user");
       const abrir=box.classList.contains("collapsed");
