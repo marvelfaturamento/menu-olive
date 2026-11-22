@@ -1206,7 +1206,7 @@ body[data-central-theme="blue"] .sidebar{
 body[data-central-theme="blue"] .sidebar::before,
 body[data-central-theme="blue"] .sidebar::after{display:none!important}
 body[data-central-theme="blue"] .main{
-  background:linear-gradient(90deg,#10345a 0%,#0c3c70 150px,#0c4a87 340px,#0c4a87 100%)!important;
+  background:linear-gradient(90deg,#111827 0%,#112139 90px,#10345a 230px,#0c3c70 420px,#0c4a87 650px,#0c4a87 100%)!important;
 }
 body[data-central-theme="blue"] .module-frame-wrap{background:transparent!important}
 body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent!important}
@@ -2952,7 +2952,22 @@ body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent
   // Wide, gradual navy-to-blue transition on the module BACKGROUND only.
   // Cards, tables and controls retain their own opaque surfaces.
   if(document.body.dataset.centralTheme==='blue'){
-   css+='html,body{background:linear-gradient(90deg,#10345a 0px,#103c70 135px,#0c4a87 320px,#0c4a87 100%)!important;background-attachment:fixed!important}';
+   css+='html,body{background:linear-gradient(90deg,#111827 0px,#112139 90px,#10345a 230px,#0c3c70 420px,#0c4a87 650px,#0c4a87 100%)!important;background-attachment:fixed!important}';
+   css+='body .layout,body .layout>.main,body .layout>.content,body .app,body .app>.main,body .app>.content,body .wrap,body .content,body .main-content{background-color:transparent!important;background-image:none!important}';
+   css+='body .layout>iframe,body iframe#frame{background:transparent!important}';
+   if(k==='dados'){
+    const inner=d.getElementById('frame');
+    const syncNested=()=>{
+     try{
+      const nested=inner?.contentDocument;if(!nested?.head)return;
+      let ns=nested.getElementById('central-seamless-nested');
+      if(!ns){ns=nested.createElement('style');ns.id='central-seamless-nested';nested.head.append(ns)}
+      ns.textContent='html,body{background:linear-gradient(90deg,#111827 0px,#112139 90px,#10345a 230px,#0c3c70 420px,#0c4a87 650px,#0c4a87 100%)!important;background-attachment:fixed!important}body .layout,body .main,body .content,body .main-content,body .container{background-color:transparent!important}';
+     }catch(_){}
+    };
+    if(inner&&!inner.dataset.centralGradientHook){inner.dataset.centralGradientHook='1';inner.addEventListener('load',syncNested)}
+    syncNested();
+   }
   }
   st.textContent=css;
  }
