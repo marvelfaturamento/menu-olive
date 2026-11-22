@@ -1350,6 +1350,13 @@ body[data-central-theme="blue"].module-open .sidebar::after{background:transpare
 body[data-central-theme="blue"].module-open .main{background:transparent!important}
 body[data-central-theme="blue"].module-open .module-frame-wrap{background:transparent!important;border:0!important}
 body[data-central-theme="blue"].module-open #moduleFrame{background:transparent!important}
+</style><style id="marvel-production-sidebar-seam-fix-20261122">
+/* Applied in the parent document, including cross-origin module iframes. */
+body[data-central-theme="blue"].module-open .sidebar{background:linear-gradient(90deg,#111827 0%,#14243a 72%,#173451 100%)!important;position:relative!important;z-index:3!important;border-right:0!important}
+body[data-central-theme="blue"].module-open .sidebar::after{display:none!important}
+body[data-central-theme="blue"].module-open .main{position:relative!important;isolation:isolate!important;overflow:hidden!important}
+body[data-central-theme="blue"].module-open .main::before{content:""!important;display:block!important;position:absolute!important;top:0!important;bottom:0!important;left:0!important;width:min(520px,70%)!important;z-index:5!important;pointer-events:none!important;background:linear-gradient(90deg,rgba(23,52,81,.84) 0%,rgba(23,52,81,.55) 14%,rgba(22,68,107,.27) 43%,rgba(18,80,128,.08) 76%,transparent 100%)!important}
+body[data-central-theme="blue"].module-open .module-frame-toolbar{position:relative!important;z-index:6!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
