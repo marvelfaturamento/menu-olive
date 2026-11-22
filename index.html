@@ -2760,7 +2760,7 @@ body.module-open .main,body.module-open #moduleFrameWrap,body.module-open #modul
        // Dados usa REST sem canal realtime, preservando o desenho atual.
        let bytes;
        if(entry.cfg){
-         const url=entry.cfg.url.replace(/\\/$/,'')+'/rest/v1/rpc/marvel_database_usage_bytes';
+         const url=entry.cfg.url.replace(/\/$/,'')+'/rest/v1/rpc/marvel_database_usage_bytes';
          const response=await fetch(url,{method:'POST',headers:{
            'apikey':entry.cfg.key,'Authorization':'Bearer '+entry.cfg.key,
            'Content-Type':'application/json'
