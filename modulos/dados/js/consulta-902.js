@@ -35,9 +35,16 @@ let debounce=null;
 $("pd902Busca").addEventListener("input",()=>{clearTimeout(debounce);const q=$("pd902Busca").value.trim();if(q.length<2){results.replaceChildren();status.textContent="Digite pelo menos 2 caracteres.";return;}debounce=setTimeout(search,350);});
 const search=async()=>{
  const q=$("pd902Busca").value.trim();if(q.length<2){status.textContent="Informe ao menos 2 caracteres.";return;}
- const raw=localStorage.getItem("sb-rqwmhywgckuwhbidqves-auth-token");let token="";
- try{token=JSON.parse(raw||"null")?.access_token||"";}catch(_){}
- if(!token){status.textContent="Entre no Menu Olive para consultar o 902.";return;}
+ let token="";
+ try {
+   if (window.parent && typeof window.parent.marvelGetAccessToken === "function") {
+     token = await window.parent.marvelGetAccessToken();
+   }
+ } catch (err) {
+   status.textContent="Não foi possível renovar a sessão do Menu Marvel. Entre novamente no sistema.";
+   return;
+ }
+ if(!token){status.textContent="Sessão do Menu Marvel não encontrada. Entre novamente no sistema.";return;}
  const btn=$("pd902Buscar");btn.disabled=true;status.textContent="Consultando cargas...";results.replaceChildren();
  try{
  const resp=await fetch("https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/passar-dados-consulta-902",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"search",q})});
