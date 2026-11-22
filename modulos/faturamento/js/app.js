@@ -616,20 +616,6 @@ function renderDiario(){
 
 function destroyChart(key){ if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; } }
 
-/* Unified chart styling: black labels on light surfaces, independent of inherited themes. */
-const marvelChartInkPlugin={
- id:'marvelChartInk',
- beforeUpdate(chart){
-  const o=chart.options;
-  if(o.plugins?.legend?.labels){o.plugins.legend.labels.color='#101820';o.plugins.legend.labels.font={size:12,weight:'bold',family:'Arial'};}
-  if(o.scales)for(const axis of Object.values(o.scales)){
-   axis.ticks={...(axis.ticks||{}),color:'#101820',font:{size:11,weight:'bold',family:'Arial'}};
-   axis.title={...(axis.title||{}),color:'#101820'};
-   axis.grid={...(axis.grid||{}),color:'rgba(17,49,84,.12)'};
-  }
- }
-};
-Chart.register(marvelChartInkPlugin);
 function chartOpts(currency=false, datalabels=false, percentAxis=false){
   const ink='#101820', muted='#101820', grid='rgba(32,92,158,.12)';
   return {
