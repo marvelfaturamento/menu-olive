@@ -1320,19 +1320,21 @@ body.module-open .sidebar::after{z-index:2!important}
  body.module-open .sidebar .marvel-sidebar-color-bridge{width:145px!important}
 }
 </style><style id="marvel-fade-theme-aware-20261122">
-/* Match the horizontal blend to the selected theme, keeping the truck separate. */
+/* Extended, subtle backdrop blend. Never cover module text or cards. */
 body.module-open .sidebar .marvel-sidebar-color-bridge{
- background:linear-gradient(90deg,rgba(17,24,39,.93) 0%,rgba(15,31,53,.72) 22%,rgba(12,49,87,.38) 48%,rgba(10,57,109,.12) 75%,transparent 100%)!important;
+ width:420px!important;z-index:0!important;pointer-events:none!important;
+ background:linear-gradient(90deg,rgba(17,24,39,.92) 0%,rgba(16,31,49,.55) 15%,rgba(12,47,80,.23) 34%,rgba(11,52,90,.08) 58%,transparent 100%)!important;
 }
 body[data-central-theme="orange"].module-open .sidebar .marvel-sidebar-color-bridge{
- background:linear-gradient(90deg,rgba(17,24,39,.93),rgba(26,37,50,.68) 24%,rgba(27,43,59,.31) 53%,transparent 100%)!important;
+ background:linear-gradient(90deg,rgba(17,24,39,.92),rgba(22,35,50,.52) 15%,rgba(25,46,68,.20) 34%,rgba(25,46,68,.06) 58%,transparent 100%)!important;
 }
 body[data-central-theme="green"].module-open .sidebar .marvel-sidebar-color-bridge{
- background:linear-gradient(90deg,rgba(17,24,39,.93),rgba(23,45,37,.60) 28%,transparent 100%)!important;
+ background:linear-gradient(90deg,rgba(17,24,39,.92),rgba(23,45,37,.48) 15%,rgba(23,45,37,.17) 34%,transparent 100%)!important;
 }
 body[data-central-theme="light"].module-open .sidebar .marvel-sidebar-color-bridge{
- background:linear-gradient(90deg,rgba(17,24,39,.82),rgba(79,99,124,.38) 38%,transparent 100%)!important;
+ background:linear-gradient(90deg,rgba(17,24,39,.78),rgba(79,99,124,.34) 15%,rgba(79,99,124,.12) 34%,transparent 100%)!important;
 }
+@media(max-width:900px){body.module-open .sidebar .marvel-sidebar-color-bridge{width:220px!important}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
