@@ -232,7 +232,13 @@ iframe { flex:1; height:100%; border:none; background:#f4f6f9; width:100%; }
   <iframe id="frame" title="Módulo de cotações" allow="clipboard-read; clipboard-write"></iframe>
 </div>
 
-<template id="tplDados">
+<style id="marvel-remove-internal-sidebar">
+/* This module is already inside the Marvel master sidebar. Remove its second sidebar,
+   which is the vertical orange/brown strip visible in the screenshot. */
+.layout{display:flex!important;width:100vw!important;height:100vh!important;overflow:hidden!important;background:#07366d!important}
+.layout>.sidebar{display:none!important;width:0!important;min-width:0!important;padding:0!important;margin:0!important;border:0!important}
+.layout>#frame{display:block!important;flex:1 1 100%!important;width:100%!important;height:100%!important;min-width:0!important;border:0!important;background:#07366d!important}
+</style><template id="tplDados">
 <!DOCTYPE html>
 <!-- saved from url=(0041)https://rateiofrete.vercel.app/dados.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
