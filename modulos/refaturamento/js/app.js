@@ -4112,21 +4112,23 @@ document.addEventListener('DOMContentLoaded', function(){
    - limpa registros antigos do mesmo mês que não existem mais no Excel
    - operacional/consulta veem usuários/performance travados no usuarioRef
 ========================================================= */
+function __usuarioCanonicoMarvel(v){
+  const raw = prodNorm(v || '').replace(/@.*$/, '');
+  if(['karllin.oliveira','karlin.oliveira','karlin','karllin'].includes(raw)) return 'karllin';
+  return raw;
+}
 function __getPerfilRefFinal(){
   const url = new URLSearchParams(window.location.search);
   return {
     perfil: (url.get('perfil') || '').toLowerCase(),
-    usuarioRef: prodNorm(url.get('usuarioRef') || url.get('usuario') || '')
+    usuarioRef: __usuarioCanonicoMarvel(url.get('usuarioRef') || url.get('usuario') || '')
   };
 }
 function __isRestritoUsuarioFinal(){
-  const p = __getPerfilRefFinal().perfil;
-  return p === 'operacional' || p === 'consulta';
+  return ['operacional','consulta'].includes(__getPerfilRefFinal().perfil);
 }
-function __usuarioPermitidoFinal(){
-  return __getPerfilRefFinal().usuarioRef;
-}
-function __normalizeUserFinal(v){ return prodNorm(v || ''); }
+function __usuarioPermitidoFinal(){ return __getPerfilRefFinal().usuarioRef; }
+function __normalizeUserFinal(v){ return __usuarioCanonicoMarvel(v); }
 function __filterByUsuarioRefFinal(rows, getter){
   if(!__isRestritoUsuarioFinal()) return rows;
   const allowed = __usuarioPermitidoFinal();
@@ -4134,12 +4136,20 @@ function __filterByUsuarioRefFinal(rows, getter){
   return (rows || []).filter(x => __normalizeUserFinal(getter(x)) === allowed);
 }
 function __enableAccessMenusFinal(){
-  const { perfil } = __getPerfilRefFinal();
-  if(perfil === 'operacional' || perfil === 'consulta'){
+  const restricted = __isRestritoUsuarioFinal();
+  ['config','cadastro'].forEach(view => {
+    const btn = document.querySelector(`.menu button[data-view="${view}"]`);
+    if(btn) { btn.hidden = restricted; btn.style.display = restricted ? 'none' : ''; }
+  });
+  if(restricted){
     ['usuarios','performance'].forEach(view => {
-      const btn = document.querySelector(`[data-view="${view}"]`);
+      const btn = document.querySelector(`.menu button[data-view="${view}"]`);
       if(btn) btn.style.display = '';
     });
+    const active = document.querySelector('.menu button.active');
+    if(active && ['config','cadastro'].includes(active.dataset.view)){
+      document.querySelector('.menu button[data-view="usuarios"]')?.click();
+    }
   }
 }
 function __ensureUsuarioTopFilterFinal(){
@@ -4439,7 +4449,7 @@ console.log('USERS AGG FINAL', allUsersAgg);
   __applyUsuarioLockFinal(topSelect);
   selectedTop = topSelect ? (topSelect.value || 'TODOS') : 'TODOS';
   let users = allUsersAgg;
-  if(selectedTop !== 'TODOS') users = users.filter(x => x.user === selectedTop);
+  if(selectedTop !== 'TODOS') users = users.filter(x => __normalizeUserFinal(x.user) === __normalizeUserFinal(selectedTop));
   users = users.slice(0,10);
   makeBarChart('chartUsuariosErroQtd', users.map(x=>x.user), users.map(x=>x.qty), true, 'Quantidade');
   makeBarChart('chartUsuariosErroValor', users.map(x=>x.user), users.map(x=>x.total), true, 'Valor');
@@ -4478,7 +4488,7 @@ function renderPerformanceView(){
   __applyUsuarioLockFinal(select);
   selected = select ? (select.value || 'TODOS') : 'TODOS';
   let rows = rowsAll;
-  if(selected !== 'TODOS') rows = rows.filter(x => x.usuario === selected);
+  if(selected !== 'TODOS') rows = rows.filter(x => __normalizeUserFinal(x.usuario) === __normalizeUserFinal(selected));
   const docsLabels = rows.map(x => x.usuario);
   const docsData = rows.map(x => x.totalDocs || 0);
   makeBarChart('chartProdUsuarioMes', docsLabels, docsData, true, 'Documentos');
