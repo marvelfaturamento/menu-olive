@@ -1319,6 +1319,20 @@ body.module-open .sidebar::after{z-index:2!important}
 @media(max-width:900px){
  body.module-open .sidebar .marvel-sidebar-color-bridge{width:145px!important}
 }
+</style><style id="marvel-fade-theme-aware-20261122">
+/* Match the horizontal blend to the selected theme, keeping the truck separate. */
+body.module-open .sidebar .marvel-sidebar-color-bridge{
+ background:linear-gradient(90deg,rgba(17,24,39,.93) 0%,rgba(15,31,53,.72) 22%,rgba(12,49,87,.38) 48%,rgba(10,57,109,.12) 75%,transparent 100%)!important;
+}
+body[data-central-theme="orange"].module-open .sidebar .marvel-sidebar-color-bridge{
+ background:linear-gradient(90deg,rgba(17,24,39,.93),rgba(26,37,50,.68) 24%,rgba(27,43,59,.31) 53%,transparent 100%)!important;
+}
+body[data-central-theme="green"].module-open .sidebar .marvel-sidebar-color-bridge{
+ background:linear-gradient(90deg,rgba(17,24,39,.93),rgba(23,45,37,.60) 28%,transparent 100%)!important;
+}
+body[data-central-theme="light"].module-open .sidebar .marvel-sidebar-color-bridge{
+ background:linear-gradient(90deg,rgba(17,24,39,.82),rgba(79,99,124,.38) 38%,transparent 100%)!important;
+}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2911,6 +2925,14 @@ body.module-open .sidebar::after{z-index:2!important}
    css+='#main{background:'+instr.area+'!important;min-width:0!important;flex:1!important}#main header{background:'+instr.side+'!important;color:'+instr.text+'!important;border-color:'+instr.edge+'!important}#main header h3{color:'+instr.text+'!important}';
    css+='#conteudo .card,#conteudo .midia-box{background:'+instr.card+'!important;color:'+instr.text+'!important;border:1px solid '+instr.edge+'!important}#conteudo .card h3,#conteudo .midia-box h3{color:'+instr.text+'!important}';
   }else if(k==='painel902'){
+   // Keep the orange accent, but avoid muddy brown backgrounds and unreadable navy text.
+   if(document.body.dataset.centralTheme==='orange'){
+    css+=':root{--bg:#18283b;--panel:#293c53;--panel2:#293c53;--card:#293c53;--sidebar:#293c53;--text:#fffaf4;--muted:#dce6f3;--line:#60758b;--stroke:#60758b}';
+    css+='html,body{background:#18283b!important;color:#fffaf4!important}';
+    css+='.card,.panel,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card{background-color:#293c53!important;color:#fffaf4!important;border-color:#60758b!important}';
+    css+='input,select,textarea{background-color:#35495f!important;color:#fff!important;border-color:#70849a!important}';
+   }
+   css+='main.main h1,main.main h2,main.main h3,main.main label,main.main .muted,main.main .sub,main.main .subtitle{color:inherit}';
    css+='.app{display:block!important;grid-template-columns:none!important}.app>aside.side,.app>.side{display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;max-width:0!important;padding:0!important;margin:0!important;position:absolute!important;pointer-events:none!important}.app>main.main,.app>.main{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding-left:16px!important}';
   }else if(k==='agrupaPdf'){
    css+='.wrap>.topbar{display:none!important}.wrap{width:100%!important;max-width:none!important;min-width:0!important}';
