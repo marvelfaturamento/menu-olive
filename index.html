@@ -1354,6 +1354,32 @@ body[data-central-theme="blue"].module-open #moduleFrame{border-left:0!important
 #marvel-seam-bridge{display:none;pointer-events:none;position:fixed;top:0;bottom:0;left:var(--marvel-seam-edge,202px);width:clamp(180px,23vw,280px);z-index:2147483000;background:linear-gradient(90deg,#111827 0%,rgba(17,24,39,.94) 3%,rgba(16,35,56,.73) 20%,rgba(14,44,73,.40) 43%,rgba(12,52,91,.14) 70%,rgba(10,56,100,0) 100%)}
 body[data-central-theme="blue"].module-open #marvel-seam-bridge{display:block}
 @media(max-width:700px){#marvel-seam-bridge{width:150px}}
+</style><style id="marvel-reference-seamless-20261122">
+/* Visual reference: uninterrupted navy-to-electric-blue canvas; no vertical seam. */
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]){
+ background:linear-gradient(116deg,#06192f 0%,#06366d 32%,#07549e 67%,#0065bf 100%)!important;
+}
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar{
+ background:linear-gradient(90deg,#06182d 0%,#072448 78%,#08356a 100%)!important;
+ border-right:0!important;box-shadow:none!important;
+}
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .main,
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) #moduleFrameWrap{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+}
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{
+ border:0!important;box-shadow:none!important;
+}
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) #marvel-seam-bridge{display:none!important}
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar::before{
+ content:"";position:absolute;pointer-events:none;left:calc(100% - 1px);top:0;bottom:0;
+ width:clamp(180px,20vw,330px);z-index:0;
+ background:linear-gradient(90deg,#08356a 0%,rgba(8,53,106,.75) 17%,rgba(8,63,125,.38) 47%,rgba(8,63,125,0) 100%);
+}
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar::after{z-index:1!important}
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar>.logo,
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar>.menu,
+body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar>.user-box{z-index:3!important;position:relative}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
