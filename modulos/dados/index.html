@@ -389,6 +389,18 @@ html,body{background:#07376f!important}
 .main::before{left:-15%!important;bottom:-32%!important;width:155%!important;height:48%!important;transform:rotate(-13deg)!important}
 .main::after{left:5%!important;bottom:-38%!important;width:145%!important;height:48%!important}
 @media(max-width:850px){.grid{grid-template-columns:1fr!important}.grid::before{grid-column:1}}
+
+/* Fix verified screenshot regression: title must not occupy a grid row stretching the cards. */
+.main{display:block!important;padding:14px 16px 20px!important}
+.grid{position:relative!important;display:grid!important;align-content:start!important;
+ grid-template-columns:minmax(0,1.36fr) minmax(300px,.94fr)!important;
+ padding-top:48px!important;row-gap:0!important;column-gap:14px!important}
+.grid::before{position:absolute!important;left:0!important;top:0!important;
+ grid-column:auto!important;height:38px!important;line-height:38px!important;
+ content:"▰  SIMULADOR DE DADOS"!important}
+.grid>.card,.grid>.resultado-box{grid-row:1!important;align-self:start!important}
+@media(max-width:850px){.grid{grid-template-columns:1fr!important;row-gap:14px!important}
+.grid>.card,.grid>.resultado-box{grid-row:auto!important}}
 </style></head>
 
 <body>
