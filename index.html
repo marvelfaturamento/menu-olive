@@ -1343,6 +1343,13 @@ body.module-open .sidebar::after{right:0!important;max-width:100%!important}
 body.module-open .main{border-left:0!important}
 body.module-open .module-frame-wrap{border-left:0!important}
 body.module-open #moduleFrame{border-left:0!important}
+</style><style id="marvel-production-continuous-fade-20261122">
+body[data-central-theme="blue"].module-open{background:linear-gradient(90deg,#111827 0px,#111827 115px,#14243a 205px,#173451 350px,#16446b 550px,#125080 780px,#0e568e 1050px,#0c4a87 1350px)!important}
+body[data-central-theme="blue"].module-open .sidebar{background:transparent!important;border-right:0!important;box-shadow:none!important}
+body[data-central-theme="blue"].module-open .sidebar::after{background:transparent!important}
+body[data-central-theme="blue"].module-open .main{background:transparent!important}
+body[data-central-theme="blue"].module-open .module-frame-wrap{background:transparent!important;border:0!important}
+body[data-central-theme="blue"].module-open #moduleFrame{background:transparent!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -2895,7 +2902,7 @@ body.module-open #moduleFrame{border-left:0!important}
   css+='html,body{background:'+t.bg+'!important;color:'+t.ink+'!important}';
   // Transition belongs to the module background, not an overlay on charts, tables or text.
   // CSS is injected into the iframe, so the foreground remains fully opaque.
-  css+='html,body{background-image:linear-gradient(90deg,rgba(17,24,39,.72) 0%,rgba(17,24,39,.58) 8%,rgba(17,24,39,.40) 19%,rgba(17,24,39,.23) 34%,rgba(17,24,39,.10) 49%,rgba(17,24,39,0) 68%)!important;background-attachment:fixed!important}';
+  if(!light && document.body.dataset.centralTheme==='blue') css+='html,body{background-color:#0c4a87!important;background-image:linear-gradient(90deg,#14243a 0px,#173451 180px,#16446b 380px,#125080 580px,#0e568e 800px,#0c4a87 1100px)!important;background-repeat:no-repeat!important;background-attachment:fixed!important}';
   const panel='.card,.panel,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card';
   css+=panel+'{background-color:'+t.panel+'!important;border-color:'+t.edge+'!important;color:'+t.ink+'}';
   css+='input,select,textarea{border-color:'+t.edge+';background-color:'+t.field+';color:'+t.ink+'}';
