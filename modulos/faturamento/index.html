@@ -38,6 +38,39 @@ button,.navbtn{border-radius:10px!important}
 .app{display:block!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important}
 .app>aside.sidebar{display:none!important}
 .app>main.content{width:100%!important;min-width:0!important;margin:0!important}
+</style><style id="marvel-faturamento-compact-visual-v2">
+/* Compact executive dashboard matching approved blue/cyan reference, with live values intact. */
+body{background:radial-gradient(ellipse 60% 38% at 60% 100%,rgba(0,174,255,.42),transparent 80%),linear-gradient(125deg,#05234b 0%,#0756a3 58%,#043066 100%)!important}
+.content{padding:14px clamp(12px,1.25vw,22px) 20px!important}
+.content::before{border-top:2px solid rgba(0,215,255,.62)!important;bottom:-20%!important}
+.hero{grid-template-columns:minmax(0,1.55fr) minmax(300px,.95fr)!important;gap:12px!important;align-items:start!important}
+.panel,.chart-card,.mini-card,.meta-card{border-radius:14px!important;box-shadow:0 7px 17px rgba(0,25,75,.16)!important}
+.panel{padding:14px!important}
+.toolbar{margin-bottom:10px!important}
+.toolbar h2{font-size:clamp(18px,1.5vw,23px)!important;font-weight:850!important}
+.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:9px!important}
+.mini-card{padding:12px 10px 11px 13px!important;min-height:105px!important;background:linear-gradient(145deg,#fff,#e8f5ff)!important}
+.mini-card::before{top:11px!important;bottom:11px!important;width:4px!important}
+.mini-card .label{font-size:11px!important;font-weight:750!important;line-height:1.2!important;margin-bottom:6px!important;text-transform:uppercase}
+.mini-card .value{font-size:clamp(17px,1.55vw,24px)!important;line-height:1.08!important;overflow-wrap:anywhere!important;word-break:normal!important}
+.mini-card .help{font-size:10px!important;line-height:1.25!important}
+.mini-card:nth-child(4n+1){background:linear-gradient(135deg,#fff,#e2f4ff)!important}
+.mini-card:nth-child(4n+2){background:linear-gradient(135deg,#fff,#e5f0ff)!important}
+.mini-card:nth-child(4n+3){background:linear-gradient(135deg,#fff,#fff1e6)!important}
+.mini-card:nth-child(4n){background:linear-gradient(135deg,#fff,#f0eaff)!important}
+.mini-card:nth-child(4n+3)::before{background:linear-gradient(#ffb02b,#f26a24)!important}
+.mini-card:nth-child(4n)::before{background:linear-gradient(#9866ff,#5342e6)!important}
+.metrics-row{gap:9px!important}
+.sub{font-size:11px!important}
+.panel select{max-width:100%!important}
+.chart-card{padding:13px!important}
+.chart-title{font-size:14px!important}
+#dashboard>.hero>.panel:last-child{background:linear-gradient(155deg,#fff,#eaf4ff)!important}
+#dashboard>.hero>.panel:last-child .mini-card{min-height:95px!important}
+@media(min-width:1550px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:1200px){.hero{grid-template-columns:1fr!important}.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:760px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}.metrics-row{grid-template-columns:1fr!important}}
+@media(max-width:440px){.cards{grid-template-columns:1fr!important}}
 </style></head>
 <body>
 <div class="app">
