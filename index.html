@@ -1380,6 +1380,38 @@ body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="d
 body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar>.logo,
 body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar>.menu,
 body[data-central-theme="blue"].module-open:has(.menu button.active[data-menu="dados"]) .sidebar>.user-box{z-index:3!important;position:relative}
+</style><style id="marvel-unified-all-menus-20261122">
+/* Shared shell on Home and every module. No menu-specific visual exceptions. */
+body[data-central-theme="blue"] .sidebar{
+ background:linear-gradient(90deg,#07182d 0%,#0a2444 73%,#0a315a 100%)!important;
+ border-right:0!important;box-shadow:none!important;overflow:visible!important;
+}
+body[data-central-theme="blue"] .sidebar::before{
+ content:""!important;display:block!important;position:absolute!important;pointer-events:none!important;
+ left:calc(100% - 2px)!important;top:0!important;bottom:0!important;
+ width:clamp(120px,15vw,260px)!important;z-index:0!important;
+ background:linear-gradient(90deg,#0a315a 0%,rgba(10,49,90,.75) 12%,rgba(10,55,101,.32) 47%,transparent 100%)!important;
+}
+body[data-central-theme="blue"] .sidebar::after{
+ display:block!important;content:""!important;z-index:1!important;
+ opacity:.93!important;left:0!important;bottom:52px!important;
+ width:clamp(300px,29vw,470px)!important;height:clamp(300px,46vh,430px)!important;
+ background-image:url("assets/marvel-scania-sidebar.webp?v=20261121b")!important;
+ background-size:auto 100%!important;background-position:left bottom!important;background-repeat:no-repeat!important;
+ -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 32%,rgba(0,0,0,.88) 46%,rgba(0,0,0,.38) 66%,transparent 100%),linear-gradient(180deg,transparent 0%,#000 18%,#000 76%,transparent 100%)!important;
+ mask-image:linear-gradient(90deg,#000 0%,#000 32%,rgba(0,0,0,.88) 46%,rgba(0,0,0,.38) 66%,transparent 100%),linear-gradient(180deg,transparent 0%,#000 18%,#000 76%,transparent 100%)!important;
+ -webkit-mask-composite:source-in!important;mask-composite:intersect!important;
+}
+body[data-central-theme="blue"] .sidebar>.logo,
+body[data-central-theme="blue"] .sidebar>.menu,
+body[data-central-theme="blue"] .sidebar>.user-box{position:relative!important;z-index:3!important}
+body[data-central-theme="blue"] .main{border-left:0!important;box-shadow:none!important}
+body[data-central-theme="blue"] #marvel-seam-bridge,
+body[data-central-theme="blue"] .sidebar .marvel-sidebar-color-bridge{display:none!important}
+body[data-central-theme="blue"].module-open .module-frame-wrap,
+body[data-central-theme="blue"].module-open #moduleFrame{border-left:0!important}
+@media(max-width:850px){body[data-central-theme="blue"] .sidebar::before{width:90px!important}
+body[data-central-theme="blue"] .sidebar::after{width:300px!important;height:310px!important}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
