@@ -3211,7 +3211,16 @@ body[data-central-theme="light"] .sidebar::after{
   else if(k==='calculadora'){parent=d.querySelector('.layout>.side');buttons=[...d.querySelectorAll('.layout>.side button.nav[id^="menu"]')]}
   if(!parent||!buttons.length)return;
   sub.replaceChildren();
-  buttons.forEach((b,i)=>{const item=document.createElement('button');item.type='button';item.textContent=b.dataset.label||b.dataset.title||b.textContent.trim()||b.title||b.id;item.onclick=()=>{
+  const session=getSessaoMenu();
+  const permissionMap=session?.permissoes?.[k]?.permissions || {};
+  const adminStructure=typeof ADMIN_STRUCTURE!=='undefined' ? ADMIN_STRUCTURE[k] : null;
+  const names=adminStructure?.subs || [];
+  const canShow=(b,i)=>{
+    if(session?.perfil==='admin')return true;
+    const name=names[i] || b.dataset.label || b.textContent.trim();
+    return permissionMap[name] === true;
+  };
+  buttons.forEach((b,i)=>{if(!canShow(b,i))return;const item=document.createElement('button');item.type='button';item.textContent=b.dataset.label||b.dataset.title||b.textContent.trim()||b.title||b.id;item.onclick=()=>{
    if(k==='leitor'){
     const tab=['pdf','img','paste','txt','xml'][i];if(!tab)return;
     const base=new URL('modulos/leitor/index.html',location.href);
@@ -3230,7 +3239,7 @@ body[data-central-theme="light"] .sidebar::after{
    }
    // Reencontrar a aba a cada clique: o leitor XML recria partes da navegação.
    const current=doc();const live=current&&[...current.querySelectorAll(k==='leitor'?'.app>aside button.tab':k==='refaturamento'?'.app>.sidebar .menu button[data-view]':k==='painel902'?'.app>.side .navbtn[data-tab]':k==='instrutivo'?'#menu>.menu-btn':k==='calculadora'?'.layout>.side button.nav[id^="menu"]':k==='dados'?'.layout>.sidebar button[id^="btn"]':k==='agrupaPdf'?'.wrap>.topbar .tabbtn[data-tab]':'.app>.sidebar button[data-page]')];
-   const target=live?.[i]||b;if(target?.isConnected){target.click();setTimeout(()=>{navigation();paint()},80)}else{navigation();}
+   const target=live?.[i]||b;if(!canShow(target,i))return;if(target?.isConnected){target.click();setTimeout(()=>{navigation();paint()},80)}else{navigation();}
   };sub.append(item)});
   function select(){
    const scanner=k==='leitor';
