@@ -3257,7 +3257,15 @@ body[data-central-theme="light"] .sidebar::after{
    btn.classList.toggle('central-on-light',center>=sceneRect.top+sceneRect.height*.47 && center<=sceneRect.bottom);
   });
  }
- function loaded(){navigation();paint();updatePhotoContrast()}
+ async function loaded(){
+  if(key()==='instrutivo'){
+    try{
+      const auth=await sbAuth.auth.getUser();
+      if(auth.data?.user)await carregarPerfilPermissoes(auth.data.user);
+    }catch(e){console.warn('Não foi possível atualizar permissões do Instrutivo',e)}
+  }
+  navigation();paint();updatePhotoContrast();
+}
  window.addEventListener('resize',updatePhotoContrast);
  menu.addEventListener('scroll',updatePhotoContrast,{passive:true});
  new MutationObserver(updatePhotoContrast).observe(menu,{childList:true,subtree:true});
