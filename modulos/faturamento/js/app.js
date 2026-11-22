@@ -617,21 +617,18 @@ function renderDiario(){
 function destroyChart(key){ if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; } }
 
 function chartOpts(currency=false, datalabels=false, percentAxis=false){
+  const ink='#17365d', muted='#476586', grid='rgba(32,92,158,.12)';
   return {
-    responsive:true,
-    maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,
     interaction:{mode:'index',intersect:false},
     plugins:{
-      legend:{position:'top',labels:{color:'#244a73',font:{size:12,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:15}},
-      datalabels:datalabels ? {
-        color:'#173d69',
-        formatter:(v)=> currency ? shortNumber(v) : `${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%`,
-        anchor:'end', align:'top', offset:2, clamp:true, font:{size:10,weight:'700'}
-      } : {display:false}
+      legend:{position:'top',labels:{color:ink,font:{size:12,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:10,padding:16}},
+      tooltip:{backgroundColor:'#092e63',titleColor:'#fff',bodyColor:'#fff',padding:11,cornerRadius:9},
+      datalabels:datalabels?{color:ink,formatter:(v)=>currency?shortNumber(v):`${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%`,anchor:'end',align:'top',offset:2,clamp:true,font:{size:10,weight:'700'}}:{display:false}
     },
     scales:{
-      x:{ticks:{color:'#527398'},grid:{color:'rgba(28,89,155,.11)'}},
-      y:{ticks:{color:'#527398', callback:(v)=>percentAxis?`${v}%`:shortNumber(v)}, grid:{color:'rgba(28,89,155,.11)'}}
+      x:{ticks:{color:muted,font:{size:11,weight:'600'}},border:{color:grid},grid:{display:false}},
+      y:{beginAtZero:true,ticks:{color:muted,font:{size:11,weight:'600'},callback:(v)=>percentAxis?`${v}%`:shortNumber(v)},border:{display:false},grid:{color:grid}}
     }
   };
 }
