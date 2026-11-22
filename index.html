@@ -1214,6 +1214,18 @@ body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{
 body.module-open:has(.menu button.active[data-menu="dados"]) .main{padding:0!important;margin:0!important;gap:0!important}
 body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrameWrap{padding:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
 body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{display:block!important;width:100%!important}
+</style><style id="marvel-premium-truck-blend">
+/* Truck bleeds softly from the sidebar into the Passar Dados content.
+   The decorative layer does not capture clicks or alter the embedded application. */
+#moduleFrameWrap.marvel-premium-dados-active{background:#07366d!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+#moduleFrameWrap.marvel-premium-dados-active::after{
+ content:"";position:absolute;pointer-events:none;z-index:4;
+ left:0;bottom:0;width:clamp(140px,20vw,300px);height:clamp(260px,57vh,510px);
+ background-image:linear-gradient(90deg,rgba(7,43,86,.06) 0%,rgba(7,54,109,.20) 43%,rgba(7,54,109,1) 100%),linear-gradient(0deg,rgba(7,54,109,1),transparent 23%,transparent 68%,rgba(7,54,109,1)),url("assets/carreta-sidebar.jpg");
+ background-size:100% 100%,100% 100%,cover;background-position:center,center,42% center;
+ opacity:.34;filter:saturate(.85);-webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.65) 48%,transparent 100%);mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.65) 48%,transparent 100%);
+}
+@media(max-width:900px){#moduleFrameWrap.marvel-premium-dados-active::after{opacity:.13;width:140px}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -1831,6 +1843,7 @@ body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{displa
         setTimeout(resetarRolagemModulo, 60);
       };
       frame.src = destino;
+      wrap.classList.toggle("marvel-premium-dados-active", nome === "dados");
       wrap.classList.add("active");
       document.body.classList.add("module-open");
       setMenuAtivo(nome);
