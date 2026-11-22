@@ -1629,6 +1629,12 @@ body.module-open .main,body.module-open #moduleFrameWrap,body.module-open #modul
       return session?.access_token || "";
     };
 
+    window.marvelRefreshAccessToken = async function () {
+      const { data, error } = await sbAuth.auth.refreshSession();
+      if (error || !data?.session?.access_token) throw error || new Error("Sessão expirada");
+      return data.session.access_token;
+    };
+
     let sessaoMenuAtual = null;
 
     function emailInternoLogin(usuario) {
