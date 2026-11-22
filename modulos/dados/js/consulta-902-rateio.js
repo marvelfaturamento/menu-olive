@@ -8,11 +8,19 @@ const $=id=>document.getElementById(id),status=$("pd902Status"),results=$("pd902
 let snapshot=null;
 const ids=["origem","aduana","destino","freteBRL","adv"];
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const set=(id,v)=>{const el=$(id);if(el&&v!==null&&v!==undefined){el.value=String(v);el.dispatchEvent(new Event("input",{bubbles:true}));}};
+const set=(id,v,uf='')=>{const el=$(id);if(el&&v!==null&&v!==undefined){
+ const cidade=String(v).trim();
+ if(['origem','aduana','destino'].includes(id)){
+   el.dataset.cidadeEsperada=cidade;
+   if(uf)el.dataset.ufEsperada=String(uf).toUpperCase();
+   else delete el.dataset.ufEsperada;
+ }
+ el.value=cidade;el.dispatchEvent(new Event("input",{bubbles:true}));
+}};
 const apply=p=>{
  snapshot=Object.fromEntries(ids.map(id=>[id,$(id)?.value??""]));
- set("origem",p.municipio_origem||"");set("destino",p.municipio_destino||"");
- if(p.talhao)set("aduana",p.talhao);
+ set("origem",p.municipio_origem||"",p.uf_origem||"");set("destino",p.municipio_destino||"",p.uf_destino||"");
+ if(p.talhao)set("aduana",p.talhao,p.uf_aduana||"");
  // A aduana não está cadastrada no 902: preservar preenchimento atual.
  if(Number(p.frete_padrao)>0)set("freteBRL",p.frete_padrao);
 
