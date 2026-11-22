@@ -1976,8 +1976,25 @@ body[data-central-theme="light"] .sidebar::after{
       if(getSessaoMenu()?.perfil!=="admin") return;
       document.getElementById("adminOverlay").classList.add("active");
       const root=document.getElementById("adminUsersList"); root.innerHTML='<div class="admin-msg">Carregando usuários...</div>';
-      const {data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"list"}});
-      if(error||data?.error){root.innerHTML='<div class="admin-msg">Erro ao carregar usuários.</div>';return;}
+      let data,error;
+      try {
+        const sessionResult=await sbAuth.auth.getSession();
+        if(sessionResult.error)throw sessionResult.error;
+        if(!sessionResult.data?.session?.access_token){
+          root.innerHTML='<div class="admin-msg">Sessão expirada. Saia e entre novamente no Menu Marvel para gerenciar usuários.</div>';
+          return;
+        }
+        ({data,error}=await sbAuth.functions.invoke("admin-access",{body:{action:"list"}}));
+      } catch(e) { error=e; }
+      if(error||data?.error){
+        const context=await error?.context?.json?.().catch(()=>null);
+        const status=error?.context?.status;
+        const reason=String(data?.error||context?.error||context?.message||error?.message||"Falha desconhecida");
+        const hint=status===404?"A função admin-access não foi encontrada no projeto de autenticação. Verifique a implantação da Edge Function.":status===401||status===403?"A sessão não tem autorização para administrar usuários. Verifique a autenticação e o perfil de administrador.":status===500?"A função retornou erro interno. Consulte os logs da Edge Function.":"Verifique a função admin-access e a conexão com o projeto de autenticação.";
+        console.error("Falha ao listar usuários (admin-access)",{status,reason});
+        root.innerHTML='<div class="admin-msg" role="alert"><strong>Não foi possível carregar os usuários.</strong><div style="margin-top:7px">'+esc(hint)+'</div><div style="margin-top:6px">Detalhe: '+esc((status?("HTTP "+status+" — "):"")+reason)+'</div><button class="admin-save" style="margin-top:12px" type="button" onclick="abrirAdminUsuarios()">Tentar novamente</button></div>';
+        return;
+      }
       root.innerHTML=(data.users||[]).map(u=>{
         const rows=Object.entries(ADMIN_STRUCTURE).map(([k,m])=>{
           const allowed=(u.modules?.[k]||"bloqueado")!=="bloqueado";
