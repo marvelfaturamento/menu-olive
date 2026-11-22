@@ -2763,7 +2763,7 @@ body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent
   // The iframe owns its opaque page background: fade must be painted HERE, behind its content.
   // A long gradient removes the hard vertical seam without dimming cards, tables or labels.
   if(!light && document.body.dataset.centralTheme==='blue'){
-   css+='html,body{background:#0c4a87!important;background-image:linear-gradient(90deg,#12243b 0px,#173b5f 150px,#125080 430px,#0e568e 690px,#0c4a87 990px)!important;background-repeat:no-repeat!important}';
+   css+='html,body{background-color:#0c4a87!important;background-image:linear-gradient(90deg,#111827 0px,#14243a 190px,#173b5f 380px,#125080 660px,#0e568e 940px,#0c4a87 1250px)!important;background-size:calc(100% + 205px) 100%!important;background-position:-205px 0!important;background-repeat:no-repeat!important;background-attachment:fixed!important}';
   }
   const panel='.card,.panel,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card';
   css+=panel+'{background-color:'+t.panel+'!important;border-color:'+t.edge+'!important;color:'+t.ink+'}';
