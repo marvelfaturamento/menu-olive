@@ -71,6 +71,23 @@ body{background:radial-gradient(ellipse 60% 38% at 60% 100%,rgba(0,174,255,.42),
 @media(max-width:1200px){.hero{grid-template-columns:1fr!important}.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 @media(max-width:760px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}.metrics-row{grid-template-columns:1fr!important}}
 @media(max-width:440px){.cards{grid-template-columns:1fr!important}}
+</style><style id="marvel-bi-charts-and-icons-v3">
+/* Chart cards follow the same compact, saturated executive design as KPI cards. */
+#graficos .chart-card,#anual .chart-card{background:linear-gradient(150deg,#ffffff 0%,#e9f5ff 100%)!important;border:1px solid #b5ddfa!important;box-shadow:0 8px 22px rgba(0,30,80,.20)!important;border-radius:16px!important;padding:15px 18px!important}
+#graficos .chart-title,#anual .chart-title{color:#073d7d!important;font-weight:850!important;font-size:15px!important;display:flex;align-items:center;gap:9px}
+#graficos .chart-title::after,#anual .chart-title::after{content:"";flex:1;height:1px;background:#c4dff6}
+#graficos .chart-card canvas,#anual .chart-card canvas{max-width:100%!important}
+#graficos .charts-grid,#graficos .mini-charts,#anual .charts-grid,#anual .mini-charts{gap:12px!important;margin-bottom:12px!important}
+#graficos .chart-card:nth-child(2),#anual .chart-card:nth-child(2){background:linear-gradient(155deg,#fff,#e8f2ff)!important}
+#dashboard .mini-card{padding-left:13px!important}
+#dashboard .mini-card .label{display:flex;align-items:center;gap:7px;min-height:22px}
+.marvel-bi-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:25px;height:25px;border-radius:8px;background:linear-gradient(145deg,#d9f2ff,#b9dcff);color:#0673d6}
+.marvel-bi-icon svg{width:17px;height:17px;stroke:currentColor;stroke-width:2.25;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#dashboard .mini-card:nth-child(4n+3) .marvel-bi-icon{background:#ffe6d4;color:#f07818}
+#dashboard .mini-card:nth-child(4n) .marvel-bi-icon{background:#ebe3ff;color:#7950dd}
+#dashboard .mini-card .label{font-size:10px!important}
+#dashboard .mini-card .value{font-size:clamp(17px,1.35vw,23px)!important}
+#graficos .chart-card:nth-child(1) .marvel-bi-icon,#anual .chart-card:nth-child(1) .marvel-bi-icon{background:#d5f3ff;color:#0875e6}
 </style></head>
 <body>
 <div class="app">
@@ -536,5 +553,26 @@ body{background:radial-gradient(ellipse 60% 38% at 60% 100%,rgba(0,174,255,.42),
  function apply(perms){if(!perms||typeof perms!=="object")return;document.querySelectorAll(".navbtn[data-page]").forEach(b=>{const label=labels[b.dataset.page]||b.textContent.replace(/^\s*[^A-Za-zÀ-ÿ]+/,"").trim();if(Object.prototype.hasOwnProperty.call(perms,label)&&perms[label]===false){b.hidden=true;b.setAttribute("aria-hidden","true");b.style.setProperty("display","none","important");b.dataset.permissionBlocked="true";}});}
  function fromUrl(){try{const raw=new URLSearchParams(location.search).get("permissoes");if(raw)apply(JSON.parse(decodeURIComponent(raw)));}catch(e){}}
  window.addEventListener("message",e=>{if(e.data?.type==="marvel:permissions")apply(e.data.permissions);});document.addEventListener("DOMContentLoaded",fromUrl);fromUrl();
+})();
+</script><script id="marvel-bi-inline-vector-icons">
+(function(){
+ const paths={
+ money:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+ repeat:'<path d="M20 7h-12l3-3M8 7l3 3M4 17h12l-3-3m3 3-3 3"/><path d="M20 7v5M4 17v-5"/>',
+ trend:'<path d="M3 18l6-6 4 3 8-9M15 6h6v6"/>',
+ target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+ down:'<path d="M4 7l6 6 4-4 6 7M15 16h5v-5"/>',
+ percent:'<circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 19L19 5"/>',
+ globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-6 6-6 12 0 18M12 3c6 6 6 12 0 18"/>',
+ flag:'<path d="M5 21V4m0 1c6-4 8 4 15 0v11c-7 4-9-4-15 0"/>',
+ calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',
+ bars:'<path d="M5 20v-7h3v7M11 20V5h3v15M17 20v-10h3v10"/>',
+ pie:'<path d="M12 3a9 9 0 1 0 9 9h-9zM14 3v7h7a9 9 0 0 0-7-7z"/>'
+ };
+ const labels=['money','repeat','trend','target','down','percent','globe','flag','calendar','target','repeat'];
+ const chartIcons=['trend','pie','bars','globe','flag','trend','globe','percent','bars','trend'];
+ function icon(name){const span=document.createElement('span');span.className='marvel-bi-icon';span.setAttribute('aria-hidden','true');span.innerHTML='<svg viewBox="0 0 24 24">'+(paths[name]||paths.bars)+'</svg>';return span}
+ function mount(){document.querySelectorAll('#dashboard .mini-card .label').forEach((el,i)=>{if(!el.querySelector('.marvel-bi-icon'))el.prepend(icon(labels[i%labels.length]))});document.querySelectorAll('#graficos .chart-title,#anual .chart-title').forEach((el,i)=>{if(!el.querySelector('.marvel-bi-icon'))el.prepend(icon(chartIcons[i%chartIcons.length]))});}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();
 </script></body></html>
