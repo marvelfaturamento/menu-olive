@@ -1615,6 +1615,20 @@ body.module-open .main,body.module-open #moduleFrameWrap,body.module-open #modul
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
+    // Sessão autenticada do Menu Pai para módulos internos de mesma origem.
+    window.marvelGetAccessToken = async function () {
+      const { data, error } = await sbAuth.auth.getSession();
+      if (error) throw error;
+      let session = data?.session;
+      if (!session?.access_token) return "";
+      if (session.expires_at && session.expires_at * 1000 < Date.now() + 60000) {
+        const renewed = await sbAuth.auth.refreshSession();
+        if (renewed.error) throw renewed.error;
+        session = renewed.data?.session;
+      }
+      return session?.access_token || "";
+    };
+
     let sessaoMenuAtual = null;
 
     function emailInternoLogin(usuario) {
