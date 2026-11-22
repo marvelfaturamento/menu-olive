@@ -811,7 +811,7 @@
 #adminUsersList .admin-user.collapsed .admin-user-top > :first-child .admin-msg{display:none}
 
 .sidebar .user-box-bottom{position:relative!important}
-.sidebar .user-box-bottom > .central-theme-toggle{position:absolute!important;right:10px!important;top:-43px!important;width:30px!important;height:30px!important;z-index:20!important}
+.sidebar .user-box-bottom > .central-theme-toggle{position:static!important}
 .sidebar .user-compact #btnAdminUsers{cursor:pointer!important;pointer-events:auto!important}
 </style>
 <style>
@@ -1327,6 +1327,11 @@ body[data-central-theme="light"] .sidebar .menu button.active{background:#467ac1
 body[data-central-theme="light"] .sidebar::after{
  opacity:.65!important;
 }
+</style><style id="footer-controls-fix">
+.sidebar .user-box-bottom > .central-theme-toggle{display:none!important}
+.sidebar .user-compact{display:flex!important;align-items:center!important}
+.sidebar .user-compact > .central-theme-toggle{position:static!important;flex:0 0 28px!important;width:28px!important;height:28px!important;margin-left:auto!important;z-index:8!important}
+.sidebar .user-compact #btnAdminUsers:not([hidden]){margin-left:0!important;flex:0 0 34px!important;z-index:9!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -1380,7 +1385,7 @@ body[data-central-theme="light"] .sidebar::after{
           <strong id="usuarioLogado">Tiago</strong>
           <span>Perfil: <span id="perfilLogado">admin</span></span>
         </div>
-        <button id="btnAdminUsers" class="user-config-btn admin-only" style="display:none" type="button" title="Usuários e Acessos" onclick="event.preventDefault();event.stopPropagation();abrirAdminUsuarios()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.67 3.7a2 2 0 0 1 4.66 0l.32 1.16c.42.16.82.39 1.19.68l1.18-.3a2 2 0 0 1 2.33 4.04l-.86.85c.07.45.07.91 0 1.36l.86.85a2 2 0 0 1-2.33 4.04l-1.18-.3c-.37.29-.77.52-1.19.68l-.32 1.16a2 2 0 0 1-4.66 0l-.32-1.16a7 7 0 0 1-1.19-.68l-1.18.3a2 2 0 0 1-2.33-4.04l.86-.85a7 7 0 0 1 0-1.36l-.86-.85a2 2 0 0 1 2.33-4.04l1.18.3c.37-.29.77-.52 1.19-.68l.32-1.16Z" transform="translate(0 1.1)"/><circle cx="12" cy="11.9" r="3.1"/></svg></button>
+        <button id="btnAdminUsers" class="user-config-btn admin-only" style="display:none" type="button" title="Usuários e Acessos" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.67 3.7a2 2 0 0 1 4.66 0l.32 1.16c.42.16.82.39 1.19.68l1.18-.3a2 2 0 0 1 2.33 4.04l-.86.85c.07.45.07.91 0 1.36l.86.85a2 2 0 0 1-2.33 4.04l-1.18-.3c-.37.29-.77.52-1.19.68l-.32 1.16a2 2 0 0 1-4.66 0l-.32-1.16a7 7 0 0 1-1.19-.68l-1.18.3a2 2 0 0 1-2.33-4.04l.86-.85a7 7 0 0 1 0-1.36l-.86-.85a2 2 0 0 1 2.33-4.04l1.18.3c.37-.29.77-.52 1.19-.68l.32-1.16Z" transform="translate(0 1.1)"/><circle cx="12" cy="11.9" r="3.1"/></svg></button>
       </div>
       <button class="logout-btn" id="btnLogout" type="button">Sair</button>
     </div>
@@ -2909,8 +2914,20 @@ body[data-central-theme="light"] .sidebar::after{
    const user=side.querySelector('.user-compact');
    const gear=user?.querySelector('#btnAdminUsers');
    const toggle=document.createElement('button');toggle.type='button';toggle.className='central-theme-toggle';toggle.title='Alterar aparência';toggle.setAttribute('aria-label','Escolher cor do painel');toggle.setAttribute('aria-expanded','false');toggle.textContent='◐';
-   if(user?.parentElement)user.parentElement.insertBefore(toggle,user);
+   if(user)user.insertBefore(toggle,gear||null);
    if(user)user.append(panel);
+   if(gear){
+     gear.addEventListener('click',function(e){
+       e.preventDefault();e.stopPropagation();
+       const overlay=document.getElementById('adminOverlay');
+       if(overlay)overlay.classList.add('active');
+       if(typeof window.abrirAdminUsuarios==='function')window.abrirAdminUsuarios();
+       else {
+         const root=document.getElementById('adminUsersList');
+         if(root)root.innerHTML='<div class="admin-msg">Não foi possível iniciar a configuração de usuários. Recarregue o sistema.</div>';
+       }
+     });
+   }
    toggle.addEventListener('click',e=>{e.stopPropagation();const open=panel.classList.toggle('is-open');toggle.setAttribute('aria-expanded',String(open))});
    document.addEventListener('click',e=>{if(!panel.contains(e.target)&&e.target!==toggle){panel.classList.remove('is-open');toggle.setAttribute('aria-expanded','false')}});
    panel.addEventListener('click',e=>{const btn=e.target.closest('button[data-theme]');if(btn){e.stopPropagation();apply(btn.dataset.theme);panel.classList.remove('is-open');toggle.setAttribute('aria-expanded','false')}});
