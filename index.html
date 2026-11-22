@@ -1273,6 +1273,20 @@ body .sidebar::after{
 }
 body.module-open .sidebar::after{opacity:.65!important}
 @media(max-width:850px){body .sidebar::after{width:295px!important;height:325px!important;background-size:295px 325px!important}}
+</style><style id="marvel-seamless-sidebar-to-dashboard-20261122">
+/* Seam transition: a narrow blue bridge over the hard sidebar edge, below menu labels. */
+body.module-open .sidebar{border-right-color:transparent!important}
+body.module-open .sidebar .marvel-sidebar-color-bridge{
+ position:absolute;display:block;pointer-events:none;
+ left:calc(100% - 1px);top:0;bottom:0;width:105px;z-index:2;
+ background:linear-gradient(90deg,#111827 0%,rgba(14,34,59,.93) 8%,rgba(11,49,89,.73) 29%,rgba(9,55,103,.38) 61%,rgba(9,55,103,0) 100%);
+}
+body.module-open .sidebar::after{
+ z-index:2!important;
+ -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 35%,rgba(0,0,0,.93) 48%,rgba(0,0,0,.55) 60%,rgba(0,0,0,.12) 74%,transparent 92%),linear-gradient(180deg,transparent 0%,rgba(0,0,0,.6) 16%,#000 32%,#000 70%,rgba(0,0,0,.75) 85%,transparent 100%)!important;
+ mask-image:linear-gradient(90deg,#000 0%,#000 35%,rgba(0,0,0,.93) 48%,rgba(0,0,0,.55) 60%,rgba(0,0,0,.12) 74%,transparent 92%),linear-gradient(180deg,transparent 0%,rgba(0,0,0,.6) 16%,#000 32%,#000 70%,rgba(0,0,0,.75) 85%,transparent 100%)!important;
+}
+@media(max-width:850px){body.module-open .sidebar .marvel-sidebar-color-bridge{width:50px!important}}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
@@ -1298,7 +1312,7 @@ body.module-open .sidebar::after{opacity:.65!important}
     </div>
   </div>
 
-  <aside class="sidebar"><div class="scania-photo-layer" aria-hidden="true"><img src="assets/marvel-scania-sidebar.webp?v=20261121b" alt="" loading="eager" decoding="async"></div>
+  <aside class="sidebar"><div class="marvel-sidebar-color-bridge" aria-hidden="true"></div><div class="scania-photo-layer" aria-hidden="true"><img src="assets/marvel-scania-sidebar.webp?v=20261121b" alt="" loading="eager" decoding="async"></div>
     <div class="logo">
       <h1>Marvel Sistemas</h1>
       <p>Central operacional integrada</p>
