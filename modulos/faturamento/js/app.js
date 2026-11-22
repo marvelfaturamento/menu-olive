@@ -616,8 +616,22 @@ function renderDiario(){
 
 function destroyChart(key){ if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; } }
 
+/* Unified chart styling: black labels on light surfaces, independent of inherited themes. */
+const marvelChartInkPlugin={
+ id:'marvelChartInk',
+ beforeUpdate(chart){
+  const o=chart.options;
+  if(o.plugins?.legend?.labels){o.plugins.legend.labels.color='#101820';o.plugins.legend.labels.font={size:12,weight:'bold',family:'Arial'};}
+  if(o.scales)for(const axis of Object.values(o.scales)){
+   axis.ticks={...(axis.ticks||{}),color:'#101820',font:{size:11,weight:'bold',family:'Arial'}};
+   axis.title={...(axis.title||{}),color:'#101820'};
+   axis.grid={...(axis.grid||{}),color:'rgba(17,49,84,.12)'};
+  }
+ }
+};
+Chart.register(marvelChartInkPlugin);
 function chartOpts(currency=false, datalabels=false, percentAxis=false){
-  const ink='#17365d', muted='#476586', grid='rgba(32,92,158,.12)';
+  const ink='#101820', muted='#101820', grid='rgba(32,92,158,.12)';
   return {
     responsive:true,maintainAspectRatio:false,
     interaction:{mode:'index',intersect:false},
@@ -645,7 +659,7 @@ function renderGraficos(){
   state.charts.comparativo=new Chart(comparativoChart,{
     type:'line',
     data:{labels,datasets:[
-      {label:'Lucro real',data:total,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
+      {label:'Lucro real',data:total,borderColor:'#0878f9',backgroundColor:(ctx)=>{const c=ctx.chart.ctx,area=ctx.chart.chartArea;if(!area)return 'rgba(0,155,255,.20)';const g=c.createLinearGradient(0,area.top,0,area.bottom);g.addColorStop(0,'rgba(0,155,255,.45)');g.addColorStop(1,'rgba(0,155,255,.02)');return g},fill:true,borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
       {label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6},
       {label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.32,pointRadius:3,pointHoverRadius:6}
     ]},
@@ -655,12 +669,12 @@ function renderGraficos(){
   destroyChart('pizza');
   const interSum=inter.reduce((s,v)=>s+v,0), nacSum=nac.reduce((s,v)=>s+v,0);
   state.charts.pizza=new Chart(pizzaChart,{
-    type:'pie',
+    type:'doughnut',
     data:{labels:['Internacional','Nacional'],datasets:[{data:[interSum,nacSum],backgroundColor:['#35b9ff','#ff5f96'],borderColor:'#ffffff',borderWidth:3}]},
     options:{
-      responsive:true, maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:false,cutout:'63%',
       plugins:{
-        legend:{position:'top',labels:{color:'#244a73',font:{size:12,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:15}},
+        legend:{position:'top',labels:{color:'#101820',font:{size:12,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:15}},
         datalabels:{
           color:'#fff',
           formatter:(v,ctx)=>{ const sum=ctx.chart.data.datasets[0].data.reduce((s,n)=>s+n,0); const pct=sum?(v/sum)*100:0; return `${fmtPct(pct)}\n${shortNumber(v)}`; },
@@ -678,7 +692,7 @@ function renderGraficos(){
     destroyChart(key);
     state.charts[key]=new Chart(document.getElementById(id),{
       type:'bar',
-      data:{labels,datasets:[{label,data,backgroundColor:color}]},
+      data:{labels,datasets:[{label,data,backgroundColor:color,borderRadius:5,maxBarThickness:36}]},
       options:chartOpts(true,false,false)
     });
   });
@@ -732,14 +746,14 @@ function renderAnual(){
   destroyChart('annualBruto');
   state.charts.annualBruto=new Chart(annualBrutoChart,{
     type:'bar',
-    data:{labels,datasets:[{label:'Bruto',data:bruto,backgroundColor:'#35b9ff'}]},
+    data:{labels,datasets:[{label:'Bruto',data:bruto,backgroundColor:'#35b9ff',borderRadius:5,maxBarThickness:44}]},
     options:chartOpts(true,false,false)
   });
 
   destroyChart('annualLiquido');
   state.charts.annualLiquido=new Chart(annualLiquidoChart,{
     type:'bar',
-    data:{labels,datasets:[{label:'Lucro real',data:liquido,backgroundColor:'#1fc16b'}]},
+    data:{labels,datasets:[{label:'Lucro real',data:liquido,backgroundColor:'#1fc16b',borderRadius:5,maxBarThickness:44}]},
     options:chartOpts(true,false,false)
   });
 }
