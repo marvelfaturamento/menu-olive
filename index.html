@@ -1296,6 +1296,25 @@ body .sidebar>.logo,body .sidebar>.menu,body .sidebar>.user-box,body .sidebar>.s
 body .sidebar .marvel-sidebar-color-bridge,#marvel-seam-bridge{display:none!important}
 body.module-open .main,body.module-open #moduleFrameWrap,body.module-open #moduleFrame{border-left:0!important}
 @media(max-width:850px){body .sidebar::after,body.module-open .sidebar::after{width:320px!important;height:345px!important;background-size:320px 345px!important}}
+</style><style id="marvel-light-sidebar-fix">
+/* The shared shell must follow the light theme on home and embedded modules. */
+body[data-central-theme="light"] .sidebar,
+body.module-open[data-central-theme="light"] .sidebar{
+ background:#f3f6fa!important;
+ background-color:#f3f6fa!important;
+ border-right:1px solid #d6dfeb!important;
+ color:#172b46!important;
+}
+body[data-central-theme="light"] .sidebar .logo h1,
+body[data-central-theme="light"] .sidebar .menu button:not(.active){
+ color:#172b46!important;
+}
+body[data-central-theme="light"] .sidebar .logo p{color:#526580!important}
+body[data-central-theme="light"] .sidebar .menu button:not(.active){background:#e5eaf1!important}
+body[data-central-theme="light"] .sidebar .menu button.active{background:#467ac1!important;color:#fff!important}
+body[data-central-theme="light"] .sidebar::after{
+ opacity:.65!important;
+}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
