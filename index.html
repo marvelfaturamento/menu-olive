@@ -1287,6 +1287,16 @@ body.module-open .sidebar::after{
  mask-image:linear-gradient(90deg,#000 0%,#000 35%,rgba(0,0,0,.93) 48%,rgba(0,0,0,.55) 60%,rgba(0,0,0,.12) 74%,transparent 92%),linear-gradient(180deg,transparent 0%,rgba(0,0,0,.6) 16%,#000 32%,#000 70%,rgba(0,0,0,.75) 85%,transparent 100%)!important;
 }
 @media(max-width:850px){body.module-open .sidebar .marvel-sidebar-color-bridge{width:50px!important}}
+</style><style id="marvel-bridge-correction-20261122">
+/* Remove the full-height dark smear introduced by the previous bridge. */
+body.module-open .sidebar .marvel-sidebar-color-bridge{
+ top:auto!important;bottom:52px!important;height:370px!important;
+ left:calc(100% - 1px)!important;width:135px!important;
+ background:linear-gradient(90deg,rgba(10,40,73,.42) 0%,rgba(9,53,99,.25) 28%,rgba(9,53,99,.08) 58%,transparent 100%)!important;
+ -webkit-mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.25) 12%,#000 35%,#000 72%,transparent 100%)!important;
+ mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.25) 12%,#000 35%,#000 72%,transparent 100%)!important;
+}
+body.module-open .sidebar::after{opacity:.78!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
