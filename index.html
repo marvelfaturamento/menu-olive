@@ -3210,6 +3210,20 @@ body[data-central-theme="light"] .sidebar::after{
   else if(k==='leitor'){parent=d.querySelector('.app>aside');buttons=[...d.querySelectorAll('.app>aside button.tab')]}
   else if(k==='calculadora'){parent=d.querySelector('.layout>.side');buttons=[...d.querySelectorAll('.layout>.side button.nav[id^="menu"]')]}
   if(!parent||!buttons.length)return;
+  // Compatibilidade com versões antigas do iframe que ainda não exibem Diversos.
+  // O item é criado no menu interno somente quando autorizado ao usuário.
+  if(k==='instrutivo' && !buttons.some(b=>/diversos/i.test(b.textContent))){
+    const session=getSessaoMenu();
+    const permitted=session?.perfil==='admin'||session?.permissoes?.instrutivo?.permissions?.['Diversos']===true;
+    if(permitted){
+      const extra=d.createElement('div');
+      extra.className='menu-btn';
+      extra.textContent='Diversos';
+      extra.setAttribute('onclick',"trocarTipo('diversos', this)");
+      parent.insertBefore(extra,parent.querySelector('.cliente-tools'));
+      buttons=[...d.querySelectorAll('#menu>.menu-btn')];
+    }
+  }
   sub.replaceChildren();
   const session=getSessaoMenu();
   const permissionMap=session?.permissoes?.[k]?.permissions || {};
