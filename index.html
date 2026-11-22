@@ -813,6 +813,17 @@
 .sidebar .user-box-bottom{position:relative!important}
 .sidebar .user-box-bottom > .central-theme-toggle{position:static!important}
 .sidebar .user-compact #btnAdminUsers{cursor:pointer!important;pointer-events:auto!important}
+
+/* Lista de usuários compacta: detalhes apenas ao expandir */
+#adminUsersList .admin-user.collapsed{padding:5px 10px;margin:4px 0;border-radius:9px;min-height:36px}
+#adminUsersList .admin-user.collapsed .admin-user-top{display:flex;align-items:center;gap:10px;min-height:26px}
+#adminUsersList .admin-user.collapsed .admin-user-top>div:first-child{flex:1;min-width:0;cursor:pointer;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#adminUsersList .admin-user.collapsed .admin-user-top>div:first-child .admin-msg{display:none}
+#adminUsersList .admin-user.collapsed .admin-user-top>button:not(:first-of-type),
+#adminUsersList .admin-user.collapsed .admin-user-top>select,
+#adminUsersList .admin-user.collapsed .admin-user-top>label,
+#adminUsersList .admin-user.collapsed>div:last-child{display:none!important}
+#adminUsersList .admin-user.collapsed .admin-user-top>button:first-of-type{font-size:11px;padding:5px 10px;min-width:88px}
 </style>
 <style>
 /* Central Operacional: painel de saúde integrado aos cartões. */
