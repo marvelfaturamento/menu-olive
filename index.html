@@ -1203,6 +1203,17 @@ body.module-open:has(#moduleFrame[src*="dados"]) .main,
 body.module-open:has(#moduleFrame[src*="dados"]) .module-content,
 body.module-open:has(#moduleFrame[src*="dados"]) #moduleFrame{background:#062d59!important;background-color:#062d59!important}
 body.module-open:has(#moduleFrame[src*="dados"]) .module-frame-wrap{padding:0!important;margin:0!important;border:0!important}
+</style><style id="premium-dados-host-final">
+/* Target the selected module, not the iframe URL (which may vary). */
+body.module-open:has(.menu button.active[data-menu="dados"])>.app .main,
+body.module-open:has(.menu button.active[data-menu="dados"]) .main,
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrameWrap,
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{
+ background:#06325f!important;background-color:#06325f!important;
+}
+body.module-open:has(.menu button.active[data-menu="dados"]) .main{padding:0!important;margin:0!important;gap:0!important}
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrameWrap{padding:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+body.module-open:has(.menu button.active[data-menu="dados"]) #moduleFrame{display:block!important;width:100%!important}
 </style></head>
 <body>
   <div id="loginOverlay" class="login-overlay" style="display: none;">
