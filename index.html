@@ -801,7 +801,9 @@
   #btnAdminUsers svg{width:28px;height:28px;filter:drop-shadow(0 0 3px #4b89ed66)}
   #btnAdminUsers:hover{color:#fff;transform:rotate(25deg);background:transparent!important}
   #btnAdminUsers:focus-visible{outline:2px solid #5d9cff!important;outline-offset:2px}
-  #btnAdminUsers[hidden]{display:none!important}\n
+  #btnAdminUsers[hidden]{display:none!important}
+  .user-compact #btnAdminUsers:not([hidden]){display:inline-flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:5!important;flex:0 0 36px!important}
+  .user-compact .user-meta{flex:1 1 auto;min-width:0}\n
 #adminUsersList .admin-user.collapsed .admin-user-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
 #adminUsersList .admin-user.collapsed .admin-user-top > :not(:first-child):not(:nth-child(2)){display:none!important}
 #adminUsersList .admin-user.collapsed .admin-save-compact{display:none!important}
@@ -1768,6 +1770,12 @@ body[data-central-theme="light"] .sidebar::after{
       if (nomeEl) nomeEl.textContent = sessao?.nome || "-";
       if (perfilEl) perfilEl.textContent = sessao?.perfil || "-";
       atualizarVisibilidadeModulos();
+      const engrenagem = document.getElementById("btnAdminUsers");
+      if (engrenagem) {
+        const autorizado = sessao?.perfil === "admin";
+        engrenagem.hidden = !autorizado;
+        engrenagem.style.setProperty("display", autorizado ? "inline-flex" : "none", "important");
+      }
     }
 
     function mostrarLogin() {
