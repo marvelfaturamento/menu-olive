@@ -47,7 +47,13 @@ const search=async()=>{
  if(!token){status.textContent="Sessão do Menu Marvel não encontrada. Entre novamente no sistema.";return;}
  const btn=$("pd902Buscar");btn.disabled=true;status.textContent="Consultando cargas...";results.replaceChildren();
  try{
- const resp=await fetch("https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/passar-dados-consulta-902",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({action:"search",q})});
+ const request=async(t)=>fetch("https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/passar-dados-consulta-902",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:JSON.stringify({action:"search",q})});
+ let resp=await request(token);
+ if(resp.status===401 && typeof window.parent?.marvelRefreshAccessToken==="function"){
+   status.textContent="Renovando sessão para consultar o Painel 902...";
+   token=await window.parent.marvelRefreshAccessToken();
+   resp=await request(token);
+ }
  const payload=await resp.json();if(!resp.ok)throw Error(payload.error||"Falha na consulta");
  const items=payload.items||[];status.textContent=items.length?items.length+" carga(s) encontrada(s). Selecione uma:":"Nenhuma carga ativa encontrada.";
  for(const p of items){const btn=document.createElement("button");btn.type="button";btn.style.cssText="display:block;width:100%;text-align:left;padding:9px;margin-top:5px;border:1px solid #c7d6e7;border-radius:6px;background:white;cursor:pointer;color:#123";
