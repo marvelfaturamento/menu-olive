@@ -318,6 +318,24 @@ div:has(> input + .suggestions):focus-within{z-index:1001;}
 .resultado-box::before{content:"";position:absolute;inset:auto -15% -15% 12%;height:45%;border-top:2px solid rgba(70,180,255,.30);border-radius:80% 0 0 0;transform:rotate(-9deg);pointer-events:none}
 .resultado-box h3,.resultado-box h4{color:#fff!important}
 @media(max-width:980px){.grid{grid-template-columns:1fr!important;max-width:720px!important}.main{overflow-y:auto!important}}
+</style><style id="marvel-premium-layout-refinement">
+/* Fit the complete calculator above the fold on desktop; no functional changes. */
+html,body{margin:0!important;min-height:100%!important;width:100%!important;background:#062a53!important}
+.main{box-sizing:border-box!important;min-height:100vh!important;width:100%!important;padding:clamp(10px,1.4vw,20px)!important;background:radial-gradient(ellipse at 80% 105%,rgba(20,156,255,.42),transparent 55%),linear-gradient(125deg,#06325f,#074d91 55%,#05264b)!important}
+.main::after{content:"";position:fixed;right:-8%;bottom:-8%;width:80%;height:38%;border-top:2px solid rgba(59,191,255,.7);border-radius:70% 0 0 0;transform:rotate(-12deg);pointer-events:none}
+.grid{max-width:1160px!important;margin:0 auto!important;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr)!important;gap:16px!important;align-items:start!important}
+.grid>.card,.grid>.resultado-box{min-width:0!important;box-sizing:border-box!important}
+.grid>.card{padding:clamp(14px,1.6vw,22px)!important}
+.card h3{font-size:19px!important;margin:0 0 12px!important;padding-bottom:10px!important}
+.card h4{margin:12px 0 7px!important}
+.card input,.card select{min-height:36px!important;height:36px!important;box-sizing:border-box!important;margin-bottom:8px!important;padding:7px 11px!important;font-size:13px!important}
+.modo-toggle{margin:10px 0 12px!important;gap:7px!important}
+.modo-btn{min-height:36px!important;padding:7px 8px!important}
+.dropdown,.dropdown-box{min-height:36px!important}
+.btn-primary{min-height:38px!important}
+.resultado-box{padding:clamp(16px,1.8vw,24px)!important;min-height:260px!important;background:linear-gradient(150deg,#07376b,#063b76 65%,#0b5aa0)!important}
+.resultado-box::after{content:"";position:absolute;right:-10%;bottom:-13%;width:90%;height:45%;border-top:2px solid rgba(74,190,255,.45);border-radius:80% 0 0 0;transform:rotate(-10deg);pointer-events:none}
+@media(max-width:900px){.grid{grid-template-columns:1fr!important;max-width:650px!important}.main{overflow-y:auto!important}}
 </style></head>
 
 <body>
