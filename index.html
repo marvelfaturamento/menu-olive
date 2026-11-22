@@ -1197,18 +1197,19 @@ body[data-central-theme="accessible"] :focus-visible{outline:3px solid #ffd166!i
 body[data-central-theme="light"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#f3f7fc 0%,rgba(243,247,252,.83) 9%,rgba(243,247,252,.10) 33%,rgba(243,247,252,.05) 57%,rgba(243,247,252,.58) 84%,#f3f7fc 100%)!important}
 body[data-central-theme="accessible"] .sidebar .scania-photo-layer::after{background:linear-gradient(to bottom,#111827 0%,rgba(17,24,39,.85) 10%,rgba(17,24,39,.40) 32%,rgba(17,24,39,.35) 56%,rgba(17,24,39,.80) 84%,#111827 100%)!important}
 </style><style id="central-seamless-background-20261122">
-/* The gradient is part of the background, never an overlay on module content. */
+/* Continuous background across the menu and the iframe viewport. */
+body[data-central-theme="blue"]{
+ background:linear-gradient(90deg,#111827 0px,#111827 140px,#12243b 210px,#173b5f 360px,#125080 640px,#0e568e 900px,#0c4a87 1200px)!important;
+}
 body[data-central-theme="blue"] .sidebar{
-  border-right:0!important;
-  background:#111827!important;
-  background-image:linear-gradient(90deg,#111827 0%,#111827 75%,#14243a 100%)!important;
+ background:transparent!important;
+ border-right:0!important;
+ box-shadow:none!important;
 }
 body[data-central-theme="blue"] .sidebar::before,
 body[data-central-theme="blue"] .sidebar::after{display:none!important}
-body[data-central-theme="blue"] .main{
-  background:linear-gradient(90deg,#14243a 0%,#173451 8%,#16446b 20%,#125080 38%,#0e568e 62%,#0c4a87 90%)!important;
-}
-body[data-central-theme="blue"] .module-frame-wrap{background:transparent!important}
+body[data-central-theme="blue"] .main{background:transparent!important}
+body[data-central-theme="blue"] .module-frame-wrap{background:transparent!important;border:0!important}
 body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent!important}
 </style></head>
 <body>
@@ -2762,7 +2763,7 @@ body[data-central-theme="blue"] .module-frame-wrap iframe{background:transparent
   // The iframe owns its opaque page background: fade must be painted HERE, behind its content.
   // A long gradient removes the hard vertical seam without dimming cards, tables or labels.
   if(!light && document.body.dataset.centralTheme==='blue'){
-   css+='html,body{background-color:#0c4a87!important;background-image:linear-gradient(90deg,#14243a 0%,#173451 7%,#16446b 18%,#125080 34%,#0e568e 52%,#0c4a87 76%)!important;background-attachment:fixed!important;background-repeat:no-repeat!important}';
+   css+='html,body{background:#0c4a87!important;background-image:linear-gradient(90deg,#12243b 0px,#173b5f 150px,#125080 430px,#0e568e 690px,#0c4a87 990px)!important;background-repeat:no-repeat!important}';
   }
   const panel='.card,.panel,.box,.stat,.metric,.kpi,.tile,.summary,.hero,.result-card,.resultado,.stats-card';
   css+=panel+'{background-color:'+t.panel+'!important;border-color:'+t.edge+'!important;color:'+t.ink+'}';
