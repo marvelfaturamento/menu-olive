@@ -2840,6 +2840,15 @@ body[data-central-theme="light"] .sidebar::after{
      {selector:'.module-faturamento',nome:'Faturamento',client:sbFaturamento}
    ];
    const limit=500*1024*1024;
+   const healthInterval=15*24*60*60*1000;
+   const healthCachePrefix='marvel_health_15d_v1_';
+   function cachedMeasurement(name){
+     try{
+       const value=JSON.parse(localStorage.getItem(healthCachePrefix+name)||'null');
+       if(value&&Number.isFinite(value.bytes)&&value.bytes>=0&&Number.isFinite(value.at))return value;
+     }catch(_){}
+     return null;
+   }
    function setUnavailable(panel,message){
      panel.querySelector('[data-health-status]').textContent='Sem leitura';
      panel.querySelector('[data-health-percent]').textContent='—';
@@ -2859,9 +2868,12 @@ body[data-central-theme="light"] .sidebar::after{
      };
      if(!panel)return false;
      try{
+       const cached=cachedMeasurement(entry.nome);
+       const fresh=cached&&Date.now()-cached.at<healthInterval;
        // Dados usa REST sem canal realtime, preservando o desenho atual.
        let bytes;
-       if(entry.cfg){
+       if(fresh){bytes=cached.bytes;}
+       else if(entry.cfg){
          const url=entry.cfg.url.replace(/\/$/,'')+'/rest/v1/rpc/marvel_database_usage_bytes';
          const response=await fetch(url,{method:'POST',headers:{
            'apikey':entry.cfg.key,'Authorization':'Bearer '+entry.cfg.key,
@@ -2876,13 +2888,18 @@ body[data-central-theme="light"] .sidebar::after{
          bytes=Number(data);
        }
        if(!Number.isFinite(bytes)||bytes<0)throw Error('Medição inválida');
+       if(!fresh){
+         try{localStorage.setItem(healthCachePrefix+entry.nome,JSON.stringify({bytes,at:Date.now()}));}catch(_){}
+       }
+       const measuredAt=fresh?cached.at:Date.now();
+       const measuredLabel=' • medido em '+new Date(measuredAt).toLocaleDateString('pt-BR');
        const pct=100*bytes/limit;
-       updateOverview(pct,(bytes/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1})+' MB utilizados');
+       updateOverview(pct,(bytes/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1})+' MB utilizados'+measuredLabel);
        const fmt=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:1});
        panel.querySelector('[data-health-percent]').textContent=fmt(pct)+'%';
        panel.querySelector('[data-health-bar]').style.width=Math.min(100,pct)+'%';
        panel.querySelector('[data-health-bar]').style.background=pct>=90?'#ef4444':pct>=70?'#f59e0b':'linear-gradient(90deg,#34d399,#22c55e)';
-       panel.querySelector('[data-health-detail]').textContent=fmt(bytes/1048576)+' MB usados / 500 MB';
+       panel.querySelector('[data-health-detail]').textContent=fmt(bytes/1048576)+' MB usados / 500 MB'+measuredLabel;
        panel.querySelector('[data-health-remaining]').textContent='Livre: '+fmt(Math.max(0,limit-bytes)/1048576)+' MB';
        const status=panel.querySelector('[data-health-status]');
        status.textContent=pct>=90?'Crítico':pct>=70?'Atenção':'Saudável';
@@ -2909,10 +2926,10 @@ body[data-central-theme="light"] .sidebar::after{
      const measured=await Promise.all(monitorados.map(measure));
      const ready=measured.filter(Boolean).length;
      const overall=document.getElementById('healthOverviewStatus');
-     if(overall)overall.textContent=ready+' de '+monitorados.length+' projetos com medição real • atualização a cada 5 min';
+     if(overall)overall.textContent=ready+' de '+monitorados.length+' projetos com medição real • consulta a cada 15 dias';
    }
    refreshHealth();
-   setInterval(refreshHealth,300000);
+   // A nova consulta acontece ao abrir o painel após vencer o cache de 15 dias.
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize);
  else initialize();
