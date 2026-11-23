@@ -2266,23 +2266,51 @@ async function processarImportacao624(file){
     const finalizadosAntes = new Set((state.finalizados || []).map(r => r.id));
     const novosFinalizados = [];
     const idsParaFinalizar = new Set();
+    const diagnostico624 = {ativos:ativos.length, referenciasInvalidas:0, semReferencia:0, rotaDivergente:0, ufAusente:0, encontrados:0};
+    const exemplos624 = [];
 
     ativos.forEach(row => {
       const referenciaOriginal = String(row.referencia || '').trim();
-      if(!referencia902Valida624(referenciaOriginal)) return;
+      if(!referencia902Valida624(referenciaOriginal)){
+        diagnostico624.referenciasInvalidas++;
+        return;
+      }
 
       const referenciaNormalizada = norm(referenciaOriginal);
-      if(!referenciaNormalizada || referenciaNormalizada.length < 5) return;
-
       const candidatos = registrosValidos.filter(reg => reg.obsNorm.includes(referenciaNormalizada));
+      if(!candidatos.length){
+        diagnostico624.semReferencia++;
+        return;
+      }
       const compativel = candidatos.find(reg => rota624Compativel(row, reg));
-      if(compativel) idsParaFinalizar.add(row.id);
+      if(compativel){
+        idsParaFinalizar.add(row.id);
+        diagnostico624.encontrados++;
+      }else{
+        const semUf = candidatos.some(reg => !reg.ufOrigem || !reg.ufDestino) || !row.ufRem || !row.ufDest;
+        diagnostico624[semUf?'ufAusente':'rotaDivergente']++;
+        if(exemplos624.length<8) exemplos624.push({
+          pc:row.pv||row.id,referencia:referenciaOriginal,
+          rota902:`${row.ufRem||'?'} → ${row.ufDest||'?'}`,
+          rota624:candidatos.slice(0,2).map(reg=>`${reg.ufOrigem||'?'} → ${reg.ufDestino||'?'}`).join(' / ')
+        });
+      }
     });
+    const resumoDiagnostico624 = `Diagnóstico 624 (sem alterar registros rejeitados):\n`+
+      `Linhas 624 com observação: ${registrosValidos.length}\nPCs ativas: ${diagnostico624.ativos}\n`+
+      `Referência inválida no 902: ${diagnostico624.referenciasInvalidas}\n`+
+      `Referência não encontrada no 624: ${diagnostico624.semReferencia}\n`+
+      `Referência encontrada, mas UF ausente: ${diagnostico624.ufAusente}\n`+
+      `Referência encontrada, mas rota divergente: ${diagnostico624.rotaDivergente}\n`+
+      `Vínculos seguros: ${diagnostico624.encontrados}`+
+      (exemplos624.length?'\n\nExemplos de divergências:\n'+exemplos624.map(x=>`${x.pc} | ${x.referencia} | 902 ${x.rota902} | 624 ${x.rota624}`).join('\n'):'');
+    console.info('Diagnóstico da importação 624',diagnostico624,exemplos624);
 
     if(!idsParaFinalizar.size){
-      alert('Importação 624 concluída. Nenhum vínculo seguro foi encontrado. Agora o robô exige Pedido/Referência + UF origem + UF destino iguais entre 902 e 624.');
+      alert(resumoDiagnostico624+'\n\nNenhuma programação foi finalizada.');
       return;
     }
+    if(!confirm(resumoDiagnostico624+'\n\nConfirmar a finalização somente dos vínculos seguros?')) return;
 
     const remainingRows = [];
     state.rows.forEach(row => {
