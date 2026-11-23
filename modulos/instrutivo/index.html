@@ -628,7 +628,7 @@ buscaEl.oninput = () => carregarLista();
 const buscaInterna=document.getElementById('buscaInterna');
 const buscaInternaResultados=document.getElementById('buscaInternaResultados');
 const buscaInternaContagem=document.getElementById('buscaInternaContagem');
-function normalizaBusca(s){return String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('pt-BR');}
+function normalizaBusca(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');}
 const buscaInternaBox=document.getElementById('buscaInternaBox');
 const btnBuscaInterna=document.getElementById('btnBuscaInterna');
 const topoEditor=document.querySelector('.topo-editor');
@@ -648,7 +648,7 @@ function pesquisarInternamente(){
  const termo=normalizaBusca(buscaInterna.value.trim());
  buscaInternaResultados.replaceChildren();buscaInternaResultados.hidden=!termo;buscaInternaContagem.textContent='';
  if(!termo||!atual)return;
- const linhas=editorEl.value.split('\\n');let offset=0,total=0;
+ const linhas=editorEl.value.split('\n');let offset=0,total=0;
  linhas.forEach((linha,i)=>{
   const norm=normalizaBusca(linha);
   if(norm.includes(termo)){
@@ -656,7 +656,7 @@ function pesquisarInternamente(){
    if(total<=50){
     const pos=offset, len=linha.length;
     const b=document.createElement('button');b.type='button';
-    b.textContent='Linha '+(i+1)+' — '+linhas.slice(i,i+3).join('\\n').slice(0,350);
+    b.textContent='Linha '+(i+1)+' — '+linhas.slice(i,i+3).join('\n').slice(0,350);
     b.onclick=()=>{editorEl.focus();editorEl.setSelectionRange(pos,pos+len);const h=parseFloat(getComputedStyle(editorEl).lineHeight)||18;editorEl.scrollTop=Math.max(0,i*h-editorEl.clientHeight/3);};
     buscaInternaResultados.appendChild(b);
    }
