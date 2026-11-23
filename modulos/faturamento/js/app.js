@@ -235,60 +235,45 @@ function detectHeader(obj, candidates){
 
 
 function parseReportLikeGrid(grid){
-  const imported=[];
+  const byDate = new Map();
   let mode='main';
-  let valorCol = -1;
-
+  let valorCol=-1;
+  const seen={main:new Set(),inter:new Set(),nac:new Set()};
   for(const row of grid){
-    const normalized = row.map(v => String(v).trim());
-    const joined = normalized.join(' ').trim();
+    const values=row.map(v=>String(v??'').trim());
+    const joined=values.join(' ').trim();
     if(!joined) continue;
-
-    if(/FRETE INTERNACIONAL/i.test(joined)){ mode='inter'; continue; }
-    if(/FRETE NACIONAL/i.test(joined)){ mode='nac'; continue; }
-
-    const vrIdx = normalized.findIndex(v => /valor realizado/i.test(v));
-    if(vrIdx > 0 && normalized.some(v => /^data$/i.test(v))){
-      valorCol = vrIdx - 1;
+    if(/FRETE INTERNACIONAL/i.test(joined)){mode='inter';continue;}
+    if(/FRETE NACIONAL/i.test(joined)){mode='nac';continue;}
+    const dateHeader=values.findIndex(v=>/^data$/i.test(v));
+    const valueHeader=values.findIndex(v=>/^valor realizado$/i.test(v));
+    if(dateHeader>=0 && valueHeader>=0){
+      // Crystal Reports exports the label one cell to the right of its numeric value.
+      valorCol=valueHeader>dateHeader+1?valueHeader-1:valueHeader;
       continue;
     }
-
-    const dateIdx = normalized.findIndex(v => /^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(v));
-    if(dateIdx === -1) continue;
-
-    const date = normalizeDate(normalized[dateIdx]);
-    if(!date) continue;
-
-    let found = imported.find(r=>r.date===date);
-    if(!found){
-      found = {date, bruto:0, inter:0, nac:0, source:'Excel'};
-      imported.push(found);
-    }
-
-    let valor = 0;
-
-    if(valorCol >= 0 && valorCol < row.length){
-      valor = parseBR(row[valorCol]);
-    }
-
-    if(!valor){
-      const nums = row
-        .slice(dateIdx + 1)
-        .map(v => parseBR(v))
-        .filter(v => Number.isFinite(v) && v > 0);
-      if(nums.length){
-        valor = Math.max(...nums.slice(0, 6));
-      }
-    }
-
-    if(mode === 'main') found.bruto = valor;
-    else if(mode === 'inter') found.inter = valor;
-    else if(mode === 'nac') found.nac = valor;
+    const dateIdx=values.findIndex(v=>/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(v));
+    if(dateIdx<0)continue;
+    const date=normalizeDate(values[dateIdx]);
+    if(!date)continue;
+    if(valorCol<0 || valorCol>=row.length)throw new Error('Relatório 514: coluna Valor Realizado não identificada em '+mode+'. Nenhum dado foi gravado.');
+    const raw=row[valorCol];
+    if(raw===null||raw===undefined||String(raw).trim()==='')throw new Error('Relatório 514: valor ausente em '+date+' ('+mode+').');
+    const amount=parseBR(raw);
+    if(!Number.isFinite(amount)||amount<0)throw new Error('Relatório 514: valor inválido em '+date+' ('+mode+').');
+    if(seen[mode].has(date))throw new Error('Relatório 514: data duplicada em '+mode+': '+date);
+    seen[mode].add(date);
+    if(!byDate.has(date))byDate.set(date,{date,bruto:null,inter:null,nac:null,source:'Excel 514'});
+    byDate.get(date)[mode==='main'?'bruto':mode]=amount;
   }
-
-  return imported;
+  if(!seen.main.size)return [];
+  const rows=Array.from(byDate.values()).sort((a,b)=>a.date.localeCompare(b.date));
+  if(rows.some(r=>r.bruto===null||r.inter===null||r.nac===null))throw new Error('Relatório 514 incompleto: faltam valores diário/internacional/nacional. Nenhum dado foi gravado.');
+  for(const row of rows){
+    if(Math.abs(row.bruto-row.inter-row.nac)>0.05)throw new Error('Relatório 514 inconsistente em '+row.date+': bruto não corresponde à soma internacional + nacional.');
+  }
+  return rows;
 }
-
 
 function parseExcelToRows(file){
   return new Promise((resolve,reject)=>{
@@ -930,6 +915,10 @@ if(window.importToSupabaseBtn) importToSupabaseBtn.addEventListener('click', asy
   if (!file){ alert('Selecione o Excel primeiro.'); return; }
   try{
     const rows = await parseExcelToRows(file);
+    if(!rows.length)throw new Error('Nenhum lançamento válido encontrado no Excel.');
+    const soma=rows.reduce((acc,r)=>acc+r.bruto,0);
+    const fmt=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    if(!confirm('Relatório 514 validado: '+rows.length+' dias, de '+rows[0].date+' até '+rows[rows.length-1].date+'; total '+fmt(soma)+'.\\nOs dias correspondentes serão atualizados no Supabase. Confirmar?'))return;
     await upsertBrutoToSupabaseA(rows);
     await refreshAllFromSupabases(false);
     renderAll();
