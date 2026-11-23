@@ -721,26 +721,38 @@ function editarNome(){
   abrirCliente(n);
 }
 
-function excluirCliente(){
-  if(!atual){
-    alert("Selecione um cliente primeiro.");
-    return;
+async function excluirCliente(){
+  if(!atual){ alert("Selecione um cliente primeiro."); return; }
+  const nome=atual, tipo=tipoAtual;
+  if(!confirm('Excluir "'+nome+'"? A exclusão será permanente.')) return;
+  try{
+    const query='nome=eq.'+encodeURIComponent(nome)+'&tipo=eq.'+encodeURIComponent(tipo);
+    const res=await fetch(SUPABASE_URL+'/rest/v1/clientes?'+query,{
+      method:'DELETE',
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:'Bearer '+SUPABASE_KEY,
+        Prefer:'return=representation'
+      }
+    });
+    if(!res.ok)throw new Error('Supabase '+res.status+': '+await res.text());
+    const removidos=await res.json();
+    if(!Array.isArray(removidos)||removidos.length===0)
+      throw new Error('O Supabase não confirmou a exclusão. Verifique as permissões de DELETE.');
+    delete banco[tipo][nome];
+    salvarDB();
+    atual=null;
+    tituloEl.innerText='Nenhum cliente';
+    editorEl.value='';
+    midiasEl.innerHTML='';
+    editorEl.disabled=true;
+    btnEditarEl.innerText='✏️ Editar';
+    youtubeBoxEl.classList.add('hidden');
+    carregarLista();
+  }catch(err){
+    alert('Não foi possível excluir definitivamente: '+err.message);
+    console.error('Exclusão falhou',err);
   }
-
-  if(!confirm("Excluir cliente?")) return;
-
-  delete banco[tipoAtual][atual];
-  salvarDB();
-
-  atual = null;
-  tituloEl.innerText = "Nenhum cliente";
-  editorEl.value = "";
-  midiasEl.innerHTML = "";
-  editorEl.disabled = true;
-  btnEditarEl.innerText = "✏️ Editar";
-  youtubeBoxEl.classList.add("hidden");
-
-  carregarLista();
 }
 
 function normalizarYoutube(url){
