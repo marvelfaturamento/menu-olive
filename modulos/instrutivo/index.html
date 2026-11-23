@@ -459,7 +459,7 @@ textarea:disabled{
     padding:14px 16px;
   }
 }
-.busca-interna{margin:10px 0 8px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}.busca-interna input{flex:1;min-width:170px;border:1px solid #b7c7d9;border-radius:9px;padding:10px 12px;background:white;color:#1b2b40}.busca-interna span{font-size:11px;color:#a9bed7}.busca-interna #buscaInternaResultados{flex-basis:100%;max-height:180px;overflow:auto;border-radius:8px;background:#f5f9ff;padding:5px}.busca-interna #buscaInternaResultados button{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #dce5ef;padding:8px;color:#20334a;cursor:pointer;white-space:pre-wrap;overflow-wrap:anywhere}.busca-interna #buscaInternaResultados button:hover{background:#dcecff}
+.busca-interna[hidden]{display:none!important}#buscaInternaResultados[hidden]{display:none!important}#btnBuscaInterna{white-space:nowrap}.busca-interna{margin:10px 0 8px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}.busca-interna input{flex:1;min-width:170px;border:1px solid #b7c7d9;border-radius:9px;padding:10px 12px;background:white;color:#1b2b40}.busca-interna span{font-size:11px;color:#a9bed7}.busca-interna #buscaInternaResultados{flex-basis:100%;max-height:180px;overflow:auto;border-radius:8px;background:#f5f9ff;padding:5px}.busca-interna #buscaInternaResultados button{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #dce5ef;padding:8px;color:#20334a;cursor:pointer;white-space:pre-wrap;overflow-wrap:anywhere}.busca-interna #buscaInternaResultados button:hover{background:#dcecff}
 </style>
 </head>
 
@@ -519,7 +519,7 @@ textarea:disabled{
   <div id="conteudo">
     <div class="card">
       <div class="topo-editor">
-        <button class="btn" onclick="toggleEdicao()" id="btnEditar">✏️ Editar</button>
+        <button class="btn" onclick="toggleEdicao()" id="btnEditar">✏️ Editar</button><button class="btn" id="btnBuscaInterna" type="button" onclick="alternarBuscaInterna()" aria-expanded="false">🔎 Pesquisar</button>
 
         <div id="youtubeBox" class="youtube-box hidden">
           <input type="text" id="youtubeLink" placeholder="Cole aqui o link do YouTube">
@@ -527,7 +527,7 @@ textarea:disabled{
         </div>
       </div>
 
-      <div class="busca-interna"><input type="search" id="buscaInterna" placeholder="Buscar neste cliente: pallet, Unilever..." aria-label="Buscar no conteúdo"><span id="buscaInternaContagem"></span><div id="buscaInternaResultados" hidden></div></div><textarea id="editor" disabled=""></textarea>
+      <div class="busca-interna" id="buscaInternaBox" hidden><input type="search" id="buscaInterna" placeholder="Buscar neste cliente: pallet, Unilever..." aria-label="Buscar no conteúdo"><span id="buscaInternaContagem"></span><div id="buscaInternaResultados" hidden></div></div><textarea id="editor" disabled=""></textarea>
     </div>
 
     <div class="side">
@@ -588,6 +588,8 @@ document.addEventListener("click", function(e){
 });
 
 function trocarTipo(tipo, el){
+  buscaInternaBox.hidden=true;
+  btnBuscaInterna.setAttribute('aria-expanded','false');
   limparBuscaInterna();
   tipoAtual = tipo;
   atual = null;
@@ -627,6 +629,20 @@ const buscaInterna=document.getElementById('buscaInterna');
 const buscaInternaResultados=document.getElementById('buscaInternaResultados');
 const buscaInternaContagem=document.getElementById('buscaInternaContagem');
 function normalizaBusca(s){return String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('pt-BR');}
+const buscaInternaBox=document.getElementById('buscaInternaBox');
+const btnBuscaInterna=document.getElementById('btnBuscaInterna');
+const topoEditor=document.querySelector('.topo-editor');
+function posicionarBotaoBusca(){
+ if(editando){topoEditor.appendChild(btnBuscaInterna);}
+ else{topoEditor.insertBefore(btnBuscaInterna,youtubeBoxEl);}
+}
+function alternarBuscaInterna(){
+ const abrir=buscaInternaBox.hidden;
+ buscaInternaBox.hidden=!abrir;
+ btnBuscaInterna.setAttribute('aria-expanded',String(abrir));
+ if(abrir){buscaInterna.focus();}
+ else{limparBuscaInterna();}
+}
 function limparBuscaInterna(){buscaInterna.value='';buscaInternaContagem.textContent='';buscaInternaResultados.replaceChildren();buscaInternaResultados.hidden=true;}
 function pesquisarInternamente(){
  const termo=normalizaBusca(buscaInterna.value.trim());
@@ -651,6 +667,8 @@ function pesquisarInternamente(){
 }
 buscaInterna.addEventListener('input',pesquisarInternamente);
 function abrirCliente(nome){
+  buscaInternaBox.hidden=true;
+  btnBuscaInterna.setAttribute('aria-expanded','false');
   limparBuscaInterna();
   atual = nome;
   editando = false;
@@ -691,6 +709,7 @@ function toggleEdicao(){
     youtubeBoxEl.classList.add("hidden");
   }
 
+  posicionarBotaoBusca();
   carregarMidias();
 }
 
