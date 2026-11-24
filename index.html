@@ -2215,6 +2215,7 @@ body[data-central-theme="light"] .sidebar::after{
     }
 
     const SUPABASES = {
+      painel902: {url:'https://amuhvmvgwigihgzougwz.supabase.co',key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtdWh2bXZnd2lnaWhnem91Z3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTU3NTgsImV4cCI6MjA5MjM5MTc1OH0.TwNl4Lnilp3Yrl1gAV86BgapIGgXcnUC53E7jjv03FE"},
       dados: {
         url: "https://ndpfmjetlvcujhgphqoi.supabase.co",
         key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcGZtamV0bHZjdWpoZ3BocW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDk2MTksImV4cCI6MjA5ODAyNTYxOX0.M1ypP2OOSGOojCGWfq-X1UNJzfYhD8a-J47QtR6Qw00"
@@ -2800,7 +2801,7 @@ body[data-central-theme="light"] .sidebar::after{
 <style id="health-overview-compact-bars">
 .modules>.health-overview{grid-column:1/-1!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:12px!important;min-height:0!important;height:auto!important;padding:15px 18px!important;flex:none!important}
 .health-overview-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.health-overview-bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;width:100%}
+.health-overview-bars{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;width:100%}
 .health-mini{min-width:0;padding:9px 11px;border:1px solid var(--ui-edge,rgba(130,160,200,.22));border-radius:9px;background:rgba(100,140,200,.06)}
 .health-mini-label{display:flex;justify-content:space-between;gap:7px;font-size:12px;font-weight:700;color:var(--ui-ink,#fff)}
 .health-mini-label strong{color:var(--ui-accent,#55aaff)}
@@ -2820,7 +2821,7 @@ body[data-central-theme="light"] .sidebar::after{
    grid.dataset.healthReady='1';
    const overview=document.createElement('div');
    overview.className='health-overview';
-   overview.innerHTML='<div class="health-overview-head"><div><div class="health-overview-title">✦ Saúde da Central Operacional</div><div class="health-overview-sub">Uso do banco por projeto Supabase • limite de referência: 500 MB</div></div><div class="health-overview-status" id="healthOverviewStatus">Aguardando medição</div></div><div class="health-overview-bars">'+[['dados','Dados'],['instrutivo','Instrutivo'],['refaturamento','Refaturamento'],['faturamento','Faturamento']].map(([id,name])=>'<div class="health-mini" data-overview-project="'+id+'"><div class="health-mini-label"><span>'+name+'</span><strong data-overview-percent>—</strong></div><div class="health-mini-track"><span data-overview-bar></span></div><small data-overview-detail>Aguardando medição</small></div>').join('')+'</div>';
+   overview.innerHTML='<div class="health-overview-head"><div><div class="health-overview-title">✦ Saúde da Central Operacional</div><div class="health-overview-sub">Uso do banco por projeto Supabase • limite de referência: 500 MB</div></div><div class="health-overview-status" id="healthOverviewStatus">Aguardando medição</div></div><div class="health-overview-bars">'+[['dados','Dados'],['instrutivo','Instrutivo'],['refaturamento','Refaturamento'],['faturamento','Faturamento'],['902','Painel 902']].map(([id,name])=>'<div class="health-mini" data-overview-project="'+id+'"><div class="health-mini-label"><span>'+name+'</span><strong data-overview-percent>—</strong></div><div class="health-mini-track"><span data-overview-bar></span></div><small data-overview-detail>Aguardando medição</small></div>').join('')+'</div>';
    grid.prepend(overview);
    const cards=[...grid.querySelectorAll('.module-card')];
    cards.forEach((card,i)=>{
@@ -2837,7 +2838,8 @@ body[data-central-theme="light"] .sidebar::after{
      {selector:'.module-dados',nome:'Dados',cfg:SUPABASES.dados},
      {selector:'.module-instrutivo',nome:'Instrutivo',client:sbInstrutivo},
      {selector:'.module-refaturamento',nome:'Refaturamento',client:sbRefaturamento},
-     {selector:'.module-faturamento',nome:'Faturamento',client:sbFaturamento}
+     {selector:'.module-faturamento',nome:'Faturamento',client:sbFaturamento},
+     {selector:'.module-902',nome:'Painel 902',cfg:SUPABASES.painel902}
    ];
    const limit=500*1024*1024;
    const healthInterval=15*24*60*60*1000;
