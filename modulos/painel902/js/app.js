@@ -1980,7 +1980,7 @@ async function parseExcelRows(matrix){
       ufDest: col(r, 'UF_DESTINATARIO', 'UF DESTINATARIO', 'UF_DESTINO', 'UF DESTINO'),
       pagador: col(r, 'PAGADOR_PC', 'PAGADOR PC', 'PAGADOR'),
       talhao: col(r, 'TALHAO', 'TALHÃO'),
-      referencia: col(r, 'REFERENCIA', 'REFERÊNCIA'),
+      referencia: col(r, 'REF. CLIENTE', 'REF CLIENTE', 'REF_CLIENTE', 'REFERENCIA CLIENTE', 'REFERENCIA DO CLIENTE', 'REFERENCIA_CLIENTE') || col(r, 'REFERENCIA', 'REFERÊNCIA'),
       frete: null,
       foiAduana: old?.foiAduana || false,
       passouCheckpoint: old?.passouCheckpoint || false,
@@ -2107,6 +2107,16 @@ function getHeaderIndex624(headers){
   return idx;
 }
 
+function referencia902Corresponde624(ref, obs){
+  const referencia=norm(ref), observacao=norm(obs);
+  if(!referencia||!observacao)return false;
+  const travel=referencia.match(/\bTRAVEL\s*ID\s*[:#-]?\s*(\d{5,})\b/);
+  if(travel){
+    return new RegExp('(^|[^0-9])'+travel[1]+'(?![0-9])').test(observacao);
+  }
+  if(/^\d+$/.test(referencia))return new RegExp('(^|[^0-9])'+referencia+'(?![0-9])').test(observacao);
+  return observacao.includes(referencia);
+}
 function referencia902Valida624(ref){
   const texto = String(ref || '').trim();
   const n = norm(texto);
@@ -2277,7 +2287,7 @@ async function processarImportacao624(file){
       }
 
       const referenciaNormalizada = norm(referenciaOriginal);
-      const candidatos = registrosValidos.filter(reg => reg.obsNorm.includes(referenciaNormalizada));
+      const candidatos = registrosValidos.filter(reg => referencia902Corresponde624(referenciaNormalizada, reg.obsNorm));
       if(!candidatos.length){
         diagnostico624.semReferencia++;
         return;
