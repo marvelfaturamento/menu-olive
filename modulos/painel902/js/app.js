@@ -3132,6 +3132,21 @@ initApp();
       if(!restored)status.after(progress);
       let completionWatchdog=null;
       let responseReceived=false;
+      let cloudBusy=false;
+      const cloudPoll=restored?null:setInterval(async()=>{
+        if(responseReceived||cloudBusy)return;
+        cloudBusy=true;
+        try{
+          const token=JSON.parse(localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token')||'null')?.access_token;
+          if(!token)return;
+          const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'conference_read',requestId})});
+          const data=await res.json();
+          if(res.ok&&data.resultado?.requestId===requestId&&!responseReceived){
+            window.postMessage({...data.resultado,source:'marvel-frete-ext',type:'marvel-frete-902-test-response-v1'},location.origin);
+          }
+        }catch(e){console.warn('Recuperação Marvel',e);}
+        finally{cloudBusy=false;}
+      },5000);
       function updateProgress(done,total,description){
         if(!Number.isFinite(total)||total<=0)return;
         const count=Math.max(0,Math.min(total,Number(done)||0));
@@ -3149,7 +3164,7 @@ initApp();
           completionWatchdog=setTimeout(()=>{
             if(responseReceived)return;
             window.postMessage({source:'painel-902',type:'marvel-frete-902-recover-result-v1',requestId},location.origin);
-            finish('Consultas Marvel concluídas ('+total+' rotas), mas o Painel 902 não recebeu a resposta final. Verifique as gravações na extensão e clique em Carregar Supabase para atualizar os totais. Não repita a gravação antes de conferir.');
+            stage.textContent='Consultas concluídas; aguardando gravação final e recuperação pelo Supabase...';
           },45000);
         }
       }
@@ -3161,7 +3176,7 @@ initApp();
       }
       window.addEventListener('message',receiveProgress);
       const timer=setTimeout(()=>finish('A extensão não confirmou a conclusão em 15 minutos. Verifique o histórico na aba da extensão antes de repetir a consulta. Nenhuma gravação operacional foi iniciada pelo painel.'),900000);
-      function finish(message){clearTimeout(timer);clearTimeout(completionWatchdog);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;clientButton.disabled=false;status.textContent=message;progress.remove();}
+      function finish(message){clearInterval(cloudPoll);clearTimeout(timer);clearTimeout(completionWatchdog);window.removeEventListener('message',receive);window.removeEventListener('message',receiveProgress);button.disabled=false;allButton.disabled=false;clientButton.disabled=false;status.textContent=message;progress.remove();}
       async function receive(event){
         if(event.source!==window||event.origin!==location.origin)return;
         const d=event.data;
