@@ -3046,7 +3046,7 @@ initApp();
     const directButton=document.createElement('button');
     directButton.type='button';directButton.textContent='Testar API Direta';
     directButton.style.marginLeft='8px';
-    allButton.after(directButton);
+    allButton.after(directButton);directButton.hidden=true;
     directButton.addEventListener('click',async()=>{
       directButton.disabled=true;
       status.textContent='Testando acesso direto à rede Marvel (somente leitura, sem token)...';
@@ -3164,7 +3164,11 @@ initApp();
           completionWatchdog=setTimeout(()=>{
             if(responseReceived)return;
             window.postMessage({source:'painel-902',type:'marvel-frete-902-recover-result-v1',requestId},location.origin);
-            stage.textContent='Consultas concluídas; aguardando gravação final e recuperação pelo Supabase...';
+            stage.textContent='Consultas concluídas; aguardando confirmação final por até 60 segundos...';
+            completionWatchdog=setTimeout(()=>{
+              if(responseReceived)return;
+              finish('Consulta concluída, mas relatório não recebido. Tarifas podem ter sido gravadas. Clique em Carregar Supabase antes de repetir.');
+            },60000);
           },45000);
         }
       }
@@ -3184,6 +3188,16 @@ initApp();
         if(responseReceived)return;
         responseReceived=true;
         window.postMessage({source:'painel-902',type:'marvel-frete-902-result-ack-v1',requestId},location.origin);
+        if(d.ok&&!restored&&Array.isArray(d.casos)){
+          (async()=>{
+            try{
+              const token=JSON.parse(localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token')||'null')?.access_token;
+              if(!token)throw Error('Sessão ausente');
+              const res=await fetch('https://amuhvmvgwigihgzougwz.supabase.co/functions/v1/marvel-frete-registros',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY},body:JSON.stringify({action:'conference_save',requestId,resultado:d})});
+              const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'HTTP '+res.status);
+            }catch(e){console.error('Marvel: relatório não gravado',e);}
+          })();
+        }
         const casesReceived=Array.isArray(d.casos)?d.casos.length:0;
         const reportedTotal=Number(d.total)||0;
         const emptyResponse=Boolean(d.ok)&&casesReceived===0&&reportedTotal===0&&!restored;
