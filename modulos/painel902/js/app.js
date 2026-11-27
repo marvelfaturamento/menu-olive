@@ -3043,6 +3043,27 @@ initApp();
     allButton.style.marginLeft='8px';
     button.textContent='Processar sem tarifa';
     button.after(allButton);
+    const directButton=document.createElement('button');
+    directButton.type='button';directButton.textContent='Testar API Direta';
+    directButton.style.marginLeft='8px';
+    allButton.after(directButton);
+    directButton.addEventListener('click',async()=>{
+      directButton.disabled=true;
+      status.textContent='Testando acesso direto à rede Marvel (somente leitura, sem token)...';
+      const url=new URL('http://192.168.1.217:8008/api/shipping/tables/fees/items/');
+      url.search=new URLSearchParams({'fee__table__description__icontains':'MATEUS','fee__origin_description__icontains':'RAFAELA','fee__destination_description__icontains':'SAO LUIS',status:'active',limit:'1',offset:'0'}).toString();
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),12000);
+      try{
+        const res=await fetch(url,{method:'GET',headers:{Accept:'application/json'},credentials:'omit',cache:'no-store',signal:controller.signal});
+        if(res.status===401||res.status===403){status.textContent='API direta alcançável (HTTP '+res.status+'). Falta autenticação autorizada; nenhuma gravação realizada.';return;}
+        if(!res.ok){status.textContent='API direta respondeu HTTP '+res.status+'. Nenhuma gravação realizada.';return;}
+        const data=await res.json();
+        status.textContent=Array.isArray(data.results)?'API direta acessível. Retornou '+data.results.length+' registro(s) de teste, sem autenticação explícita. Nenhuma gravação realizada.':'API respondeu, mas o formato não corresponde à lista de tarifas.';
+      }catch(e){status.textContent='API direta não acessível pelo painel: '+(e.name==='AbortError'?'tempo limite':'possível bloqueio de rede, CORS, HTTP ou permissão de rede local')+'. Consulte o console do navegador (F12). Nenhuma gravação realizada.';}
+      finally{clearTimeout(timeout);directButton.disabled=false;}
+    });
+
     // Busca geral e processamento isolado por cliente, sem refazer as demais tabelas.
     const toolsBar=document.createElement('div');
     toolsBar.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;align-items:center;';
