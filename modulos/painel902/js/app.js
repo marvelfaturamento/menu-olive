@@ -3154,6 +3154,10 @@ initApp();
         const out=document.getElementById('marvelTestResults');
         if(out&&d.ok){
           const items=Array.isArray(d.casos)?[...d.casos]:[];
+          const extensionOwnsSync=d.syncOwner==='extension';
+          const extensionSummary=d.syncSummary;
+          const fullConference=items.slice();
+
           // Complementa a fila com PCs operacionais zeradas que a extensão não retornou.
           // A própria base é a fonte de verdade para detectar pendências faltantes.
           try{
@@ -3454,7 +3458,15 @@ initApp();
               status.textContent='Sincronização Marvel: '+syncSuccess+' salva(s), '+syncErrors+' falha(s), '+(toSync.length-syncIndex)+' aguardando.';
             }
           }
-          if(!restored&&toSync.length)Promise.all(Array.from({length:Math.min(syncConcurrency,toSync.length)},()=>syncWorker()))
+          if(!restored&&extensionOwnsSync){
+            await loadSaved();
+            const s=extensionSummary||{};
+            status.textContent='Extensão: '+(s.rotas??0)+' rotas | Novas: '+(s.novas??0)+' | Atualizadas: '+(s.atualizadas??0)+' | Validadas: '+(s.validadas??0)+' | Sem confirmação: '+(s.semConfirmacao??0)+' | Falhas: '+(s.falhas??0);
+            views.encontrados.replaceChildren();
+            for(const x of fullConference){if(!x.freteMarvel)continue;const row=appendTariff(x,x.tabelaMarvel);row.textContent=row.textContent.replace('Aguardando gravação na base',x.gravadoSupabase?'Confirmado pela extensão':'Sem confirmação de gravação');}
+            refreshCounts();
+          }
+          if(!restored&&!extensionOwnsSync&&toSync.length)Promise.all(Array.from({length:Math.min(syncConcurrency,toSync.length)},()=>syncWorker()))
             .then(async()=>{
               status.textContent='Sincronização concluída: '+syncSuccess+' gravação(ões) confirmada(s), '+syncErrors+' falha(s). Atualizando totais da base...';
               try{
