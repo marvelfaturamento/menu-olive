@@ -3181,12 +3181,18 @@ initApp();
           // Somente PCs presentes no espelho operacional ativo entram na fila.
           // Evita reprocessar pendências históricas de PCs já encerradas.
           const activeKeys=new Set();
+          let activeVerified=false;
           try{
-            const active=await state.supabase.from('painel_902').select('id,pv').eq('uf_origem','EX').in('bucket_atual',['ativo','agNota','aduana','alertaInt']).limit(1000);
-            if(active.error)throw active.error;
-            for(const p of active.data||[]){activeKeys.add(String(p.id||''));activeKeys.add(String(p.pv||''));}
+            for(let offset=0;;offset+=500){
+              const active=await state.supabase.from('painel_902').select('id,pv').eq('uf_origem','EX').in('bucket_atual',['ativo','agNota','aduana','alertaInt']).is('finalizado_em',null).order('id').range(offset,offset+499);
+              if(active.error)throw active.error;
+              for(const p of active.data||[])if(p.id)activeKeys.add(String(p.id));
+              if((active.data||[]).length<500)break;
+            }
+            activeVerified=true;
           }catch(e){console.warn('Marvel: não foi possível validar PCs ativas',e);}
-          const isActivePc=x=>!activeKeys.size||activeKeys.has(String(x.id||''))||activeKeys.has(String(x.pv||''))||activeKeys.has(String(x.pc_id||''));
+          const isActivePc=x=>activeVerified?activeKeys.has(String(x.id||x.pc_id||'')):false;
+          if(!activeVerified){status.textContent='Não foi possível validar as PCs vigentes. Nenhuma pendência foi alterada.';return;}
           for(let i=items.length-1;i>=0;i--)if(!isActivePc(items[i]))items.splice(i,1);
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>(['Cadastrar','Atualizar','USD — requer conversão'].includes(String(x.estado)) || (String(x.estado)==='Correto' && !x.gravadoSupabase)) && Number(x.freteMarvel)>0);
@@ -3224,7 +3230,7 @@ initApp();
           // Não mostrar como pendência uma PC já resolvida na mesma resposta da extensão.
           // Uma tarifa gravada anteriormente também encerra a pendência visual da rota.
           const foundKeys=new Set(found.map(x=>String(x.id||x.pv||'')));
-          pending=pending.filter(x=>!resolvedMarvel(x)&&!foundKeys.has(String(x.id||x.pv||'')));
+          pending=pending.filter(x=>!resolvedMarvel(x)&&!(savedMarvelData.spots||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&spotMatches(x,t))&&!foundKeys.has(String(x.id||x.pv||'')));
           out.replaceChildren();
           const summary=document.createElement('p');
           summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+'. Nenhuma alteração operacional.';
