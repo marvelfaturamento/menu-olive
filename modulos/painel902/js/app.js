@@ -3361,13 +3361,14 @@ initApp();
               &&!x.ambiguo&&!x.semVinculo);
           };
           // Uma consulta/gravação por cliente e rota, nunca por caminhão ou PV.
-          const toSync=[];
-          const seenRoutes=new Set();
+          const routeKey=x=>[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].map(v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase()).join('|');
+          const routeGroups=new Map();
           for(const x of found.filter(eligibleTariff)){
-            const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].map(v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase()).join('|');
-            if(seenRoutes.has(key))continue;
-            seenRoutes.add(key);toSync.push(x);
+            const key=routeKey(x);
+            if(!routeGroups.has(key))routeGroups.set(key,[]);
+            routeGroups.get(key).push(x);
           }
+          const toSync=Array.from(routeGroups.values(),g=>g[0]);
           const syncConcurrency=3;
           let syncIndex=0,syncSuccess=0,syncErrors=0;
           const syncDetails=document.createElement('div');
@@ -3398,26 +3399,31 @@ initApp();
               row.appendChild(reason);
             }else{
               row.dataset.syncStatus='queued';
-              const info=document.createElement('small');info.style.display='block';info.textContent='Sincronização automática aguardando...';row.appendChild(info);
+              row.dataset.syncRoute=routeKey(x);
+              const info=document.createElement('small');info.style.display='block';info.dataset.syncMessage='1';info.textContent='Sincronização automática aguardando...';row.appendChild(info);
             }
           });
           async function syncWorker(){
             while(syncIndex<toSync.length){
               const x=toSync[syncIndex++];
               const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
-              const row=Array.from(views.encontrados.children).find(el=>el.dataset.marvelPc===pcKey(x));
-              if(row?.dataset.syncStatus==='saved')continue;
-              if(row)row.dataset.syncStatus='saving';
+              const rows=Array.from(views.encontrados.children).filter(el=>el.dataset.syncRoute===routeKey(x));
+              if(rows.length&&rows.every(row=>row.dataset.syncStatus==='saved'))continue;
+              rows.forEach(row=>row.dataset.syncStatus='saving');
               try{
                 await persistTariff(x,tabela);
                 syncSuccess++;
                 syncDetails.textContent='Sincronização confirmada: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Gravações podem atualizar tarifas já existentes, sem aumentar o total cadastrado.';
-                if(row){row.dataset.syncStatus='saved';row.textContent=row.textContent.replace('Aguardando gravação na base','Salvo automaticamente no Supabase');}
-                moveToFound(x,tabela);
+                for(const row of rows){
+                  row.dataset.syncStatus='saved';
+                  if(row.firstChild?.nodeType===3)row.firstChild.nodeValue=row.firstChild.nodeValue.replace('Aguardando gravação na base','Tarifa da rota confirmada no Supabase');
+                  const msg=row.querySelector('[data-sync-message]');if(msg)msg.textContent='Sincronização confirmada.';
+                }
+                for(const member of routeGroups.get(routeKey(x))||[x])moveToFound(member,tabela);
               }catch(e){
                 syncErrors++;
                 syncDetails.textContent='Sincronização: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Consulte o motivo na linha da tarifa.';
-                if(row){row.dataset.syncStatus='error';row.appendChild(document.createTextNode(' | Falha ao salvar: '+e.message));}
+                for(const row of rows){row.dataset.syncStatus='error';const msg=row.querySelector('[data-sync-message]');if(msg)msg.textContent='Falha ao salvar: '+e.message;}
               }
               status.textContent='Sincronização Marvel: '+syncSuccess+' salva(s), '+syncErrors+' falha(s), '+(toSync.length-syncIndex)+' aguardando.';
             }
