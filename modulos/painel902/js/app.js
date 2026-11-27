@@ -3243,11 +3243,11 @@ initApp();
           emptyFilter.hidden=true;emptyFilter.style.cssText='padding:12px;color:#b6c9e8;';
           if(!items.length && !restored){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
-          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Novas tarifas Marvel',found.length],['salvos','Salvos na base','carregando'],['spots','Spots','carregando']];
+          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Resultados Marvel',found.length],['salvos','Salvos na base','carregando'],['spots','Spots','carregando']];
           const views={};
           const tabButtons={};
           const pcKey=x=>String(x.id||x.pv||'');
-          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Novas tarifas Marvel ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
+          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Resultados Marvel ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
           for(const [key,label,count] of tabs){
             const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
             tab.style.cssText='padding:12px 18px;border:1px solid #38517b;border-radius:10px;';
@@ -3381,6 +3381,18 @@ initApp();
             routeGroups.get(key).push(x);
           }
           const toSync=Array.from(routeGroups.values(),g=>g[0]);
+          const outcomes={novas:0,atualizadas:0,validadas:0,naoGravadas:found.filter(x=>!eligibleTariff(x)).length};
+          const outcomeLabel=()=> 'Novas: '+outcomes.novas+' | Atualizadas: '+outcomes.atualizadas+' | Validadas: '+outcomes.validadas+' | PCs não elegíveis: '+outcomes.naoGravadas;
+          const classifyRoute=x=>{
+            const t=(savedMarvelData.tarifas||[]).find(t=>t.ativo!==false&&routeMatches(x,t));
+            if(!t)return 'novas';
+            const usd=String(x.moeda||x.moedaMarvel||'').toUpperCase()==='USD';
+            const old=usd?t.frete_original:t.frete;
+            const adv=x.advPercentual??x.adv_percentual;
+            return Number(old)!==Number(x.freteMarvel)||(adv!=null&&(t.adv_percentual==null||Number(adv)!==Number(t.adv_percentual)))?'atualizadas':'validadas';
+          };
+          const classifications=new Map(toSync.map(x=>[routeKey(x),classifyRoute(x)]));
+
           const syncConcurrency=3;
           let syncIndex=0,syncSuccess=0,syncErrors=0;
           const syncDetails=document.createElement('div');
@@ -3396,6 +3408,7 @@ initApp();
             diag.textContent='Tabela: '+(tabela||'não identificada')+' | Moeda: '+(moeda||'não informada')+' | ADV: '+(x.advPercentual??x.adv_percentual??'não informado')+' | Identificador: '+(x.id||'ausente');
             row.appendChild(diag);
             if(!eligibleTariff(x)){
+              if(row.firstChild?.nodeType===3)row.firstChild.nodeValue=row.firstChild.nodeValue.replace('Aguardando gravação na base','Não elegível para gravação automática');
               const reason=document.createElement('small');reason.style.cssText='display:block;color:#ffd69c;';
               const motivos=[];
               if(!(x.id||x.pv))motivos.push('PC ausente');
@@ -3425,6 +3438,7 @@ initApp();
               try{
                 await persistTariff(x,tabela);
                 syncSuccess++;
+                outcomes[classifications.get(routeKey(x))]++;
                 syncDetails.textContent='Sincronização confirmada: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Gravações podem atualizar tarifas já existentes, sem aumentar o total cadastrado.';
                 for(const row of rows){
                   row.dataset.syncStatus='saved';
@@ -3445,13 +3459,13 @@ initApp();
               status.textContent='Sincronização concluída: '+syncSuccess+' gravação(ões) confirmada(s), '+syncErrors+' falha(s). Atualizando totais da base...';
               try{
                 await loadSaved();
-                status.textContent='Sincronização concluída: '+syncSuccess+' gravação(ões) confirmada(s), '+syncErrors+' falha(s). Contadores atualizados a partir do Supabase. Atualizações de tarifas existentes não aumentam o total.';
+                status.textContent='Sincronização concluída: '+syncSuccess+' gravação(ões) confirmada(s), '+syncErrors+' falha(s). Contadores atualizados a partir do Supabase. '+outcomeLabel();
               }catch(e){
                 status.textContent='Sincronização: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Não foi possível atualizar os totais: '+e.message;
               }
             }).catch(e=>{status.textContent='Falha ao finalizar sincronização: '+e.message;});
           else if(!restored&&found.length){
-            status.textContent='Conferência recebida: '+found.length+' tarifa(s) encontrada(s), nenhuma elegível para gravação automática. Consulte os motivos em Novas tarifas Marvel.';
+            status.textContent='Conferência recebida: '+found.length+' tarifa(s) encontrada(s), nenhuma elegível para gravação automática. Consulte os motivos em Resultados Marvel.';
           }
           const groups=new Map();
           pending.forEach(x=>{const key=[x.pagador,x.origem,x.ufOrigem,x.destino,x.ufDestino].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
