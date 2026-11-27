@@ -3191,7 +3191,7 @@ initApp();
           let pending=items.filter(x=>['Não encontrado','Ambíguo','Tarifa sem ID'].includes(x.estado) || (['Cadastrar','Atualizar'].includes(x.estado) && !(Number(x.freteMarvel)>0)));
           let found=items.filter(x=>(['Cadastrar','Atualizar','USD — requer conversão'].includes(String(x.estado)) || (String(x.estado)==='Correto' && !x.gravadoSupabase)) && Number(x.freteMarvel)>0);
           const alreadyCorrect=items.filter(x=>['Correto','Já cadastrado','Sem alteração','Igual'].includes(String(x.estado)) && Number(x.freteMarvel)>0);
-          let savedMarvelData={vinculos:[],tarifas:[],spots:[],spotsRotas:[]};
+          let savedMarvelData=restored||{vinculos:[],tarifas:[],spots:[],spotsRotas:[]};
           try{
             const raw=localStorage.getItem('sb-rqwmhywgckuwhbidqves-auth-token');
             const token=JSON.parse(raw||'null')?.access_token;
@@ -3210,7 +3210,7 @@ initApp();
           }catch(e){console.warn('Marvel: fila persistida indisponível',e);}
 
           // Resolve PCs ja cobertas por tarifa fixa ou spot validado antes de criar pendencias.
-          const normFrete=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
+          const normFrete=v=>String(v||'').normalize('NFD').replace(/\p{M}/gu,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
           const routeMatches=(a,b)=>[a.pagador,a.origem||a.municipio_origem,a.ufOrigem||a.uf_origem,a.destino||a.municipio_destino,a.ufDestino||a.uf_destino].every((v,i)=>normFrete(v)===normFrete([b.pagador,b.municipio_origem,b.uf_origem,b.municipio_destino,b.uf_destino][i]));
           const spotMatches=(a,b)=>{const id=String(a.id||a.pv||'');const saved=String(b.pc_id||'');return saved===id||saved.endsWith('|'+String(a.pv||''))&&String(a.pv||'')!=='';};
           const resolvedMarvel=x=>(savedMarvelData.tarifas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t))||(savedMarvelData.spotsRotas||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&routeMatches(x,t));
@@ -3268,6 +3268,12 @@ initApp();
           async function loadSaved(){
             try{
               const data=await marvelApi('list');
+              savedMarvelData=data;
+              const resolvedIds=new Set(pending.filter(x=>resolvedMarvel(x)||(data.spots||[]).some(t=>t.ativo!==false&&Number(t.frete)>0&&spotMatches(x,t))).map(pcKey));
+              pending=pending.filter(x=>!resolvedIds.has(pcKey(x)));
+              for(const el of views.pendentes.querySelectorAll('[data-pending-pc]'))if(resolvedIds.has(el.dataset.pendingPc))el.remove();
+              for(const el of views.pendentes.querySelectorAll('[data-pending-group]'))if(!el.querySelector('[data-pending-pc]'))el.remove();
+              refreshCounts();
               views.salvos.replaceChildren();views.spots.replaceChildren();
               const routes=data.spotsRotas||[];
               const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa Marvel',...x})),...routes.map(x=>({kind:'Spot',...x}))];
