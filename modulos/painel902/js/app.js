@@ -3585,10 +3585,10 @@ initApp();
             const draftKey='marvel-test-decision:'+encodeURIComponent([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino].join('|'));
             const normMarvel=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toUpperCase();
             const sameRoute=x=>[x.pagador,x.municipio_origem,x.uf_origem,x.municipio_destino,x.uf_destino].every((v,i)=>normMarvel(v)===normMarvel([first.pagador,first.origem,first.ufOrigem,first.destino,first.ufDestino][i]));
-            const fixed=(savedMarvelData.vinculos||[]).find(sameRoute)||(savedMarvelData.tarifas||[]).find(sameRoute);
+            const fixed=(savedMarvelData.vinculosTomadores||[]).find(x=>normMarvel(x.pagador)===normMarvel(first.pagador))||(savedMarvelData.vinculos||[]).find(sameRoute)||(savedMarvelData.vinculos||[]).find(x=>normMarvel(x.pagador)===normMarvel(first.pagador))||(savedMarvelData.tarifas||[]).find(sameRoute);
             const confirmedTariff=(savedMarvelData.tarifas||[]).find(x=>sameRoute(x)&&x.ativo!==false&&Number(x.frete)>0);
             if(confirmedTariff){const info=document.createElement('small');info.style.cssText='display:block;color:#70e3bd;margin:8px 0;';info.textContent='Tarifa já salva na base: '+moneyBR(confirmedTariff.frete)+' — '+(confirmedTariff.nome_marvel||'Marvel')+'. Não é necessário cadastrar spot; confira a integração operacional.';section.appendChild(info);}
-            if(fixed){table.value=fixed.tabela_marvel||fixed.nome_marvel||'';table.title='Vínculo salvo. Edite para substituir ou use Restaurar nome original.';}
+            if(fixed){table.value=fixed.tabela_marvel||fixed.nome_marvel||'';table.title='Regra do tomador. A alteração será aplicada a todas as rotas deste cliente.';}
             const existingSpots=(savedMarvelData.spotsRotas||[]).filter(sameRoute);
             if(existingSpots.length){
               const distinct=[...new Set(existingSpots.map(x=>Number(x.frete)))];
@@ -3596,8 +3596,8 @@ initApp();
               const note=document.createElement('small');note.textContent='Spot da rota: '+moneyBR(existingSpots[0].frete)+'. Altere na aba Spots quando houver renegociação.';note.style.cssText='display:block;color:#b9d7f6;margin-top:5px;';controls.appendChild(note);
             }
             try{const previous=JSON.parse(localStorage.getItem(draftKey)||'null');if(previous){if(!table.value)table.value=previous.tabela||'';if(!spot.value)spot.value=previous.spot||'';if(previous.pcs?.length)checks.forEach(({check,x})=>check.checked=previous.pcs.includes(String(x.pv||x.id)));}}catch(_){}
-            table.addEventListener('change',()=>{feedback.textContent='Nome alterado. Clique em Reprocessar esta rota para salvar o vínculo e consultar.';});
-            const resetTable=document.createElement('button');resetTable.type='button';resetTable.textContent='Restaurar nome original';resetTable.style.cssText='padding:9px;border:1px solid #46618d;border-radius:7px;';controls.appendChild(resetTable);resetTable.addEventListener('click',()=>{table.value=first.pagador||'';localStorage.removeItem(draftKey);feedback.textContent='Nome original restaurado. Reprocesse a rota para substituir o vínculo salvo.';});
+            table.addEventListener('change',()=>{feedback.textContent='Nome alterado. Reprocesse para salvar a regra em todas as rotas do tomador.';});
+            const resetTable=document.createElement('button');resetTable.type='button';resetTable.textContent='Restaurar nome original';resetTable.style.cssText='padding:9px;border:1px solid #46618d;border-radius:7px;';controls.appendChild(resetTable);resetTable.addEventListener('click',()=>{table.value=first.pagador||'';localStorage.removeItem(draftKey);feedback.textContent='Nome original restaurado. Reprocesse para substituir a regra do tomador.';});
             spot.addEventListener('change',()=>{localStorage.setItem(draftKey,JSON.stringify({tabela:table.value,spot:spot.value,pcs:checks.filter(v=>v.check.checked).map(v=>String(v.x.pv||v.x.id))}));});
             const save=document.createElement('button');save.type='button';save.textContent='Salvar spot da rota';save.style.cssText='padding:10px 14px;border-radius:8px;background:#31548a;color:#fff;border:1px solid #679be3;font-weight:700;';controls.appendChild(save);
             const feedback=document.createElement('small');feedback.style.cssText='display:block;margin-top:8px;';feedback.textContent='Rascunho local: ainda não salva no Supabase nem atualiza fretes.';section.append(controls,feedback);
