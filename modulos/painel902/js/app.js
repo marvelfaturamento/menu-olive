@@ -3299,7 +3299,7 @@ initApp();
           emptyFilter.hidden=true;emptyFilter.style.cssText='padding:12px;color:#b6c9e8;';
           if(!items.length && !restored){const hint=document.createElement('p');hint.textContent='A extensão respondeu sem os detalhes das PCs. Atualize para a versão que envia os casos ao painel.';out.appendChild(hint);return;}
           const shell=document.createElement('div');shell.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;';
-          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Resultados Marvel',found.length],['salvos','Salvos na base','carregando'],['spots','Spots','carregando']];
+          const tabs=[['pendentes','Sem tarifa / spot',pending.length],['encontrados','Resultados Marvel',found.length],['salvos','Tarifas cadastradas','carregando'],['spots','Spots','carregando']];
           const views={};
           const tabButtons={};
           const pcKey=x=>String(x.id||x.pv||'');
@@ -3338,7 +3338,7 @@ initApp();
               refreshCounts();
               views.salvos.replaceChildren();views.spots.replaceChildren();
               const routes=data.spotsRotas||[];
-              const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa Marvel',...x})),...routes.map(x=>({kind:'Spot',...x}))];
+              const entries=[...(data.tarifas||[]).map(x=>({kind:'Tarifa Marvel',...x}))];
               const routeLabel=x=>(x.municipio_origem||'Origem não identificada')+'/'+(x.uf_origem||'—')+' → '+(x.municipio_destino||'Destino não identificado')+'/'+(x.uf_destino||'—');
               for(const x of entries){
                 const line=document.createElement('div');line.style.cssText='padding:10px;margin:6px 0;border:1px solid #38517b;border-radius:7px;';
@@ -3378,12 +3378,12 @@ initApp();
                 save.style.alignSelf='end';saveAdv.style.alignSelf='end';
                 line.append(label,freteWrap,save,advWrap,saveAdv,notes);views.spots.appendChild(line);
               }
-              tabButtons.salvos.textContent='Salvos na base ('+entries.length+')';
+              tabButtons.salvos.textContent='Tarifas cadastradas ('+entries.length+')';
               tabButtons.spots.textContent='Spots ('+routes.length+')';
-              if(!entries.length)views.salvos.textContent='Nenhuma tarifa ou spot salvo.';
+              if(!entries.length)views.salvos.textContent='Nenhuma tarifa comercial cadastrada.';
               if(!routes.length)views.spots.textContent='Nenhum spot por rota cadastrado.';
               return data;
-            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.spots.textContent='Não foi possível carregar: '+e.message;tabButtons.salvos.textContent='Salvos na base (erro)';tabButtons.spots.textContent='Spots (erro)';throw e;}
+            }catch(e){views.salvos.textContent='Não foi possível carregar: '+e.message;views.spots.textContent='Não foi possível carregar: '+e.message;tabButtons.salvos.textContent='Tarifas cadastradas (erro)';tabButtons.spots.textContent='Spots (erro)';throw e;}
           }
           function moneyBR(value){return Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
           function validateMarvel(x,tabela){
@@ -3454,7 +3454,7 @@ initApp();
           const syncDetails=document.createElement('div');
           syncDetails.setAttribute('role','status');
           syncDetails.style.cssText='padding:8px 12px;margin:8px 0;border:1px solid #38517b;border-radius:8px;color:#c7e3ff;font-size:12px;';
-          syncDetails.textContent='Tarifas elegíveis para sincronização: '+toSync.length+' de '+found.length+'. O total em "Salvos na base" inclui tarifas anteriores e spots.';
+          syncDetails.textContent='Tarifas elegíveis para sincronização: '+toSync.length+' de '+found.length+'. O total em "Tarifas cadastradas" inclui tarifas anteriores; spots são exibidos separadamente.';
           views.encontrados.prepend(syncDetails);
           found.forEach(x=>{
             const tabela=String(x.tabelaMarvel||x.nomeMarvel||x.tabela||'').trim();
