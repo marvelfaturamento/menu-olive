@@ -3303,7 +3303,7 @@ initApp();
           const views={};
           const tabButtons={};
           const pcKey=x=>String(x.id||x.pv||'');
-          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Resultados Marvel ('+found.length+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
+          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Resultados Marvel ('+(extensionOwnsSync?views.encontrados.querySelectorAll('[data-marvel-route]').length:found.length)+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
           for(const [key,label,count] of tabs){
             const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
             tab.style.cssText='padding:12px 18px;border:1px solid #38517b;border-radius:10px;';
@@ -3515,7 +3515,18 @@ initApp();
             const s=extensionSummary||{};
             status.textContent='Extensão: '+(s.rotas??0)+' rotas | Novas: '+(s.novas??0)+' | Atualizadas: '+(s.atualizadas??0)+' | Validadas: '+(s.validadas??0)+' | Sem confirmação: '+(s.semConfirmacao??0)+' | Falhas: '+(s.falhas??0);
             views.encontrados.replaceChildren();
-            for(const x of fullConference){if(!x.freteMarvel)continue;const row=appendTariff(x,x.tabelaMarvel);row.textContent=row.textContent.replace('Aguardando gravação na base',x.gravadoSupabase?'Confirmado pela extensão':'Sem confirmação de gravação');}
+            const conferenceRoutes=new Map();
+            for(const x of fullConference){
+              const key=routeKey(x);
+              const old=conferenceRoutes.get(key);
+              if(!old||(!old.gravadoSupabase&&x.gravadoSupabase))conferenceRoutes.set(key,x);
+            }
+            for(const [key,x] of conferenceRoutes){
+              const row=document.createElement('div');row.dataset.marvelRoute=key;
+              row.style.cssText='padding:12px;margin:9px 0;border:1px solid #38517b;border-radius:9px;';
+              row.textContent=[x.pagador,(x.origem||'')+' → '+(x.destino||''),x.estado||'Sem confirmação',Number(x.freteMarvel)>0?(String(x.moeda||x.moedaMarvel||'').toUpperCase()==='USD'?'US$ '+Number(x.freteMarvel).toLocaleString('pt-BR'):moneyBR(x.freteMarvel)):'',x.tabelaMarvel||x.nomeMarvel||'',x.gravadoSupabase?'Gravação confirmada':''].filter(Boolean).join(' | ');
+              views.encontrados.appendChild(row);
+            }
             refreshCounts();
           }
           if(!restored&&!extensionOwnsSync&&toSync.length)Promise.all(Array.from({length:Math.min(syncConcurrency,toSync.length)},()=>syncWorker()))
