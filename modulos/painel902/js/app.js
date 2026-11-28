@@ -3539,7 +3539,7 @@ initApp();
                 status.textContent='Sincronização: '+syncSuccess+' gravação(ões), '+syncErrors+' falha(s). Não foi possível atualizar os totais: '+e.message;
               }
             }).catch(e=>{status.textContent='Falha ao finalizar sincronização: '+e.message;});
-          else if(!restored&&found.length){
+          else if(!restored&&!extensionOwnsSync&&found.length){
             status.textContent='Conferência recebida: '+found.length+' tarifa(s) encontrada(s), nenhuma elegível para gravação automática. Consulte os motivos em Resultados Marvel.';
           }
           const groups=new Map();
