@@ -3208,7 +3208,7 @@ initApp();
           const items=Array.isArray(d.casos)?[...d.casos]:[];
           const extensionOwnsSync=d.syncOwner==='extension';
           const extensionSummary=d.syncSummary;
-          const fullConference=items.slice();
+          const fullConference=items.map(x=>({...x}));
 
           // Complementa a fila com PCs operacionais zeradas que a extensão não retornou.
           // A própria base é a fonte de verdade para detectar pendências faltantes.
@@ -3303,7 +3303,7 @@ initApp();
           const views={};
           const tabButtons={};
           const pcKey=x=>String(x.id||x.pv||'');
-          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Resultados Marvel ('+(extensionOwnsSync?views.encontrados.querySelectorAll('[data-marvel-route]').length:found.length)+')';summary.textContent='Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
+          function refreshCounts(){tabButtons.pendentes.textContent='Sem tarifa / spot ('+pending.length+')';tabButtons.encontrados.textContent='Resultados Marvel ('+(extensionOwnsSync?Number(extensionSummary?.rotas??fullConference.length):found.length)+')';summary.textContent=extensionOwnsSync?'Rotas conferidas: '+Number(extensionSummary?.rotas??fullConference.length)+' | Validadas: '+Number(extensionSummary?.validadas??0)+' | Sem confirmação: '+Number(extensionSummary?.semConfirmacao??0):'Total conferido: '+Number(d.total||0)+' | Casos para revisão: '+pending.length+' | Tarifas encontradas: '+found.length+'. Nenhuma alteração operacional.';}
           for(const [key,label,count] of tabs){
             const tab=document.createElement('button');tab.type='button';tab.textContent=label+' ('+count+')';
             tab.style.cssText='padding:12px 18px;border:1px solid #38517b;border-radius:10px;';
